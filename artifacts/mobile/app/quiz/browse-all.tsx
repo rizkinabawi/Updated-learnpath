@@ -23,12 +23,12 @@ interface LessonRow {
 }
 
 const GRAD: [string, string][] = [
-  ["#FF6B6B", "#FF9500"],
-  ["#4C6FFF", "#7C47FF"],
-  ["#7C3AED", "#A855F7"],
-  ["#38BDF8", "#0EA5E9"],
-  ["#10B981", "#059669"],
-  ["#F59E0B", "#EF4444"],
+  [Colors.accent, Colors.amber],
+  [Colors.primary, Colors.purple],
+  [Colors.purple, "#A855F7"],
+  [Colors.teal, "#0EA5E9"],
+  [Colors.emerald, Colors.success],
+  [Colors.amber, Colors.danger],
 ];
 
 export default function QuizBrowseAll() {
@@ -110,7 +110,7 @@ export default function QuizBrowseAll() {
       </TouchableOpacity>
 
       <LinearGradient
-        colors={["#FF6B6B", "#FF9500"]}
+        colors={[Colors.accent, Colors.amber]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 12 }]}
       >
@@ -149,7 +149,7 @@ export default function QuizBrowseAll() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color="#FF6B6B" size="large" />
+          <ActivityIndicator color={Colors.accent} size="large" />
           <Text style={styles.loadingText}>{t.common.loading}</Text>
         </View>
       ) : grouped.length === 0 ? (
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   countBadgeSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "700" },
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#fff", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
+    backgroundColor: Colors.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
   },
   searchInput: { flex: 1, fontSize: 14, color: Colors.dark, fontWeight: "500" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: "800", color: Colors.dark, textAlign: "center" },
   emptySub: { fontSize: 14, color: Colors.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
   list: { padding: 16, paddingBottom: 40, gap: 12 },
-  courseCard: { backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  courseCard: { backgroundColor: Colors.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
   courseHeader: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   courseIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   courseName: { fontSize: 15, fontWeight: "800", color: Colors.dark },
@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
   emptyChip: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
   fab: {
     position: "absolute", right: 20, width: 56, height: 56, borderRadius: 18,
-    backgroundColor: "#FF6B6B", alignItems: "center", justifyContent: "center",
-    zIndex: 50, shadowColor: "#FF6B6B", shadowOffset: { width: 0, height: 6 },
+    backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center",
+    zIndex: 50, shadowColor: Colors.accent, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 10,
   },
 });

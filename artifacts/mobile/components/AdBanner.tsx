@@ -67,9 +67,9 @@ function RealBannerAd({ size }: { size: "banner" | "largeBanner" | "adaptiveBann
 
 // ─── Mock Banner (Expo Go / Web / dev fallback) ───────────────────────────────
 const MOCK_ADS = [
-  { label: "Belajar lebih cepat dengan AI", cta: "Coba Gratis", color: "#4C6FFF" },
-  { label: "Flashcard & Quiz tersedia 24/7", cta: "Mulai Sekarang", color: "#7C3AED" },
-  { label: "Raih target belajarmu hari ini", cta: "Lihat Tips", color: "#059669" },
+  { label: "Belajar lebih cepat dengan AI", cta: "Coba Gratis", color: Colors.primary },
+  { label: "Flashcard & Quiz tersedia 24/7", cta: "Mulai Sekarang", color: Colors.purple },
+  { label: "Raih target belajarmu hari ini", cta: "Lihat Tips", color: Colors.emerald },
 ];
 
 function MockBannerAd({ size = "banner" }: { size?: string }) {
@@ -145,17 +145,17 @@ const s = StyleSheet.create({
     width: "100%",
   },
   badge: {
-    backgroundColor: "#F0F4FF",
+    backgroundColor: Colors.primaryLight,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: Colors.border,
   },
   badgeText: {
     fontSize: 9,
     fontWeight: "800",
-    color: "#64748B",
+    color: Colors.textMuted,
     letterSpacing: 0.5,
   },
   content: {

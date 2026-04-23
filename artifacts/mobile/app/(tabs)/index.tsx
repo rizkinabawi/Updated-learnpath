@@ -86,7 +86,7 @@ export default function Dashboard() {
       >
         {/* ═══ HEADER ═══ */}
         <LinearGradient
-          colors={["#4C6FFF", "#7C47FF"]}
+          colors={[Colors.primary, Colors.purple]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 20 }]}
@@ -170,7 +170,7 @@ export default function Dashboard() {
             </View>
             <TouchableOpacity
               activeOpacity={0.88}
-              onPress={() => router.push("/(tabs)/learn")}
+              onPress={() => router.push(`/course/${paths[0].id}` as any)}
               style={[styles.continueCard, shadow]}
             >
               <LinearGradient
@@ -248,7 +248,7 @@ export default function Dashboard() {
                   <TouchableOpacity
                     key={path.id}
                     activeOpacity={0.88}
-                    onPress={() => router.push("/(tabs)/learn")}
+                    onPress={() => router.push(`/course/${path.id}` as any)}
                     style={[styles.courseCard, shadowSm]}
                   >
                     {/* Left gradient icon panel */}
@@ -316,7 +316,7 @@ export default function Dashboard() {
               activeOpacity={0.85}
               style={[styles.emptyCard, shadow]}
             >
-              <LinearGradient colors={["#4C6FFF", "#7C47FF"]} style={styles.emptyGrad}>
+              <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.emptyGrad}>
                 <View style={styles.blob1} /><View style={styles.blob2} />
                 <Feather name="plus-circle" size={32} color="rgba(255,255,255,0.9)" />
                 <Text style={styles.emptyTitle}>Buat Kursus Pertama</Text>
@@ -367,32 +367,32 @@ export default function Dashboard() {
                 icon: "star" as const,
                 label: "Tantangan Harian",
                 sub: "Soal baru tiap hari",
-                color: "#F59E0B",
-                bg: "#FEF3C7",
+                color: Colors.warning,
+                bg: Colors.warningLight,
                 route: "/daily-challenge",
               },
               {
                 icon: "clock" as const,
                 label: "Timer Pomodoro",
                 sub: "Fokus 25 menit",
-                color: "#EF4444",
-                bg: "#FEE2E2",
+                color: Colors.danger,
+                bg: Colors.dangerLight,
                 route: "/pomodoro",
               },
               {
                 icon: "bookmark" as const,
                 label: "Bookmark Soal",
                 sub: "Review soal tersimpan",
-                color: "#8B5CF6",
-                bg: "#EDE9FE",
+                color: Colors.purple,
+                bg: Colors.purpleLight,
                 route: "/bookmarks",
               },
               {
                 icon: "download" as const,
                 label: "Import Anki",
                 sub: "Baca .apkg / .txt",
-                color: "#0EA5E9",
-                bg: "#E0F2FE",
+                color: Colors.teal,
+                bg: Colors.tealLight,
                 route: "/anki-import",
               },
             ].map((q, i) => (
@@ -440,7 +440,7 @@ export default function Dashboard() {
             style={[styles.challengeCard, shadow]}
           >
             <LinearGradient
-              colors={["#FF6B6B", "#FF9500"]}
+              colors={[Colors.accent, Colors.amber]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.challengeGrad}
@@ -457,7 +457,7 @@ export default function Dashboard() {
               </View>
               <View style={styles.challengeBtn}>
                 <Text style={styles.challengeBtnText}>Mulai</Text>
-                <Feather name="arrow-right" size={13} color="#FF6B6B" />
+                <Feather name="arrow-right" size={13} color={Colors.accent} />
               </View>
             </LinearGradient>
           </TouchableOpacity>
@@ -500,9 +500,9 @@ const styles = StyleSheet.create({
   },
   bellDot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: "#FF6B6B",
+    backgroundColor: Colors.accent,
     position: "absolute", top: 7, right: 7,
-    borderWidth: 1.5, borderColor: "#4C6FFF",
+    borderWidth: 1.5, borderColor: Colors.primary,
   },
   avatar: {
     width: 40, height: 40, borderRadius: 12,
@@ -686,5 +686,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
   },
-  challengeBtnText: { fontSize: 13, fontWeight: "800", color: "#FF6B6B" },
+  challengeBtnText: { fontSize: 13, fontWeight: "800", color: Colors.accent },
 });

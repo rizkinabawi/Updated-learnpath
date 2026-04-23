@@ -26,9 +26,9 @@ import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer } from "expo-audio";
 import { Button } from "@/components/Button";
 import {
-  getFlashcards, saveFlashcard, deleteFlashcard,
+  getFlashcards, saveFlashcard, saveFlashcardsBulk, deleteFlashcard,
   getFlashcardPacks, saveFlashcardPack, deleteFlashcardPack,
-  generateId, getLessons, type Flashcard, type FlashcardPack,
+  generateId, getLessons, ensureLocalAsset, type Flashcard, type FlashcardPack,
 } from "@/utils/storage";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -476,13 +476,24 @@ export default function CreateFlashcardScreen() {
   };
 
   const doImport = async (items: any[], packId: string | undefined) => {
-    let count = 0;
+    const toAdd: Flashcard[] = [];
     for (const item of items) {
       const q = item.question ?? item.front ?? item.pertanyaan ?? "";
       const a = item.answer ?? item.back ?? item.jawaban ?? "";
       const t = item.tag ?? item.kategori ?? "";
       const audio = item.audio ?? item.audioUrl ?? item.audio_url ?? undefined;
+      const image = item.image ?? item.imageUrl ?? item.image_url ?? undefined;
       if (!String(q).trim()) continue;
+
+      let localAudio: string | undefined;
+      if (audio) {
+        localAudio = await ensureLocalAsset(String(audio).trim(), "flashcard-audio");
+      }
+      let localImage: string | undefined;
+      if (image) {
+        localImage = await ensureLocalAsset(String(image).trim(), "flashcard-images");
+      }
+
       const card: Flashcard = {
         id: generateId(),
         lessonId: lessonId ?? "",
@@ -490,20 +501,21 @@ export default function CreateFlashcardScreen() {
         question: String(q).trim(),
         answer: String(a).trim(),
         tag: String(t).trim(),
-        audio: audio ? String(audio).trim() : undefined,
+        audio: localAudio,
+        image: localImage,
         createdAt: new Date().toISOString(),
       };
-      await saveFlashcard(card);
-      setExisting((prev) => [...prev, card]);
-      count++;
+      toAdd.push(card);
     }
+    await saveFlashcardsBulk(toAdd);
+    setExisting((prev) => [...prev, ...toAdd]);
     setPendingImportItems([]);
     setImportJson("");
     setShowImport(false);
     setShowPackModal(false);
     setNewPackName("");
-    if (count > 0) {
-      toast.success(t.create_fc.import_done(count));
+    if (toAdd.length > 0) {
+      toast.success(t.create_fc.import_done(toAdd.length));
     } else {
       toast.error(t.create_fc.no_saved);
     }

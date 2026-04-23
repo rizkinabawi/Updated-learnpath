@@ -32,14 +32,14 @@ import { toast } from "@/components/Toast";
 import { IconPicker } from "@/components/IconPicker";
 
 const COURSE_GRADIENTS: [string, string][] = [
-  ["#4C6FFF", "#7C47FF"],
-  ["#FF6B6B", "#FF9500"],
-  ["#38BDF8", "#0EA5E9"],
-  ["#7C3AED", "#A855F7"],
-  ["#059669", "#10B981"],
-  ["#F59E0B", "#EF4444"],
-  ["#06B6D4", "#3B82F6"],
-  ["#EC4899", "#8B5CF6"],
+  [Colors.primary, Colors.purple],
+  [Colors.accent, Colors.amber],
+  [Colors.teal, "#0EA5E9"],
+  [Colors.purple, "#A855F7"],
+  [Colors.success, Colors.emerald],
+  [Colors.amber, Colors.danger],
+  [Colors.teal, Colors.primary],
+  [Colors.accent, Colors.purple],
 ];
 
 const COURSE_EMOJIS = ["📘", "🎨", "🌐", "🧠", "⚗️", "🚀", "💡", "🎯"];
@@ -216,7 +216,7 @@ export default function LearnPage() {
     <View style={styles.container}>
       {/* HEADER */}
       <LinearGradient
-        colors={["#4C6FFF", "#7C47FF"]}
+        colors={[Colors.primary, Colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 14 }]}
@@ -268,7 +268,7 @@ export default function LearnPage() {
           <View style={{ gap: 12 }}>
             <TouchableOpacity onPress={() => setShowNewPath(true)} activeOpacity={0.85}>
               <LinearGradient
-                colors={["#4A9EFF", "#6C63FF"]}
+                colors={[Colors.primary, "#6C63FF"]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={styles.emptyCard}
               >
@@ -425,7 +425,7 @@ export default function LearnPage() {
                   <Text style={styles.mBtnCancelText}>Batal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={createPath} style={styles.mBtnOk}>
-                  <LinearGradient colors={["#4A9EFF", "#6C63FF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
+                  <LinearGradient colors={[Colors.primary, Colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
                     <Text style={styles.mBtnOkText}>{t.learn.create_btn}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   addMoreText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
 
   mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
-  mBox: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
+  mBox: { backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
   iconPickRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: Colors.background, borderRadius: 14, padding: 12,

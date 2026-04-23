@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Colors from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 const WORK_DURATION = 25 * 60;
@@ -29,9 +30,9 @@ function fmtTime(sec: number) {
 }
 
 const PHASE_CONFIG = {
-  work: { label: "Fokus Belajar", emoji: "🎯", grad: ["#4C6FFF", "#7C47FF"] as [string, string] },
-  break: { label: "Istirahat Sebentar", emoji: "☕", grad: ["#10B981", "#059669"] as [string, string] },
-  "long-break": { label: "Istirahat Panjang", emoji: "🌴", grad: ["#38BDF8", "#0EA5E9"] as [string, string] },
+  work: { label: "Fokus Belajar", emoji: "🎯", grad: [Colors.primary, Colors.purple] as [string, string] },
+  break: { label: "Istirahat Sebentar", emoji: "☕", grad: [Colors.success, Colors.emerald] as [string, string] },
+  "long-break": { label: "Istirahat Panjang", emoji: "🌴", grad: [Colors.teal, "#0EA5E9"] as [string, string] },
 };
 
 export default function PomodoroScreen() {
@@ -259,11 +260,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: "#CBD5E0",
+    borderColor: Colors.border,
   },
-  phasePillActive: { backgroundColor: "#4C6FFF", borderColor: "#4C6FFF" },
-  phasePillText: { fontSize: 12, fontWeight: "700", color: "#99AAC3" },
-  phasePillTextActive: { color: "#fff" },
+  phasePillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  phasePillText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
+  phasePillTextActive: { color: Colors.white },
   ringWrap: { width: 240, height: 240, alignItems: "center", justifyContent: "center", marginBottom: 24 },
   ringBg: {
     position: "absolute",
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
     height: 240,
     borderRadius: 120,
     borderWidth: 12,
-    borderColor: "#E6ECF8",
+    borderColor: Colors.border,
   },
   ringFill: {
     position: "absolute",
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#4C6FFF",
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 16,

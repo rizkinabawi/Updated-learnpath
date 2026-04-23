@@ -30,19 +30,19 @@ interface CollectionRow {
 }
 
 const GRAD: [string, string][] = [
-  ["#4C6FFF", "#7C47FF"],
-  ["#FF6B6B", "#FF9500"],
-  ["#38BDF8", "#0EA5E9"],
-  ["#7C3AED", "#A855F7"],
-  ["#10B981", "#059669"],
-  ["#F59E0B", "#EF4444"],
+  [Colors.primary, Colors.purple],
+  [Colors.accent, Colors.amber],
+  [Colors.teal, "#0EA5E9"],
+  [Colors.purple, "#A855F7"],
+  [Colors.emerald, Colors.success],
+  [Colors.amber, Colors.danger],
 ];
 
 const COL_GRADS: [string, string][] = [
-  ["#10B981", "#059669"],
-  ["#6366F1", "#8B5CF6"],
-  ["#F59E0B", "#EF4444"],
-  ["#38BDF8", "#0EA5E9"],
+  [Colors.emerald, Colors.success],
+  ["#6366F1", Colors.purple],
+  [Colors.amber, Colors.danger],
+  [Colors.teal, "#0EA5E9"],
   ["#EC4899", "#F43F5E"],
   ["#14B8A6", "#0D9488"],
 ];
@@ -360,7 +360,7 @@ export default function FlashcardBrowseAll() {
 
       {/* Header */}
       <LinearGradient
-        colors={["#4C6FFF", "#7C47FF"]}
+        colors={[Colors.primary, Colors.purple]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 12 }]}
       >
@@ -428,7 +428,7 @@ export default function FlashcardBrowseAll() {
           {filteredCollections.length > 0 && (
             <View style={styles.sectionWrap}>
               <View style={styles.sectionHeader}>
-                <LinearGradient colors={["#10B981", "#059669"]} style={styles.sectionIcon}>
+                <LinearGradient colors={[Colors.emerald, Colors.success]} style={styles.sectionIcon}>
                   <Feather name="folder" size={16} color="#fff" />
                 </LinearGradient>
                 <View style={{ flex: 1 }}>
@@ -506,8 +506,8 @@ export default function FlashcardBrowseAll() {
                               onPress={() => router.push(`/flashcard/${cr.col.id}` as any)}
                               activeOpacity={0.7}
                             >
-                              <Feather name="play" size={14} color="#10B981" />
-                              <Text style={[styles.colActionText, { color: "#10B981" }]}>Main</Text>
+                              <Feather name="play" size={14} color={Colors.success} />
+                              <Text style={[styles.colActionText, { color: Colors.success }]}>Main</Text>
                             </TouchableOpacity>
                             <View style={styles.colActionDivider} />
                           </>
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   countBadge: { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center" },
   countBadgeText: { fontSize: 20, fontWeight: "900", color: "#fff" },
   countBadgeSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "700" },
-  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11 },
+  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11 },
   searchInput: { flex: 1, fontSize: 14, color: Colors.dark, fontWeight: "500" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   collectionGrid: { gap: 10 },
 
   // ── Collection Card ──
-  colCard: { backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  colCard: { backgroundColor: Colors.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
   colCardBar: { height: 5 },
   colCardBody: { padding: 16, gap: 6 },
   colCardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
   colActionDivider: { width: 1, backgroundColor: Colors.border, marginVertical: 8 },
 
   // ── Course Cards ──
-  courseCard: { backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  courseCard: { backgroundColor: Colors.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
   courseHeader: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   courseIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   courseName: { fontSize: 15, fontWeight: "800", color: Colors.dark },
@@ -693,8 +693,8 @@ const em = StyleSheet.create({
   label: { fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 10 },
   optional: { fontSize: 12, fontWeight: "500", color: Colors.textMuted },
   input: { borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: Colors.dark, backgroundColor: Colors.background },
-  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#10B981", borderRadius: 14, paddingVertical: 14, marginTop: 16 },
-  saveBtnText: { fontSize: 15, fontWeight: "800", color: "#fff" },
+  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Colors.success, borderRadius: 14, paddingVertical: 14, marginTop: 16 },
+  saveBtnText: { fontSize: 15, fontWeight: "800", color: Colors.white },
 });
 
 // ─── Assign Modal Styles ────────────────────────────────────────
@@ -705,7 +705,7 @@ const am = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
   title: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: Colors.dark },
-  colPreview: { marginHorizontal: 20, marginBottom: 12, fontSize: 13, fontWeight: "600", color: Colors.textSecondary, fontStyle: "italic", backgroundColor: Colors.background, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderLeftWidth: 3, borderLeftColor: "#10B981" },
+  colPreview: { marginHorizontal: 20, marginBottom: 12, fontSize: 13, fontWeight: "600", color: Colors.textSecondary, fontStyle: "italic", backgroundColor: Colors.background, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderLeftWidth: 3, borderLeftColor: Colors.success },
   loadingWrap: { alignItems: "center", justifyContent: "center", padding: 32, gap: 10 },
   list: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
   item: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: Colors.border },

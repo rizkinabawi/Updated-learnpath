@@ -45,6 +45,13 @@ const webStub = {
   async readDirectoryAsync(_uri: string): Promise<string[]> {
     return [];
   },
+  async downloadAsync(_url: string, _fileUri: string): Promise<{ uri: string }> {
+    return { uri: _fileUri };
+  },
+  async readAsBytesAsync(_uri: string): Promise<Uint8Array> {
+    return new Uint8Array(0);
+  },
+  async writeAsBytesAsync(_uri: string, _bytes: Uint8Array): Promise<void> {},
 };
 
 // Lazy-load native implementation only on non-web platforms
@@ -122,6 +129,22 @@ async function getNative(): Promise<typeof webStub> {
         return uri.split("/").pop() ?? uri;
       });
     },
+
+    async downloadAsync(url: string, fileUri: string): Promise<{ uri: string }> {
+      const f = new File(fileUri);
+      await f.download(url);
+      return { uri: fileUri };
+    },
+
+    async readAsBytesAsync(fileUri: string): Promise<Uint8Array> {
+      const f = new File(fileUri);
+      return await f.bytes();
+    },
+
+    async writeAsBytesAsync(fileUri: string, bytes: Uint8Array): Promise<void> {
+      const f = new File(fileUri);
+      f.write(bytes);
+    },
   };
 
   return _native;
@@ -191,4 +214,25 @@ export async function copyAsync(options: {
 export async function readDirectoryAsync(fileUri: string): Promise<string[]> {
   const n = await getNative();
   return n.readDirectoryAsync(fileUri);
+}
+
+export async function downloadAsync(
+  url: string,
+  fileUri: string
+): Promise<{ uri: string }> {
+  const n = await getNative();
+  return n.downloadAsync(url, fileUri);
+}
+
+export async function readAsBytesAsync(fileUri: string): Promise<Uint8Array> {
+  const n = await getNative();
+  return n.readAsBytesAsync(fileUri);
+}
+
+export async function writeAsBytesAsync(
+  fileUri: string,
+  bytes: Uint8Array
+): Promise<void> {
+  const n = await getNative();
+  return n.writeAsBytesAsync(fileUri, bytes);
 }

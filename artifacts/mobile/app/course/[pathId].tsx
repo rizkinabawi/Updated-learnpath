@@ -27,11 +27,11 @@ import Colors from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 const GRAD_PALETTE: [string, string][] = [
-  ["#4A9EFF", "#6C63FF"],
-  ["#FF6B6B", "#FF9500"],
-  ["#38BDF8", "#0EA5E9"],
-  ["#7C3AED", "#A855F7"],
-  ["#059669", "#10B981"],
+  [Colors.primary, Colors.purple],
+  [Colors.accent, Colors.amber],
+  [Colors.teal, "#0EA5E9"],
+  [Colors.purple, "#A855F7"],
+  [Colors.emerald, Colors.success],
 ];
 const MOD_EMOJIS = ["📘", "🎨", "🌐", "🧠", "⚗️"];
 
@@ -141,7 +141,7 @@ export default function CourseDetailPage() {
     <View style={styles.container}>
       {/* HEADER */}
       <LinearGradient
-        colors={["#4C6FFF", "#7C47FF"]}
+        colors={[Colors.primary, Colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 10 }]}
@@ -270,7 +270,7 @@ export default function CourseDetailPage() {
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
                             <View style={styles.actionRow}>
                               <ActionPill
-                                label={t.course.action_notes} bg="#EEF0FF"
+                                label={t.course.action_notes} bg={Colors.primaryLight}
                                 onPress={() => router.push(`/notes/${lesson.id}`)}
                               />
                               <ActionPill
@@ -361,7 +361,7 @@ export default function CourseDetailPage() {
                     <Text style={styles.mBtnCancelText}>{t.common.cancel}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={m.save} style={styles.mBtnOk}>
-                    <LinearGradient colors={["#4A9EFF", "#6C63FF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
+                    <LinearGradient colors={[Colors.primary, Colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
                       <Text style={styles.mBtnOkText}>{t.common.save}</Text>
                     </LinearGradient>
                   </TouchableOpacity>

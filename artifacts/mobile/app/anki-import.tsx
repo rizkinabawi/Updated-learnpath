@@ -27,6 +27,7 @@ import {
   getLearningPaths,
   getUser,
   saveFlashcard,
+  saveFlashcardsBulk,
   saveLearningPath,
   saveLesson,
   saveModule,
@@ -284,6 +285,7 @@ export default function AnkiImportScreen() {
     };
     await saveStandaloneCollection(col);
 
+    const allCards: Flashcard[] = [];
     for (const deck of decks) {
       for (const c of deck.cards) {
         const card: Flashcard = {
@@ -298,9 +300,10 @@ export default function AnkiImportScreen() {
             : {}),
           createdAt: now,
         };
-        await saveFlashcard(card);
+        allCards.push(card);
       }
     }
+    await saveFlashcardsBulk(allCards);
     return { name: col.name, target: "/(tabs)/practice" as const };
   };
 
@@ -339,6 +342,7 @@ export default function AnkiImportScreen() {
     const prefix = commonDeckPrefix(decks.map((d) => d.name));
 
     let order = 0;
+    const allCards: Flashcard[] = [];
     for (const deck of decks) {
       const leafName = stripPrefix(deck.name, prefix) || deck.name;
       const lesson: Lesson = {
@@ -364,10 +368,11 @@ export default function AnkiImportScreen() {
             : {}),
           createdAt: now,
         };
-        await saveFlashcard(card);
+        allCards.push(card);
       }
     }
-    return { name: mod.name, target: "/(tabs)/learn" as const };
+    await saveFlashcardsBulk(allCards);
+    return { name: mod.name, target: `/course/${pathId}` as const };
   };
 
   const importToCollection = async () => {
@@ -424,7 +429,7 @@ export default function AnkiImportScreen() {
         <View>
           {/* Hero */}
           <LinearGradient
-            colors={["#4C6FFF", "#7C47FF"]}
+            colors={[Colors.primary, Colors.purple]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.hero, shadow]}

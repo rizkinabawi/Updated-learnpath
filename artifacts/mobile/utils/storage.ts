@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
+import { deleteAsync, downloadAsync, documentDirectory, makeDirectoryAsync } from "./fs-compat";
 
 /** Special lessonId for flashcards/quizzes created without a course */
 export const STANDALONE_LESSON_ID = "__standalone__";
@@ -237,6 +238,39 @@ const saveToStorage = async <T>(key: string, data: T[]) => {
   } catch {}
 };
 
+/** Helper to delete a local file if it's stored in the app's internal directory */
+const deleteFileIfLocal = async (uri?: string) => {
+  if (!uri || Platform.OS === "web") return;
+  // Check if it's a local file in documentDirectory
+  if (uri.startsWith("file://") || (documentDirectory && uri.startsWith(documentDirectory))) {
+    try {
+      await deleteAsync(uri);
+    } catch {
+      // ignore
+    }
+  }
+};
+
+/** Helper to ensure a remote asset is downloaded locally for offline use */
+export const ensureLocalAsset = async (sourceUrl: string, folder: string): Promise<string> => {
+  if (Platform.OS === "web" || !sourceUrl.startsWith("http") || !documentDirectory) {
+    return sourceUrl;
+  }
+  try {
+    const dir = `${documentDirectory}${folder}/`;
+    await makeDirectoryAsync(dir, { intermediates: true });
+    
+    const ext = sourceUrl.split(".").pop()?.split("?")[0] ?? "dat";
+    const filename = `${generateId()}.${ext}`;
+    const dest = `${dir}${filename}`;
+    
+    await downloadAsync(sourceUrl, dest);
+    return dest;
+  } catch {
+    return sourceUrl;
+  }
+};
+
 // User
 export const getUser = async (): Promise<User | null> => {
   const data = await AsyncStorage.getItem(STORAGE_KEYS.USER);
@@ -365,8 +399,24 @@ export const saveFlashcard = async (card: Flashcard) => {
   await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards);
 };
 
+export const saveFlashcardsBulk = async (newCards: Flashcard[]) => {
+  const cards = await getFlashcards();
+  const updated = [...cards];
+  for (const card of newCards) {
+    const idx = updated.findIndex((c) => c.id === card.id);
+    if (idx >= 0) updated[idx] = card;
+    else updated.push(card);
+  }
+  await saveToStorage(STORAGE_KEYS.FLASHCARDS, updated);
+};
+
 export const deleteFlashcard = async (id: string) => {
   const cards = await getFlashcards();
+  const card = cards.find((c) => c.id === id);
+  if (card) {
+    await deleteFileIfLocal(card.image);
+    await deleteFileIfLocal(card.audio);
+  }
   await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards.filter((c) => c.id !== id));
 };
 
@@ -389,8 +439,24 @@ export const saveQuiz = async (quiz: Quiz) => {
   await saveToStorage(STORAGE_KEYS.QUIZZES, quizzes);
 };
 
+export const saveQuizzesBulk = async (newQuizzes: Quiz[]) => {
+  const quizzes = await getQuizzes();
+  const updated = [...quizzes];
+  for (const q of newQuizzes) {
+    const idx = updated.findIndex((item) => item.id === q.id);
+    if (idx >= 0) updated[idx] = q;
+    else updated.push(q);
+  }
+  await saveToStorage(STORAGE_KEYS.QUIZZES, updated);
+};
+
 export const deleteQuiz = async (id: string) => {
   const quizzes = await getQuizzes();
+  const quiz = quizzes.find((q) => q.id === id);
+  if (quiz) {
+    await deleteFileIfLocal(quiz.image);
+    await deleteFileIfLocal(quiz.audio);
+  }
   await saveToStorage(STORAGE_KEYS.QUIZZES, quizzes.filter((q) => q.id !== id));
 };
 
@@ -536,6 +602,10 @@ export const saveNote = async (note: Note) => {
 
 export const deleteNote = async (id: string) => {
   const notes = await getNotes();
+  const note = notes.find((n) => n.id === id);
+  if (note?.images) {
+    for (const img of note.images) await deleteFileIfLocal(img);
+  }
   await saveToStorage(STORAGE_KEYS.NOTES, notes.filter((n) => n.id !== id));
 };
 
@@ -555,6 +625,14 @@ export const saveStudyMaterial = async (mat: StudyMaterial) => {
 
 export const deleteStudyMaterial = async (id: string) => {
   const mats = await getStudyMaterials();
+  const mat = mats.find((m) => m.id === id);
+  if (mat) {
+    await deleteFileIfLocal(mat.filePath);
+    await deleteFileIfLocal(mat.imageLocalPath);
+    if (mat.images) {
+      for (const img of mat.images) await deleteFileIfLocal(img);
+    }
+  }
   await saveToStorage(STORAGE_KEYS.STUDY_MATERIALS, mats.filter((m) => m.id !== id));
 };
 

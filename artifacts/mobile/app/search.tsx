@@ -43,12 +43,12 @@ interface SearchResult {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const KIND_CONFIG: Record<ResultKind, { label: string; icon: React.ComponentProps<typeof Feather>["name"]; color: string; bg: string }> = {
-  course:     { label: "Kursus",        icon: "book",          color: "#4C6FFF", bg: "#EEF1FF" },
-  module:     { label: "Modul",         icon: "layers",        color: "#7C3AED", bg: "#F5F0FF" },
-  lesson:     { label: "Pelajaran",     icon: "file-text",     color: "#0891B2", bg: "#E0F7FA" },
-  collection: { label: "Koleksi",       icon: "folder",        color: "#059669", bg: "#E6F7F1" },
-  flashcard:  { label: "Flashcard",     icon: "credit-card",   color: "#D97706", bg: "#FFF7E6" },
-  quiz:       { label: "Soal Quiz",     icon: "help-circle",   color: "#DC2626", bg: "#FEF2F2" },
+  course:     { label: "Kursus",        icon: "book",          color: Colors.primary, bg: Colors.primaryLight },
+  module:     { label: "Modul",         icon: "layers",        color: Colors.purple, bg: Colors.purpleLight },
+  lesson:     { label: "Pelajaran",     icon: "file-text",     color: Colors.teal, bg: Colors.tealLight },
+  collection: { label: "Koleksi",       icon: "folder",        color: Colors.emerald, bg: Colors.emeraldLight },
+  flashcard:  { label: "Flashcard",     icon: "credit-card",   color: Colors.amber, bg: Colors.amberLight },
+  quiz:       { label: "Soal Quiz",     icon: "help-circle",   color: Colors.danger, bg: Colors.dangerLight },
 };
 
 const SECTION_ORDER: ResultKind[] = ["course", "module", "lesson", "collection", "flashcard", "quiz"];
@@ -396,7 +396,7 @@ function EmptyPrompt() {
 function NoResults({ query }: { query: string }) {
   return (
     <View style={styles.centerBox}>
-      <Feather name="search" size={40} color="#CBD5E1" />
+      <Feather name="search" size={40} color={Colors.border} />
       <Text style={styles.noResultTitle}>Tidak ditemukan</Text>
       <Text style={styles.noResultSub}>Tidak ada hasil untuk "{query}"</Text>
       <Text style={styles.noResultHint}>Coba kata kunci yang berbeda atau lebih singkat</Text>
@@ -408,16 +408,16 @@ function NoResults({ query }: { query: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FB",
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#EAEDF0",
+    borderBottomColor: Colors.border,
     gap: 10,
   },
   backBtn: {
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F3F8",
+    backgroundColor: Colors.borderLight,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === "ios" ? 10 : 8,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#1A1D23",
+    color: Colors.text,
     padding: 0,
     margin: 0,
   },
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#374151",
+    color: Colors.textSecondary,
     flex: 1,
   },
   countPill: {
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   resultCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -507,12 +507,12 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1A1D23",
+    color: Colors.text,
     lineHeight: 20,
   },
   highlight: {
-    backgroundColor: "#FEF08A",
-    color: "#92400E",
+    backgroundColor: Colors.warningLight,
+    color: Colors.warning,
   },
   resultSubtitle: {
     fontSize: 12,
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#EEF1FF",
+    backgroundColor: Colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1A1D23",
+    color: Colors.text,
     marginBottom: 4,
   },
   emptySubtitle: {
@@ -570,19 +570,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.surface,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   tipText: {
     fontSize: 13,
-    color: "#374151",
+    color: Colors.textSecondary,
   },
   noResultTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#374151",
+    color: Colors.textSecondary,
     marginTop: 12,
   },
   noResultSub: {
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   },
   noResultHint: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: Colors.textMuted,
     marginTop: 4,
     textAlign: "center",
   },

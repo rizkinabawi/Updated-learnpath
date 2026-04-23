@@ -87,7 +87,7 @@ export default function AboutDeveloper() {
       >
         {/* ── HEADER ── */}
         <LinearGradient
-          colors={["#4C6FFF", "#7C47FF"]}
+          colors={[Colors.primary, Colors.purple]}
           style={[
             styles.header,
             { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 },
@@ -101,7 +101,7 @@ export default function AboutDeveloper() {
           {/* Avatar */}
           <View style={styles.avatarRing}>
             <LinearGradient
-              colors={["#FFD700", "#FF6B6B"]}
+              colors={[Colors.warning, Colors.accent]}
               style={styles.avatarGrad}
             >
               <Text style={styles.avatarEmoji}>{DEV.avatar}</Text>
@@ -177,7 +177,7 @@ export default function AboutDeveloper() {
               <Text style={styles.appInfoTagline}>{APP_INFO.tagline}</Text>
               <View style={styles.appInfoDivider} />
               <Text style={styles.appInfoMade}>
-                Made with <Text style={{ color: "#FF6B6B" }}>♥</Text> by {DEV.name} · {APP_INFO.year}
+                Made with <Text style={{ color: Colors.accent }}>♥</Text> by {DEV.name} · {APP_INFO.year}
               </Text>
             </LinearGradient>
           </View>

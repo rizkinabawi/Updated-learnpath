@@ -38,12 +38,14 @@ import { Button } from "@/components/Button";
 import {
   getQuizzes,
   saveQuiz,
+  saveQuizzesBulk,
   deleteQuiz,
   getQuizPacks,
   saveQuizPack,
   deleteQuizPack,
   generateId,
   getLessons,
+  ensureLocalAsset,
   type Quiz,
   type QuizPack,
 } from "@/utils/storage";
@@ -448,7 +450,19 @@ export default function CreateQuizScreen() {
       if (!item.question || !Array.isArray(item.options)) continue;
       const { options, answer } = resolveAnswer(item);
       if (!answer) continue;
+
       const audioField = item.audio || item.audioUrl || item.audio_url;
+      const imageField = item.image || item.imageUrl || item.image_url;
+
+      let localAudio: string | undefined;
+      if (audioField) {
+        localAudio = await ensureLocalAsset(String(audioField).trim(), "quiz-audio");
+      }
+      let localImage: string | undefined;
+      if (imageField) {
+        localImage = await ensureLocalAsset(String(imageField).trim(), "quiz-images");
+      }
+
       toAdd.push({
         id: generateId(),
         lessonId: lessonId ?? "",
@@ -458,13 +472,14 @@ export default function CreateQuizScreen() {
         answer,
         explanation: item.explanation ? String(item.explanation).trim() : undefined,
         type: "multiple-choice",
-        audio: audioField ? String(audioField).trim() : undefined,
+        audio: localAudio,
+        image: localImage,
         createdAt: new Date().toISOString(),
       });
     }
-    // Save all at once, then update state once (prevents per-item re-render lag)
+    // Save all at once (much faster than individual calls)
     try {
-      await Promise.all(toAdd.map((q) => saveQuiz(q)));
+      await saveQuizzesBulk(toAdd);
     } catch {
       toast.error("Gagal menyimpan beberapa soal, coba lagi.");
       return;

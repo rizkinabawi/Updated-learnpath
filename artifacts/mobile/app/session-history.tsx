@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { getSessionLogs, type SessionLog } from "@/utils/storage";
+import Colors from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 function fmtDuration(sec: number) {
@@ -62,7 +63,7 @@ export default function SessionHistory() {
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
       <LinearGradient
-        colors={["#4C6FFF", "#7C47FF"]}
+        colors={[Colors.primary, Colors.purple]}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -109,8 +110,8 @@ export default function SessionHistory() {
                 const isFC = log.type === "flashcard";
                 return (
                   <View key={log.id} style={[styles.logCard, { backgroundColor: C.surface }]}>
-                    <View style={[styles.logIcon, { backgroundColor: isFC ? "#EEF0FF" : "#FFF8EB" }]}>
-                      <Feather name={isFC ? "credit-card" : "help-circle"} size={16} color={isFC ? "#4C6FFF" : "#FF9500"} />
+                    <View style={[styles.logIcon, { backgroundColor: isFC ? Colors.primaryLight : Colors.amberLight }]}>
+                      <Feather name={isFC ? "credit-card" : "help-circle"} size={16} color={isFC ? Colors.primary : Colors.amber} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.logLesson, { color: C.text }]} numberOfLines={1}>
@@ -121,7 +122,7 @@ export default function SessionHistory() {
                       </Text>
                     </View>
                     <View style={styles.logRight}>
-                      <Text style={[styles.logAcc, { color: acc >= 70 ? "#10B981" : acc >= 40 ? "#FF9500" : "#EF4444" }]}>
+                      <Text style={[styles.logAcc, { color: acc >= 70 ? Colors.success : acc >= 40 ? Colors.amber : Colors.danger }]}>
                         {acc}%
                       </Text>
                       <Text style={[styles.logScore, { color: C.textMuted }]}>

@@ -334,7 +334,7 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   const DIFFICULTIES = [{ key: "easy", label: "Mudah" }, { key: "medium", label: "Sedang" }, { key: "hard", label: "Sulit" }];
   const LANGUAGES = Object.keys(LANG_LABELS);
   const QUIZ_COLOR = Colors.danger;
-  const QUIZ_LIGHT = "#FFF5F5";
+  const QUIZ_LIGHT = Colors.dangerLight;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -496,7 +496,7 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
                       disabled={aiLoading}
                     >
                       <LinearGradient
-                        colors={["#10A37F", "#4285F4"]}
+                        colors={[Colors.success, Colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={s.askAiGrad}
@@ -533,7 +533,7 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
               {activeTab === "import" && (
                 <>
                   <View style={[s.aiInfoBox, { backgroundColor: "#F5F3FF" }]}>
-                    <Feather name="download" size={16} color="#7C3AED" />
+                    <Feather name="download" size={16} color={Colors.purple} />
                     <Text style={[s.aiInfoText, { color: "#7C3AED" }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
                   </View>
 
@@ -654,20 +654,20 @@ const s = StyleSheet.create({
   typeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingVertical: 10, backgroundColor: Colors.background },
   typeBtnActive: { backgroundColor: Colors.danger, borderColor: Colors.danger },
   typeBtnText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  typeBtnTextActive: { color: "#fff" },
+  typeBtnTextActive: { color: Colors.white },
   optRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   radio: { width: 30, height: 30, borderRadius: 10, borderWidth: 2, borderColor: Colors.border, alignItems: "center", justifyContent: "center", backgroundColor: Colors.background, flexShrink: 0 },
   radioActive: { backgroundColor: Colors.success, borderColor: Colors.success },
   radioLetter: { fontSize: 12, fontWeight: "800", color: Colors.textMuted },
   optInput: { flex: 1, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: Colors.dark, backgroundColor: Colors.background },
-  optInputActive: { borderColor: Colors.success, backgroundColor: "#F0FDF4" },
+  optInputActive: { borderColor: Colors.success, backgroundColor: Colors.successLight },
   tfRow: { flexDirection: "row", gap: 10, marginBottom: 4 },
   tfBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14, paddingVertical: 14, backgroundColor: Colors.background },
   tfTrue: { backgroundColor: Colors.success, borderColor: Colors.success },
   tfFalse: { backgroundColor: Colors.danger, borderColor: Colors.danger },
   tfBtnText: { fontSize: 15, fontWeight: "800", color: Colors.textMuted },
   saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 15, marginTop: 12 },
-  saveBtnText: { fontSize: 15, fontWeight: "900", color: "#fff" },
+  saveBtnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
   secondaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14, paddingVertical: 12, marginTop: 8, backgroundColor: Colors.primaryLight },
   secondaryBtnText: { fontSize: 14, fontWeight: "800", color: Colors.primary },
   aiInfoBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.primaryLight, borderRadius: 14, padding: 12, marginTop: 6 },

@@ -22,10 +22,10 @@ export default function PracticeTab() {
   const { t } = useTranslation();
 
   const MODES = [
-    { icon: "credit-card" as const, label: t.practice.mode_flash, sub: t.practice.mode_flash_sub, gradient: ["#4C6FFF", "#7C47FF"] as [string, string], route: "/flashcard/browse-all" },
-    { icon: "help-circle" as const, label: t.practice.mode_quiz, sub: t.practice.mode_quiz_sub, gradient: ["#FF6B6B", "#FF9500"] as [string, string], route: "/quiz/browse-all" },
-    { icon: "repeat" as const, label: t.practice.mode_review, sub: t.practice.mode_review_sub, gradient: ["#7C3AED", "#A855F7"] as [string, string], route: "/mistakes-review" },
-    { icon: "zap" as const, label: t.practice.mode_fast, sub: t.practice.mode_fast_sub, gradient: ["#FF9500", "#F59E0B"] as [string, string], route: "/(tabs)/learn" },
+    { icon: "credit-card" as const, label: t.practice.mode_flash, sub: t.practice.mode_flash_sub, gradient: [Colors.primary, Colors.purple] as [string, string], route: "/flashcard/browse-all" },
+    { icon: "help-circle" as const, label: t.practice.mode_quiz, sub: t.practice.mode_quiz_sub, gradient: [Colors.accent, Colors.amber] as [string, string], route: "/quiz/browse-all" },
+    { icon: "repeat" as const, label: t.practice.mode_review, sub: t.practice.mode_review_sub, gradient: [Colors.purple, "#A855F7"] as [string, string], route: "/mistakes-review" },
+    { icon: "zap" as const, label: t.practice.mode_fast, sub: t.practice.mode_fast_sub, gradient: [Colors.amber, Colors.warning] as [string, string], route: "/(tabs)/learn" },
   ];
   const SCROLL_PAD = 20; // matches styles.scroll padding
   const modeCardWidth = isTablet
@@ -51,7 +51,7 @@ export default function PracticeTab() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#FF6B6B", "#FF9500"]}
+        colors={[Colors.accent, Colors.amber]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
@@ -132,7 +132,7 @@ export default function PracticeTab() {
               {paths.map((path, i) => (
                 <TouchableOpacity
                   key={path.id}
-                  onPress={() => router.push("/(tabs)/learn")}
+                  onPress={() => router.push(`/course/${path.id}` as any)}
                   style={[styles.courseRow, shadowSm]}
                   activeOpacity={0.85}
                 >
@@ -146,7 +146,7 @@ export default function PracticeTab() {
                     <Text style={styles.courseRowName} numberOfLines={1}>{path.name}</Text>
                     <Text style={styles.courseRowSub} numberOfLines={1}>{path.description || t.practice.practice_btn}</Text>
                   </View>
-                  <TouchableOpacity style={styles.practiceBtn} onPress={() => router.push("/(tabs)/learn")}>
+                  <TouchableOpacity style={styles.practiceBtn} onPress={() => router.push(`/course/${path.id}` as any)}>
                     <Text style={styles.practiceBtnText}>{t.practice.practice_btn}</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -157,7 +157,7 @@ export default function PracticeTab() {
 
         {paths.length === 0 && (
           <View style={[styles.emptyCard, shadow]}>
-            <LinearGradient colors={["#4C6FFF","#7C47FF"]} style={styles.emptyGrad}>
+            <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.emptyGrad}>
               <View style={styles.hBlob1} />
               <Feather name="book-open" size={36} color="rgba(255,255,255,0.85)" />
               <Text style={styles.emptyTitle}>{t.practice.no_course_title}</Text>

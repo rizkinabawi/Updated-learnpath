@@ -126,15 +126,15 @@ export default function PackManager() {
   const qCount = packs.filter((p) => p.type === "quiz").length;
 
   const TYPE_META = {
-    flashcard: { label: "Flashcard", icon: "layers" as const, color: "#8B5CF6", bg: "#8B5CF618" },
-    quiz: { label: "Quiz", icon: "help-circle" as const, color: "#EF4444", bg: "#EF444418" },
+    flashcard: { label: "Flashcard", icon: "layers" as const, color: Colors.purple, bg: Colors.purpleLight },
+    quiz: { label: "Quiz", icon: "help-circle" as const, color: Colors.danger, bg: Colors.dangerLight },
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       {/* Header */}
       <LinearGradient
-        colors={["#8B5CF6", "#4C6FFF"]}
+        colors={[Colors.purple, Colors.primary]}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 }]}
       >
         <View style={styles.headerRow}>
@@ -151,8 +151,8 @@ export default function PackManager() {
         <View style={styles.statsRow}>
           {[
             { val: packs.length, lbl: "Total Pack", color: "#fff" },
-            { val: fcCount, lbl: "Flashcard", color: "#C4B5FD" },
-            { val: qCount, lbl: "Quiz", color: "#FCA5A5" },
+            { val: fcCount, lbl: "Flashcard", color: Colors.purpleLight },
+            { val: qCount, lbl: "Quiz", color: Colors.dangerLight },
           ].map((s, i) => (
             <View key={i} style={[styles.statChip, i > 0 && { borderLeftWidth: 1, borderLeftColor: "rgba(255,255,255,0.2)" }]}>
               <Text style={[styles.statVal, { color: s.color }]}>{s.val}</Text>
@@ -274,9 +274,9 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
   },
-  filterChipActive: { backgroundColor: "#fff" },
+  filterChipActive: { backgroundColor: Colors.white },
   filterText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.8)" },
-  filterTextActive: { color: "#4C6FFF" },
+  filterTextActive: { color: Colors.primary },
   packCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
     backgroundColor: Colors.white, borderRadius: 18, padding: 14,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary, borderRadius: 14,
     paddingVertical: 13, alignItems: "center",
   },
-  modalSaveText: { fontSize: 15, fontWeight: "900", color: "#fff" },
+  modalSaveText: { fontSize: 15, fontWeight: "900", color: Colors.white },
   modalCancel: { alignItems: "center", paddingVertical: 6 },
   modalCancelText: { fontSize: 14, fontWeight: "700", color: Colors.textMuted },
 });

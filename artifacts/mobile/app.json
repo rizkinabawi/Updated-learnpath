@@ -23,7 +23,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -56,8 +65,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "279d3643-bb83-407e-ba8d-99981cee17c6"
-      }
-    }
+        "projectId": "eb6c5d18-313c-420a-b663-01b4bac737df"
+      },
+      "router": {}
+    },
+    "owner": "priangrizkinabawisyeh"
   }
 }

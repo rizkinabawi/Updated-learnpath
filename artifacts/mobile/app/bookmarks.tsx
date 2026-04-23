@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { getBookmarks, toggleBookmark, type BookmarkedItem } from "@/utils/storage";
+import Colors from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 export default function BookmarksScreen() {
@@ -47,7 +48,7 @@ export default function BookmarksScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
       <LinearGradient
-        colors={["#F59E0B", "#EF4444"]}
+        colors={[Colors.amber, Colors.danger]}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -100,9 +101,9 @@ export default function BookmarksScreen() {
                 activeOpacity={0.85}
               >
                 <View style={styles.cardTop}>
-                  <View style={[styles.typeTag, { backgroundColor: isFC ? "#EEF0FF" : "#FFF8EB" }]}>
-                    <Feather name={isFC ? "credit-card" : "help-circle"} size={12} color={isFC ? "#4C6FFF" : "#FF9500"} />
-                    <Text style={[styles.typeText, { color: isFC ? "#4C6FFF" : "#FF9500" }]}>
+                  <View style={[styles.typeTag, { backgroundColor: isFC ? Colors.primaryLight : Colors.amberLight }]}>
+                    <Feather name={isFC ? "credit-card" : "help-circle"} size={12} color={isFC ? Colors.primary : Colors.amber} />
+                    <Text style={[styles.typeText, { color: isFC ? Colors.primary : Colors.amber }]}>
                       {isFC ? "Flashcard" : "Kuis"}
                     </Text>
                   </View>
@@ -110,7 +111,7 @@ export default function BookmarksScreen() {
                     {item.lessonName}
                   </Text>
                   <TouchableOpacity onPress={() => handleRemove(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Feather name="bookmark" size={16} color="#F59E0B" />
+                    <Feather name="bookmark" size={16} color={Colors.amber} />
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.question, { color: C.text }]} numberOfLines={isOpen ? undefined : 2}>
@@ -170,11 +171,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: "#CBD5E0",
+    borderColor: Colors.border,
   },
-  filterBtnActive: { backgroundColor: "#4C6FFF", borderColor: "#4C6FFF" },
-  filterText: { fontSize: 12, fontWeight: "700", color: "#99AAC3" },
-  filterTextActive: { color: "#fff" },
+  filterBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  filterText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
+  filterTextActive: { color: Colors.white },
   scroll: { padding: 16, gap: 10 },
   empty: { alignItems: "center", paddingTop: 60, gap: 12 },
   emptyEmoji: { fontSize: 48 },

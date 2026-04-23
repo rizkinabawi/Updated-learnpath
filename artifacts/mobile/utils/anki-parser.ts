@@ -119,9 +119,8 @@ async function readFileAsUint8Array(uri: string): Promise<Uint8Array> {
     const buf = await resp.arrayBuffer();
     return new Uint8Array(buf);
   }
-  // Native: read as base64 then decode
-  const b64 = await fsCompat.readAsStringAsync(uri, { encoding: "base64" });
-  return base64ToUint8Array(b64);
+  // Native: read directly as bytes (Uint8Array) — MUCH more memory efficient than base64
+  return await fsCompat.readAsBytesAsync(uri);
 }
 
 function uint8ArrayToBase64(bytes: Uint8Array): string {
@@ -314,8 +313,8 @@ export async function parseAnkiPackage(
       const bytes = await entry.async("uint8array");
       const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
       const targetUri = `${mediaDirUri}${safeName}`;
-      const b64 = uint8ArrayToBase64(bytes);
-      await fsCompat.writeAsStringAsync(targetUri, b64, { encoding: "base64" });
+      // Native: write directly as bytes (Uint8Array) — MUCH more memory efficient than base64
+      await fsCompat.writeAsBytesAsync(targetUri, bytes);
       extractedCache.set(filename, targetUri);
       return targetUri;
     } catch {

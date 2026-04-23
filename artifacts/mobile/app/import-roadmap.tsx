@@ -660,7 +660,7 @@ export default function ImportRoadmapScreen() {
                   disabled={aiLoading}
                 >
                   <LinearGradient
-                    colors={["#10A37F", "#4285F4"]}
+                    colors={[Colors.success, Colors.primary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.askAiGrad}
@@ -825,10 +825,10 @@ export default function ImportRoadmapScreen() {
 
 function lessonTypeColor(type: string): string {
   switch (type) {
-    case "video": return "#FF6B6B";
-    case "quiz": return "#F59E0B";
-    case "flashcard": return "#7C3AED";
-    case "project": return "#059669";
+    case "video": return Colors.accent;
+    case "quiz": return Colors.warning;
+    case "flashcard": return Colors.purple;
+    case "project": return Colors.success;
     default: return Colors.primary;
   }
 }

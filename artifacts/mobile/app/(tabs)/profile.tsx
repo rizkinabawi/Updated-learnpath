@@ -148,19 +148,19 @@ export default function ProfileTab() {
     {
       icon: "key" as const, label: "AI Keys",
       sub: "Simpan API key OpenAI & Gemini untuk Ask Your AI",
-      color: "#10A37F",
+      color: Colors.success,
       onPress: () => router.push("/ai-keys"),
     },
     {
       icon: "package" as const, label: "Pack Manager",
       sub: "Kelola pack flashcard & quiz kamu",
-      color: "#8B5CF6",
+      color: Colors.purple,
       onPress: () => router.push("/pack-manager"),
     },
     {
       icon: "image" as const, label: "Image Manager",
       sub: "Lihat & hapus gambar tersimpan",
-      color: "#0EA5E9",
+      color: Colors.teal,
       onPress: () => router.push("/image-manager"),
     },
     {
@@ -178,7 +178,7 @@ export default function ProfileTab() {
     {
       icon: "hard-drive" as const, label: "Backup & Pulih",
       sub: "Simpan / pulihkan semua data + media (offline)",
-      color: "#0EA5E9",
+      color: Colors.teal,
       onPress: () => router.push("/backup" as any),
     },
     {
@@ -196,19 +196,19 @@ export default function ProfileTab() {
     {
       icon: "star" as const, label: "Tantangan Harian",
       sub: "Coba soal challenge hari ini",
-      color: "#F59E0B",
+      color: Colors.warning,
       onPress: () => router.push("/daily-challenge"),
     },
     {
       icon: "clock" as const, label: "Timer Pomodoro",
       sub: "Sesi belajar terstruktur 25/5 menit",
-      color: "#EF4444",
+      color: Colors.danger,
       onPress: () => router.push("/pomodoro"),
     },
     {
       icon: "bookmark" as const, label: "Soal Tersimpan",
       sub: "Review flashcard & quiz yang di-bookmark",
-      color: "#8B5CF6",
+      color: Colors.purple,
       onPress: () => router.push("/bookmarks"),
     },
     {
@@ -220,13 +220,13 @@ export default function ProfileTab() {
     {
       icon: "droplet" as const, label: "Tema",
       sub: "Pilih palet warna & mode terang/gelap",
-      color: "#0F1F3D",
+      color: Colors.dark,
       onPress: () => router.push("/theme-settings" as any),
     },
     {
       icon: "code" as const, label: t.profile.about_dev,
       sub: t.profile.about_dev_sub,
-      color: "#7C47FF",
+      color: Colors.purple,
       onPress: () => router.push("/about-developer"),
     },
     {
@@ -260,7 +260,7 @@ export default function ProfileTab() {
     >
       {/* ── HEADER ── */}
       <LinearGradient
-        colors={["#4C6FFF", "#7C47FF"]}
+        colors={[Colors.primary, Colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
@@ -317,7 +317,7 @@ export default function ProfileTab() {
         {showBackupReminder && (
           <View style={styles.backupBanner}>
             <View style={styles.backupBannerIcon}>
-              <Feather name="hard-drive" size={18} color="#0EA5E9" />
+              <Feather name="hard-drive" size={18} color={Colors.teal} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.backupBannerTitle}>
@@ -353,7 +353,7 @@ export default function ProfileTab() {
         {/* Goal */}
         {user?.goal && (
           <View style={[styles.goalCard, shadowSm]}>
-            <LinearGradient colors={["#4C6FFF", "#7C47FF"]} style={styles.goalIconWrap}>
+            <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.goalIconWrap}>
               <Feather name="target" size={18} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
@@ -444,14 +444,14 @@ export default function ProfileTab() {
         <Text style={styles.menuLabel}>Tampilan</Text>
         <View style={[styles.menuCard, shadowSm, { marginBottom: 4 }]}>
           <View style={{ flexDirection: "row", alignItems: "center", padding: 16, gap: 14 }}>
-            <View style={[styles.menuIconWrap, { backgroundColor: isDark ? "#374151" : "#F3F4F6" }]}>
-              <Feather name={isDark ? "moon" : "sun"} size={18} color={isDark ? "#93C5FD" : "#F59E0B"} />
+            <View style={[styles.menuIconWrap, { backgroundColor: isDark ? Colors.darkMed : Colors.background }]}>
+              <Feather name={isDark ? "moon" : "sun"} size={18} color={isDark ? Colors.teal : Colors.warning} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.menuTitle]}>Dark Mode</Text>
               <Text style={styles.menuSub}>{isDark ? "Mode gelap aktif" : "Mode terang aktif"}</Text>
             </View>
-            <Switch value={isDark} onValueChange={toggleDark} trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={isDark ? "#fff" : "#fff"} />
+            <Switch value={isDark} onValueChange={toggleDark} trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={Colors.white} />
           </View>
         </View>
 
@@ -598,31 +598,31 @@ const styles = StyleSheet.create({
   backupBanner: {
     flexDirection: "row",
     gap: 12,
-    backgroundColor: "#E0F2FE",
+    backgroundColor: Colors.tealLight,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#BAE6FD",
+    borderColor: Colors.border,
   },
   backupBannerIcon: {
     width: 36, height: 36, borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.white,
     alignItems: "center", justifyContent: "center",
   },
-  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: "#075985" },
-  backupBannerSub: { fontSize: 12, color: "#0C4A6E", marginTop: 2, lineHeight: 17 },
+  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
+  backupBannerSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2, lineHeight: 17 },
   backupBannerBtns: { flexDirection: "row", gap: 10, marginTop: 10 },
   backupBannerCta: {
-    backgroundColor: "#0EA5E9",
+    backgroundColor: Colors.teal,
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 999,
   },
-  backupBannerCtaText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  backupBannerCtaText: { color: Colors.white, fontWeight: "800", fontSize: 12 },
   backupBannerSnooze: {
     paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 999,
   },
-  backupBannerSnoozeText: { color: "#0C4A6E", fontWeight: "700", fontSize: 12 },
+  backupBannerSnoozeText: { color: Colors.textSecondary, fontWeight: "700", fontSize: 12 },
   goalCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: 20, padding: 16 },
   goalIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   goalLabel: { fontSize: 10, fontWeight: "800", color: Colors.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },

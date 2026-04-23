@@ -19,10 +19,10 @@ const IMAGE_EXTS = new Set([
 ]);
 
 const DIR_DEFS = [
-  { label: "Foto Quiz",      key: "quiz",      folder: "quiz-images/",     color: "#EF4444" },
-  { label: "Foto Flashcard", key: "flashcard", folder: "flashcard-images/", color: "#8B5CF6" },
-  { label: "Materi Belajar", key: "material",  folder: "study-materials/",  color: "#0EA5E9" },
-  { label: "Foto Profil",    key: "avatar",    folder: "avatars/",           color: "#10B981" },
+  { label: "Foto Quiz",      key: "quiz",      folder: "quiz-images/",     color: Colors.danger },
+  { label: "Foto Flashcard", key: "flashcard", folder: "flashcard-images/", color: Colors.purple },
+  { label: "Materi Belajar", key: "material",  folder: "study-materials/",  color: Colors.teal },
+  { label: "Foto Profil",    key: "avatar",    folder: "avatars/",           color: Colors.success },
 ];
 
 interface ImageItem {
@@ -161,7 +161,7 @@ export default function ImageManager() {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       <LinearGradient
-        colors={["#0EA5E9", "#6366F1"]}
+        colors={[Colors.teal, Colors.purple]}
         style={[styles.header, { paddingTop: (Platform.OS as string) === "web" ? 60 : insets.top + 16 }]}
       >
         <View style={styles.headerRow}>
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: "#fff" },
   filterDot: { width: 7, height: 7, borderRadius: 999 },
   filterText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.85)" },
-  filterTextActive: { color: "#4C6FFF" },
+  filterTextActive: { color: Colors.primary },
 
   // Thumbnail grid
   imgCell: {

@@ -117,7 +117,7 @@ export default function ExternalScreensPage() {
           <Feather name="edit-2" size={14} color={Colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item)}>
-          <Feather name="trash-2" size={14} color="#E5484D" />
+          <Feather name="trash-2" size={14} color={Colors.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowColor: "#0F1F3D",
+    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,

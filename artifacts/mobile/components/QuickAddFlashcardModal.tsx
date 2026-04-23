@@ -347,8 +347,8 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
               {!selLesson && (
                 <>
                   <View style={s.standaloneBadge}>
-                    <Feather name="folder" size={12} color="#10B981" />
-                    <Text style={[s.standaloneBadgeText, { color: "#10B981" }]}>Akan dibuat sebagai koleksi tersendiri</Text>
+                    <Feather name="folder" size={12} color={Colors.success} />
+                    <Text style={[s.standaloneBadgeText, { color: Colors.success }]}>Akan dibuat sebagai koleksi tersendiri</Text>
                   </View>
                   <Text style={[s.label, { marginTop: 6 }]}>Nama Koleksi <Text style={s.optional}>(opsional)</Text></Text>
                   <TextInput
@@ -446,7 +446,7 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
                       disabled={aiLoading}
                     >
                       <LinearGradient
-                        colors={["#10A37F", "#4285F4"]}
+                        colors={[Colors.success, Colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={s.askAiGrad}
@@ -483,8 +483,8 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
               {activeTab === "import" && (
                 <>
                   <View style={s.aiInfoBox}>
-                    <Feather name="download" size={16} color="#7C3AED" />
-                    <Text style={[s.aiInfoText, { color: "#7C3AED" }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
+                    <Feather name="download" size={16} color={Colors.purple} />
+                    <Text style={[s.aiInfoText, { color: Colors.purple }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
                   </View>
 
                   <Text style={[s.label, { marginTop: 12 }]}>Format yang diterima:</Text>
@@ -607,7 +607,7 @@ const s = StyleSheet.create({
   imgPreview: { width: 100, height: 75, borderRadius: 10 },
   imgRemove: { position: "absolute", top: 4, right: 4, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 10, padding: 3 },
   saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 15, marginTop: 12 },
-  saveBtnText: { fontSize: 15, fontWeight: "900", color: "#fff" },
+  saveBtnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
   secondaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14, paddingVertical: 12, marginTop: 8, backgroundColor: Colors.primaryLight },
   secondaryBtnText: { fontSize: 14, fontWeight: "800", color: Colors.primary },
   aiInfoBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.primaryLight, borderRadius: 14, padding: 12, marginTop: 6 },

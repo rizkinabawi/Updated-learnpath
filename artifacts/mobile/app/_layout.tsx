@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/Toast";
+import Colors from "@/constants/colors";
 import { scheduleDailyMotivation, getReminderSettings, scheduleStudyReminder } from "@/utils/notifications";
 import { isCancellationError } from "@/utils/safe-share";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -150,9 +151,9 @@ function AppLoadingScreen() {
         <Text style={splashStyles.tagline}>Belajar lebih cerdas setiap hari</Text>
       </View>
       <View style={splashStyles.dotsRow}>
-        <LoadingDot delay={0} color="#4C6FFF" />
-        <LoadingDot delay={180} color="#38BDF8" />
-        <LoadingDot delay={360} color="#7C3AED" />
+        <LoadingDot delay={0} color={Colors.primary} />
+        <LoadingDot delay={180} color={Colors.teal} />
+        <LoadingDot delay={360} color={Colors.purple} />
       </View>
       <ProgressBar />
     </View>
@@ -162,7 +163,7 @@ function AppLoadingScreen() {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F7FF",
+    backgroundColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",
     gap: 0,
@@ -171,11 +172,11 @@ const splashStyles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 26,
-    backgroundColor: "#4C6FFF",
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
-    shadowColor: "#4C6FFF",
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
@@ -188,13 +189,13 @@ const splashStyles = StyleSheet.create({
   appName: {
     fontSize: 26,
     fontWeight: "800",
-    color: "#0F1F3D",
+    color: Colors.text,
     letterSpacing: -0.5,
     marginBottom: 6,
   },
   tagline: {
     fontSize: 14,
-    color: "#99AAC3",
+    color: Colors.textMuted,
     marginBottom: 40,
   },
   dotsRow: {
@@ -206,7 +207,7 @@ const splashStyles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#4C6FFF",
+    backgroundColor: Colors.primary,
   },
   barTrack: {
     position: "absolute",
@@ -214,13 +215,13 @@ const splashStyles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: "#E6ECF8",
+    backgroundColor: Colors.border,
     overflow: "hidden",
   },
   barFill: {
     height: "100%",
     width: "40%",
-    backgroundColor: "#4C6FFF",
+    backgroundColor: Colors.primary,
     borderRadius: 2,
   },
 });

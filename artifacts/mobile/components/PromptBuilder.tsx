@@ -586,7 +586,7 @@ export const PromptBuilder = () => {
     >
       {/* Header */}
       <LinearGradient
-        colors={["#4C6FFF", "#7C47FF"]}
+        colors={[Colors.primary, Colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -722,7 +722,7 @@ export const PromptBuilder = () => {
             disabled={loading}
           >
             <LinearGradient
-              colors={["#4C6FFF", "#7C47FF"]}
+              colors={[Colors.primary, Colors.purple]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.generateGrad}
@@ -780,7 +780,7 @@ export const PromptBuilder = () => {
                 disabled={aiLoading}
               >
                 <LinearGradient
-                  colors={["#10A37F", "#4285F4"]}
+                  colors={[Colors.success, Colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.askAiGrad}
@@ -856,7 +856,7 @@ export const PromptBuilder = () => {
           </View>
 
           <TouchableOpacity onPress={handleParseJson} style={[styles.generateBtn, shadow]} activeOpacity={0.85}>
-            <LinearGradient colors={["#7C3AED", "#A855F7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.generateGrad}>
+            <LinearGradient colors={[Colors.purple, "#A855F7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.generateGrad}>
               <Feather name="upload" size={18} color="#fff" />
               <Text style={styles.generateBtnText}>Parse & Preview JSON</Text>
             </LinearGradient>

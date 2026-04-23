@@ -40,7 +40,7 @@ export default function TabLayout() {
           height: isWeb ? 60 : 82,
           paddingBottom: isWeb ? 8 : 20,
           paddingTop: 6,
-          shadowColor: "#0F1F3D",
+          shadowColor: Colors.dark,
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.07,
           shadowRadius: 20,
@@ -82,7 +82,7 @@ export default function TabLayout() {
           title: t.tab.practice,
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.centerBtn, focused && styles.centerBtnActive]}>
-              <Feather name="zap" size={22} color={focused ? "#fff" : Colors.textMuted} />
+              <Feather name="zap" size={22} color={focused ? Colors.white : Colors.textMuted} />
             </View>
           ),
         }}

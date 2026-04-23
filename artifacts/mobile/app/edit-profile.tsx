@@ -116,7 +116,7 @@ export default function EditProfile() {
       >
         {/* Header */}
         <LinearGradient
-          colors={["#4C6FFF", "#7C47FF"]}
+          colors={[Colors.primary, Colors.purple]}
           style={[styles.header, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 }]}
         >
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -129,7 +129,7 @@ export default function EditProfile() {
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
             ) : (
-              <LinearGradient colors={["#7C47FF", "#4C6FFF"]} style={styles.avatarFallback}>
+              <LinearGradient colors={[Colors.purple, Colors.primary]} style={styles.avatarFallback}>
                 <Text style={styles.avatarInitial}>{initial}</Text>
               </LinearGradient>
             )}
@@ -221,7 +221,7 @@ export default function EditProfile() {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={["#4C6FFF", "#7C47FF"]} style={styles.saveBtnGrad}>
+            <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.saveBtnGrad}>
               <Feather name="check" size={18} color="#fff" />
               <Text style={styles.saveBtnText}>{saving ? "Menyimpan..." : "Simpan Perubahan"}</Text>
             </LinearGradient>

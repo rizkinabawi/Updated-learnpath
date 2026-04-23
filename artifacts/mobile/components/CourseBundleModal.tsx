@@ -319,7 +319,7 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
                 <View style={styles.previewStats}>
                   <PreviewStat label="Modul" val={mods.length} color={Colors.primary} />
                   <PreviewStat label="Pelajaran" val={lessons.length} color={Colors.teal} />
-                  <PreviewStat label="Flashcard" val={fc} color="#8B5CF6" />
+                  <PreviewStat label="Flashcard" val={fc} color={Colors.purple} />
                   <PreviewStat label="Soal Quiz" val={qz} color={Colors.amber} />
                 </View>
               </View>

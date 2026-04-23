@@ -15,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getQuizzes, getFlashcards, getLessons, type Quiz, type Flashcard, type Lesson } from "@/utils/storage";
+import Colors from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 const CHALLENGE_KEY = "daily_challenge_state";
@@ -148,7 +149,7 @@ export default function DailyChallengeScreen() {
   if (!quiz && !flashcard) {
     return (
       <View style={{ flex: 1, backgroundColor: C.background }}>
-        <LinearGradient colors={["#4C6FFF", "#7C47FF"]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
+        <LinearGradient colors={[Colors.primary, Colors.purple]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Feather name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
@@ -170,7 +171,7 @@ export default function DailyChallengeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
-      <LinearGradient colors={["#FF6B6B", "#FF9500"]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
+      <LinearGradient colors={[Colors.accent, Colors.amber]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
@@ -183,17 +184,17 @@ export default function DailyChallengeScreen() {
 
       <View style={styles.body}>
         {state?.completed && (
-          <View style={[styles.doneBanner, { backgroundColor: state.wasCorrect ? "#ECFDF5" : "#FEF2F2" }]}>
-            <Feather name={state.wasCorrect ? "check-circle" : "x-circle"} size={16} color={state.wasCorrect ? "#10B981" : "#EF4444"} />
-            <Text style={[styles.doneTxt, { color: state.wasCorrect !== false ? "#10B981" : "#EF4444" }]}>
+          <View style={[styles.doneBanner, { backgroundColor: state.wasCorrect ? Colors.successLight : Colors.dangerLight }]}>
+            <Feather name={state.wasCorrect ? "check-circle" : "x-circle"} size={16} color={state.wasCorrect ? Colors.success : Colors.danger} />
+            <Text style={[styles.doneTxt, { color: state.wasCorrect !== false ? Colors.success : Colors.danger }]}>
               {state.wasCorrect !== false ? "Kamu sudah menjawab tantangan hari ini!" : "Sudah diselesaikan hari ini."}
             </Text>
           </View>
         )}
 
-        <View style={[styles.typeBadge, { backgroundColor: type === "quiz" ? "#EEF0FF" : "#FFF8EB" }]}>
-          <Feather name={type === "quiz" ? "help-circle" : "credit-card"} size={14} color={type === "quiz" ? "#4C6FFF" : "#FF9500"} />
-          <Text style={[styles.typeTxt, { color: type === "quiz" ? "#4C6FFF" : "#FF9500" }]}>
+        <View style={[styles.typeBadge, { backgroundColor: type === "quiz" ? Colors.primaryLight : Colors.amberLight }]}>
+          <Feather name={type === "quiz" ? "help-circle" : "credit-card"} size={14} color={type === "quiz" ? Colors.primary : Colors.amber} />
+          <Text style={[styles.typeTxt, { color: type === "quiz" ? Colors.primary : Colors.amber }]}>
             {type === "quiz" ? "Soal Pilihan Ganda" : "Flashcard"}
           </Text>
         </View>
@@ -209,8 +210,8 @@ export default function DailyChallengeScreen() {
                 let border = C.border;
                 let textColor = C.text;
                 if (answered) {
-                  if (isCorrect) { bg = "#ECFDF5"; border = "#10B981"; textColor = "#059669"; }
-                  else if (isSelected && !isCorrect) { bg = "#FEF2F2"; border = "#EF4444"; textColor = "#EF4444"; }
+                  if (isCorrect) { bg = Colors.successLight; border = Colors.success; textColor = Colors.success; }
+                  else if (isSelected && !isCorrect) { bg = Colors.dangerLight; border = Colors.danger; textColor = Colors.danger; }
                 }
                 return (
                   <TouchableOpacity
@@ -226,8 +227,8 @@ export default function DailyChallengeScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.optionText, { color: textColor }]}>{opt}</Text>
-                    {answered && isCorrect && <Feather name="check" size={16} color="#10B981" />}
-                    {answered && isSelected && !isCorrect && <Feather name="x" size={16} color="#EF4444" />}
+                    {answered && isCorrect && <Feather name="check" size={16} color={Colors.success} />}
+                    {answered && isSelected && !isCorrect && <Feather name="x" size={16} color={Colors.danger} />}
                   </TouchableOpacity>
                 );
               })}
@@ -250,7 +251,7 @@ export default function DailyChallengeScreen() {
         ) : null}
 
         <TouchableOpacity onPress={() => router.back()} style={styles.doneBtn} activeOpacity={0.85}>
-          <LinearGradient colors={["#FF6B6B", "#FF9500"]} style={styles.doneBtnGrad}>
+          <LinearGradient colors={[Colors.accent, Colors.amber]} style={styles.doneBtnGrad}>
             <Text style={styles.doneBtnText}>Selesai</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     backfaceVisibility: "hidden",
   },
   cardBack: {
-    borderWidth: 1.5, borderColor: "#E6ECF8",
+    borderWidth: 1.5, borderColor: Colors.border,
   },
   cardLabel: { fontSize: 11, fontWeight: "800", color: "rgba(255,255,255,0.6)", letterSpacing: 1 },
   cardQuestion: { fontSize: 18, fontWeight: "800", color: "#fff", textAlign: "center", lineHeight: 26 },
@@ -310,6 +311,6 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48 },
   emptyTitle: { fontSize: 18, fontWeight: "800" },
   emptySub: { fontSize: 13, textAlign: "center", lineHeight: 20 },
-  backHomeBtn: { backgroundColor: "#4C6FFF", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
-  backHomeBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  backHomeBtn: { backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
+  backHomeBtnText: { color: Colors.white, fontWeight: "700", fontSize: 14 },
 });

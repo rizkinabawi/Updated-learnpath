@@ -79,7 +79,11 @@ export async function importFromZip(zipBase64: string): Promise<ImportedZipResul
       const b64 = await zip.files[imgPath].async("base64");
       const ext = imgPath.split(".").pop() ?? "png";
       const filename = `zip_import_${Date.now()}_${imgPath.split("/").pop()}`;
-      const localPath = `${FileSystem.cacheDirectory}${filename}`;
+      const targetDir = `${FileSystem.documentDirectory}imports/`;
+      try {
+        await FileSystem.makeDirectoryAsync(targetDir, { intermediates: true });
+      } catch {}
+      const localPath = `${targetDir}${filename}`;
       await FileSystem.writeAsStringAsync(localPath, b64, {
         encoding: FileSystem.EncodingType.Base64,
       });

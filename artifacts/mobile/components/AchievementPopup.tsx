@@ -37,8 +37,8 @@ const CONFIGS: Record<AchievementType, { emoji: string; title: string; sub: (v?:
     emoji: "🏆",
     title: "Nilai Sempurna!",
     sub: (v) => `Selamat! Kamu menjawab semua soal dengan benar. Score: ${v ?? 100}%`,
-    color: "#F59E0B",
-    bg: "#FFF8EB",
+    color: Colors.amber,
+    bg: Colors.amberLight,
   },
   quiz_done: {
     emoji: "✅",
@@ -51,15 +51,15 @@ const CONFIGS: Record<AchievementType, { emoji: string; title: string; sub: (v?:
     emoji: "⚡",
     title: "Flashcard Tuntas!",
     sub: (v) => `Kamu sudah mengulas ${v ?? 0} kartu hari ini. Ingatan makin kuat!`,
-    color: "#8B5CF6",
-    bg: "#F3EFFF",
+    color: Colors.purple,
+    bg: Colors.purpleLight,
   },
   streak: {
     emoji: "🔥",
     title: "Streak Baru!",
     sub: (v) => `Luar biasa! Kamu sudah belajar ${v ?? 1} hari berturut-turut!`,
-    color: "#EF4444",
-    bg: "#FFF0F0",
+    color: Colors.danger,
+    bg: Colors.dangerLight,
   },
   first_lesson: {
     emoji: "🌟",
@@ -211,5 +211,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 24, borderRadius: 16, paddingVertical: 15,
     alignItems: "center", width: "85%",
   },
-  btnText: { fontSize: 15, fontWeight: "900", color: "#fff" },
+  btnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
 });

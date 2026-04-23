@@ -32,7 +32,7 @@ const TUTORIAL_STEPS = [
   {
     key: "welcome",
     emoji: "👋",
-    bg: "#EBF5FF",
+    bg: Colors.primaryLight,
     accent: Colors.primary,
     title: "Selamat Datang\ndi LearningPath!",
     sub: "Aplikasi belajar personal yang fleksibel. Ikuti tur singkat ini untuk memulai.",
@@ -41,8 +41,8 @@ const TUTORIAL_STEPS = [
   {
     key: "paths",
     emoji: "🗂️",
-    bg: "#FFF8EB",
-    accent: "#F59E0B",
+    bg: Colors.amberLight,
+    accent: Colors.amber,
     title: "Kelola Materi\nBelajarmu",
     sub: "Buat Learning Path → tambah Module → bagi menjadi Lesson. Struktur rapih, belajar makin fokus.",
     features: [
@@ -54,8 +54,8 @@ const TUTORIAL_STEPS = [
   {
     key: "study",
     emoji: "🃏",
-    bg: "#F0FFF4",
-    accent: "#10B981",
+    bg: Colors.successLight,
+    accent: Colors.success,
     title: "Flashcard & Quiz\nInteraktif",
     sub: "Perkuat hafalan dengan flashcard flip, uji pengetahuan dengan quiz pilihan ganda, dan review kesalahan.",
     features: [
@@ -67,8 +67,8 @@ const TUTORIAL_STEPS = [
   {
     key: "ai",
     emoji: "🤖",
-    bg: "#F5F3FF",
-    accent: "#7C3AED",
+    bg: Colors.purpleLight,
+    accent: Colors.purple,
     title: "AI Prompt\nGenerator",
     sub: "Generate soal flashcard & quiz otomatis! Salin prompt → tempel ke ChatGPT → import hasilnya langsung ke app.",
     features: [
@@ -209,7 +209,7 @@ export default function Onboarding() {
           {/* ── SETUP: Name (step 4) ───────────────────────────────── */}
           {step === 4 && (
             <>
-              <View style={[styles.illustrationWrap, { backgroundColor: "#FFF8EB" }]}>
+              <View style={[styles.illustrationWrap, { backgroundColor: Colors.amberLight }]}>
                 <Text style={styles.illustrationEmoji}>📝</Text>
               </View>
               <Text style={styles.title}>{t.onboarding.step_profile_title}</Text>
@@ -231,7 +231,7 @@ export default function Onboarding() {
           {/* ── SETUP: Goal & Level (step 5) ──────────────────────── */}
           {step === 5 && (
             <>
-              <View style={[styles.illustrationWrap, { backgroundColor: "#E0FAF8" }]}>
+              <View style={[styles.illustrationWrap, { backgroundColor: Colors.tealLight }]}>
                 <Text style={styles.illustrationEmoji}>🎯</Text>
               </View>
               <Text style={styles.title}>{t.onboarding.step_ai_title}</Text>

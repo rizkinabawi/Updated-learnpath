@@ -147,7 +147,7 @@ export default function AIKeysScreen() {
       >
         {/* ── HEADER ── */}
         <LinearGradient
-          colors={["#4C6FFF", "#7C47FF"]}
+          colors={[Colors.primary, Colors.purple]}
           style={[
             s.header,
             { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 },
@@ -355,14 +355,14 @@ export default function AIKeysScreen() {
         <View style={s.helpCard}>
           <Text style={s.helpTitle}>Cara Mendapatkan API Key</Text>
           <View style={s.helpItem}>
-            <Text style={[s.helpLabel, { color: "#10A37F" }]}>⚡ OpenAI</Text>
+            <Text style={[s.helpLabel, { color: Colors.success }]}>⚡ OpenAI</Text>
             <Text style={s.helpDesc}>
               platform.openai.com → API Keys → Create new secret key
             </Text>
           </View>
           <View style={s.divider} />
           <View style={s.helpItem}>
-            <Text style={[s.helpLabel, { color: "#4285F4" }]}>✨ Gemini</Text>
+            <Text style={[s.helpLabel, { color: Colors.primary }]}>✨ Gemini</Text>
             <Text style={s.helpDesc}>
               aistudio.google.com → Get API key → Create API key
             </Text>
@@ -613,7 +613,7 @@ const s = StyleSheet.create({
   helpCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: "#0F1F3D",
+    backgroundColor: Colors.dark,
     borderRadius: 18,
     padding: 16,
     gap: 12,

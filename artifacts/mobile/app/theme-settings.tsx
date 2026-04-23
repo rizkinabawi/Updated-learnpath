@@ -14,6 +14,12 @@ const PALETTE_OPTIONS: { id: Palette; title: string; sub: string; preview: strin
     preview: ["#4C6FFF", "#FF6B6B", "#7C3AED", "#FF9500"],
   },
   {
+    id: "premium",
+    title: "Premium",
+    sub: "Putih hangat dengan aksen champagne gold — modern & premium",
+    preview: ["#FAF8F4", "#1A1A1A", "#B8945F", "#5C7A7A"],
+  },
+  {
     id: "minimal",
     title: "Minimal B&W",
     sub: "Hitam putih elegan — fokus tanpa distraksi",

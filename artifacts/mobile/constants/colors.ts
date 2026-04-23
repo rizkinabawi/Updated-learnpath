@@ -136,6 +136,47 @@ const LightMinimal: ColorScheme = {
   shadow: "#000000",
 };
 
+// ── LIGHT × PREMIUM (minimalis putih, aksen champagne gold) ──────────────────
+const LightPremium: ColorScheme = {
+  primary: "#1A1A1A",
+  primaryDark: "#000000",
+  primaryLight: "#F4F1EC",
+  accent: "#B8945F",
+  accentLight: "#F7F2E9",
+  teal: "#5C7A7A",
+  tealLight: "#EFF2F2",
+  amber: "#C5A572",
+  amberLight: "#F7F2E9",
+  purple: "#3F3A4D",
+  purpleLight: "#F1F0F3",
+  emerald: "#5A7A5A",
+  emeraldLight: "#EEF2EE",
+  dark: "#0F0F0F",
+  black: "#0F0F0F",
+  darkMed: "#2A2A2A",
+  white: "#FFFFFF",
+  background: "#FAF8F4",
+  surface: "#FFFFFF",
+  border: "#EAE5DC",
+  borderLight: "#F4F1EC",
+  text: "#1A1A1A",
+  textSecondary: "#5C5751",
+  textMuted: "#A39E96",
+  success: "#5A7A5A",
+  successLight: "#EEF2EE",
+  danger: "#A65043",
+  dangerLight: "#F5EDEB",
+  warning: "#B8945F",
+  warningLight: "#F7F2E9",
+  tabActive: "#1A1A1A",
+  tabInactive: "#A39E96",
+  card1: "#1A1A1A",
+  card2: "#B8945F",
+  card3: "#5C7A7A",
+  card4: "#3F3A4D",
+  shadow: "#1A1A1A",
+};
+
 // ── DARK × DEFAULT ───────────────────────────────────────────────────────────
 const DarkDefault: ColorScheme = {
   primary: "#6B8EFF",
@@ -218,11 +259,52 @@ const DarkMinimal: ColorScheme = {
   shadow: "#000000",
 };
 
-export type Palette = "color" | "minimal";
+// ── DARK × PREMIUM (deep charcoal + warm gold) ───────────────────────────────
+const DarkPremium: ColorScheme = {
+  primary: "#F1ECE2",
+  primaryDark: "#E5DDCC",
+  primaryLight: "#1F1B14",
+  accent: "#D4B583",
+  accentLight: "#1F1B14",
+  teal: "#8FA8A8",
+  tealLight: "#162020",
+  amber: "#D4B583",
+  amberLight: "#1F1B14",
+  purple: "#8B85A0",
+  purpleLight: "#171520",
+  emerald: "#8FA88F",
+  emeraldLight: "#162016",
+  dark: "#FFFFFF",
+  black: "#FFFFFF",
+  darkMed: "#E5E0D6",
+  white: "#13110D",
+  background: "#0F0D0A",
+  surface: "#19170F",
+  border: "#2D2920",
+  borderLight: "#211E16",
+  text: "#F4F0E6",
+  textSecondary: "#B5AFA3",
+  textMuted: "#7A746A",
+  success: "#8FA88F",
+  successLight: "#162016",
+  danger: "#D08070",
+  dangerLight: "#251612",
+  warning: "#D4B583",
+  warningLight: "#1F1B14",
+  tabActive: "#F1ECE2",
+  tabInactive: "#7A746A",
+  card1: "#3A352B",
+  card2: "#5C4A2E",
+  card3: "#3D4A4A",
+  card4: "#2D2A38",
+  shadow: "#000000",
+};
+
+export type Palette = "color" | "minimal" | "premium";
 
 const PRESETS = {
-  light: { color: LightDefault, minimal: LightMinimal },
-  dark: { color: DarkDefault, minimal: DarkMinimal },
+  light: { color: LightDefault, minimal: LightMinimal, premium: LightPremium },
+  dark: { color: DarkDefault, minimal: DarkMinimal, premium: DarkPremium },
 } as const;
 
 // Mutable runtime export — overwritten in place by `applyTheme`.
@@ -274,6 +356,24 @@ const CARD_GRADIENTS_DARK: [string, string][] = [
   ["#CC8500", "#CC3333"],
 ];
 
+const CARD_GRADIENTS_PREMIUM_LIGHT: [string, string][] = [
+  ["#1A1A1A", "#3A3A3A"],
+  ["#B8945F", "#8B6F42"],
+  ["#5C7A7A", "#3F5757"],
+  ["#3F3A4D", "#2A2632"],
+  ["#5A7A5A", "#3F5740"],
+  ["#A65043", "#7A382E"],
+];
+
+const CARD_GRADIENTS_PREMIUM_DARK: [string, string][] = [
+  ["#3A352B", "#19170F"],
+  ["#5C4A2E", "#3A2E1C"],
+  ["#3D4A4A", "#2A3434"],
+  ["#2D2A38", "#1C1A24"],
+  ["#3A4540", "#252D2A"],
+  ["#4A302A", "#2A1C18"],
+];
+
 const CARD_GRADIENTS_MINIMAL_LIGHT: [string, string][] = [
   ["#1A1A1A", "#000000"],
   ["#2A2A2A", "#111111"],
@@ -294,15 +394,19 @@ const CARD_GRADIENTS_MINIMAL_DARK: [string, string][] = [
 
 export const CARD_GRADIENTS: [string, string][] = [...CARD_GRADIENTS_LIGHT];
 export const CARD_GRADIENTS_MINIMAL: [string, string][] = [...CARD_GRADIENTS_MINIMAL_LIGHT];
+export const CARD_GRADIENTS_PREMIUM: [string, string][] = [...CARD_GRADIENTS_PREMIUM_LIGHT];
 
 // Re-populate gradients when the theme changes so screens importing them re-read.
 export function applyGradientsForTheme(palette: Palette, isDark: boolean) {
   const colorSrc = isDark ? CARD_GRADIENTS_DARK : CARD_GRADIENTS_LIGHT;
   const minSrc = isDark ? CARD_GRADIENTS_MINIMAL_DARK : CARD_GRADIENTS_MINIMAL_LIGHT;
+  const premSrc = isDark ? CARD_GRADIENTS_PREMIUM_DARK : CARD_GRADIENTS_PREMIUM_LIGHT;
   CARD_GRADIENTS.length = 0;
   CARD_GRADIENTS.push(...colorSrc);
   CARD_GRADIENTS_MINIMAL.length = 0;
   CARD_GRADIENTS_MINIMAL.push(...minSrc);
+  CARD_GRADIENTS_PREMIUM.length = 0;
+  CARD_GRADIENTS_PREMIUM.push(...premSrc);
 }
 
 export const CARD_COLORS = ["#4C6FFF", "#FF6B6B", "#38BDF8", "#7C3AED", "#10B981", "#FF9500"];

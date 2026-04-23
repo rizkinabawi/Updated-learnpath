@@ -150,7 +150,60 @@ export async function writeBackupToFile(
   await FileSystem.writeAsStringAsync(uri, json, {
     encoding: FileSystem.EncodingType.UTF8,
   });
+  try {
+    await AsyncStorage.setItem("last_backup_at", new Date().toISOString());
+  } catch {
+    // ignore
+  }
   return { uri, filename, sizeBytes: json.length };
+}
+
+/**
+ * Returns the ISO timestamp of the last successful backup, or null if none.
+ */
+export async function getLastBackupAt(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem("last_backup_at");
+  } catch {
+    return null;
+  }
+}
+
+/** Number of days since the last backup, or null if there has never been one. */
+export async function getDaysSinceLastBackup(): Promise<number | null> {
+  const iso = await getLastBackupAt();
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return Math.floor((Date.now() - t) / (1000 * 60 * 60 * 24));
+}
+
+/** Mark the backup reminder as snoozed for `days` days. */
+export async function snoozeBackupReminder(days = 3): Promise<void> {
+  const until = Date.now() + days * 24 * 60 * 60 * 1000;
+  try {
+    await AsyncStorage.setItem("backup_reminder_snooze_until", String(until));
+  } catch {
+    // ignore
+  }
+}
+
+/** Whether a backup reminder banner should be shown right now. */
+export async function shouldShowBackupReminder(
+  thresholdDays = 7
+): Promise<boolean> {
+  try {
+    const snoozeRaw = await AsyncStorage.getItem("backup_reminder_snooze_until");
+    if (snoozeRaw) {
+      const until = Number(snoozeRaw);
+      if (Number.isFinite(until) && until > Date.now()) return false;
+    }
+  } catch {
+    // ignore
+  }
+  const days = await getDaysSinceLastBackup();
+  if (days === null) return true;
+  return days >= thresholdDays;
 }
 
 /**

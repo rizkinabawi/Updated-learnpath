@@ -22,6 +22,11 @@ import { CourseBundleShareModal, CourseImportPreviewModal } from "@/components/C
 import { extractAssetsFromPack } from "@/utils/bundle-assets";
 import Colors, { shadow, shadowSm } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
+import {
+  shouldShowBackupReminder,
+  snoozeBackupReminder,
+  getDaysSinceLastBackup,
+} from "@/utils/backup";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -40,11 +45,22 @@ export default function ProfileTab() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showImportPreview, setShowImportPreview] = useState(false);
   const [importPreviewPack, setImportPreviewPack] = useState<CoursePack | null>(null);
+  const [showBackupReminder, setShowBackupReminder] = useState(false);
+  const [daysSinceBackup, setDaysSinceBackup] = useState<number | null>(null);
 
   useFocusEffect(useCallback(() => {
     (async () => {
-      const [u, s, paths, rem] = await Promise.all([getUser(), getStats(), getLearningPaths(), getReminderSettings()]);
+      const [u, s, paths, rem, shouldRemind, days] = await Promise.all([
+        getUser(),
+        getStats(),
+        getLearningPaths(),
+        getReminderSettings(),
+        shouldShowBackupReminder(),
+        getDaysSinceLastBackup(),
+      ]);
       setUser(u); setStats(s); setPathCount(paths.length); setReminder(rem);
+      setShowBackupReminder(shouldRemind);
+      setDaysSinceBackup(days);
     })();
   }, []));
 
@@ -298,6 +314,42 @@ export default function ProfileTab() {
       </LinearGradient>
 
       <View style={styles.body}>
+        {showBackupReminder && (
+          <View style={styles.backupBanner}>
+            <View style={styles.backupBannerIcon}>
+              <Feather name="hard-drive" size={18} color="#0EA5E9" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.backupBannerTitle}>
+                {daysSinceBackup === null
+                  ? "Belum ada backup"
+                  : `Backup terakhir ${daysSinceBackup} hari lalu`}
+              </Text>
+              <Text style={styles.backupBannerSub}>
+                Simpan datamu agar aman jika ganti HP atau hapus aplikasi.
+              </Text>
+              <View style={styles.backupBannerBtns}>
+                <TouchableOpacity
+                  style={styles.backupBannerCta}
+                  onPress={() => router.push("/backup" as any)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.backupBannerCtaText}>Backup sekarang</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.backupBannerSnooze}
+                  onPress={async () => {
+                    await snoozeBackupReminder(3);
+                    setShowBackupReminder(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.backupBannerSnoozeText}>Nanti saja</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
         {/* Goal */}
         {user?.goal && (
           <View style={[styles.goalCard, shadowSm]}>
@@ -543,6 +595,34 @@ const styles = StyleSheet.create({
   statVal: { fontSize: 18, fontWeight: "900", color: "#fff" },
   statLbl: { fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: "700", textTransform: "uppercase", marginTop: 2 },
   body: { padding: 16, gap: 12, paddingBottom: 40 },
+  backupBanner: {
+    flexDirection: "row",
+    gap: 12,
+    backgroundColor: "#E0F2FE",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+  },
+  backupBannerIcon: {
+    width: 36, height: 36, borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center", justifyContent: "center",
+  },
+  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: "#075985" },
+  backupBannerSub: { fontSize: 12, color: "#0C4A6E", marginTop: 2, lineHeight: 17 },
+  backupBannerBtns: { flexDirection: "row", gap: 10, marginTop: 10 },
+  backupBannerCta: {
+    backgroundColor: "#0EA5E9",
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 999,
+  },
+  backupBannerCtaText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  backupBannerSnooze: {
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 999,
+  },
+  backupBannerSnoozeText: { color: "#0C4A6E", fontWeight: "700", fontSize: 12 },
   goalCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: 20, padding: 16 },
   goalIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   goalLabel: { fontSize: 10, fontWeight: "800", color: Colors.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },

@@ -7,6 +7,7 @@ import {
   Platform,
   Animated,
   Image,
+  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -54,6 +55,7 @@ export default function FlashcardScreen() {
   const xpAnim = useRef(new Animated.Value(0)).current;
 
   const [flipAnim] = useState(new Animated.Value(0));
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   useEffect(() => {
     (async () => {
@@ -277,11 +279,34 @@ export default function FlashcardScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
           <X size={20} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.navCount}>{currentIndex + 1} / {cards.length}</Text>
+        <Text style={styles.navCount}>
+          {viewMode === "card"
+            ? `${currentIndex + 1} / ${cards.length}`
+            : `${cards.length} kartu`}
+        </Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
-            <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : Colors.textMuted} />
+          <TouchableOpacity
+            onPress={() =>
+              setViewMode((m) => (m === "card" ? "table" : "card"))
+            }
+            style={styles.navBtn}
+            accessibilityLabel="Ganti tampilan"
+          >
+            <Feather
+              name={viewMode === "card" ? "list" : "credit-card"}
+              size={18}
+              color={Colors.black}
+            />
           </TouchableOpacity>
+          {viewMode === "card" && (
+            <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
+              <Feather
+                name="bookmark"
+                size={18}
+                color={bookmarked ? "#F59E0B" : Colors.textMuted}
+              />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => router.push(`/create-flashcard/${lessonId}`)}
             style={styles.navBtn}
@@ -297,9 +322,100 @@ export default function FlashcardScreen() {
       </View>
 
       {/* Tag */}
-      {card.tag ? (
-        <Text style={styles.cardTag}>{card.tag}</Text>
-      ) : null}
+      {viewMode === "table" ? (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.tableScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.tableCard}>
+            <View style={[styles.tableRow, styles.tableHeaderRow]}>
+              <Text style={[styles.tableHeaderCell, styles.colNum]}>#</Text>
+              <Text style={[styles.tableHeaderCell, styles.colQ]}>
+                Pertanyaan
+              </Text>
+              <Text style={[styles.tableHeaderCell, styles.colA]}>
+                Jawaban
+              </Text>
+            </View>
+            {cards.map((c, i) => (
+              <View
+                key={c.id}
+                style={[
+                  styles.tableRow,
+                  i % 2 === 1 && styles.tableRowAlt,
+                  i === cards.length - 1 && styles.tableRowLast,
+                ]}
+              >
+                <Text style={[styles.tableCell, styles.colNum, styles.cellNum]}>
+                  {i + 1}
+                </Text>
+                <View style={styles.colQ}>
+                  {c.image ? (
+                    <Image
+                      source={{ uri: c.image }}
+                      style={styles.tableThumb}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                  <Text style={styles.tableCell}>{c.question}</Text>
+                  {c.audio ? (
+                    <View style={styles.tableMediaRow}>
+                      <Volume2 size={12} color={Colors.primary} />
+                      <Text style={styles.tableMediaText}>audio</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={[styles.tableCell, styles.colA]}>{c.answer}</Text>
+              </View>
+            ))}
+            {cards.length === 0 && (
+              <View style={styles.tableEmpty}>
+                <Text style={styles.tableEmptyText}>Belum ada kartu.</Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      ) : (
+        <FlashcardCardView
+          card={card}
+          flipped={flipped}
+          frontInterpolate={frontInterpolate}
+          backInterpolate={backInterpolate}
+          handleFlip={handleFlip}
+          handleAnswer={handleAnswer}
+          playAudio={playAudio}
+          t={t}
+        />
+      )}
+    </View>
+  );
+}
+
+interface FlashcardCardViewProps {
+  card: Flashcard;
+  flipped: boolean;
+  frontInterpolate: Animated.AnimatedInterpolation<string>;
+  backInterpolate: Animated.AnimatedInterpolation<string>;
+  handleFlip: () => void;
+  handleAnswer: (correct: boolean) => void;
+  playAudio: () => void;
+  t: any;
+}
+
+function FlashcardCardView({
+  card,
+  flipped,
+  frontInterpolate,
+  backInterpolate,
+  handleFlip,
+  handleAnswer,
+  playAudio,
+  t,
+}: FlashcardCardViewProps) {
+  return (
+    <>
+      {card.tag ? <Text style={styles.cardTag}>{card.tag}</Text> : null}
 
       {/* Card */}
       <View style={styles.cardWrap}>
@@ -380,7 +496,7 @@ export default function FlashcardScreen() {
           <Text style={styles.flipHintText}>{t.flashcard.card_hint}</Text>
         </View>
       )}
-    </View>
+    </>
   );
 }
 
@@ -503,6 +619,65 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.primary,
   },
+  tableScroll: { paddingHorizontal: 16, paddingBottom: 28 },
+  tableCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border ?? "#E6ECF8",
+  },
+  tableRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border ?? "#E6ECF8",
+  },
+  tableRowAlt: { backgroundColor: "rgba(76,111,255,0.04)" },
+  tableRowLast: { borderBottomWidth: 0 },
+  tableHeaderRow: {
+    backgroundColor: Colors.primaryLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border ?? "#E6ECF8",
+  },
+  tableHeaderCell: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: Colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  tableCell: { fontSize: 13, color: Colors.text, lineHeight: 19 },
+  cellNum: {
+    fontWeight: "700",
+    color: Colors.textMuted,
+    fontVariant: ["tabular-nums"],
+  },
+  colNum: { width: 28 },
+  colQ: { flex: 1.2, gap: 6 },
+  colA: { flex: 1 },
+  tableThumb: {
+    width: "100%",
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: "#0001",
+  },
+  tableMediaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  tableMediaText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Colors.primary,
+    textTransform: "uppercase",
+  },
+  tableEmpty: { padding: 24, alignItems: "center" },
+  tableEmptyText: { color: Colors.textMuted, fontSize: 13 },
   answerBtns: {
     flexDirection: "row",
     paddingHorizontal: 20,

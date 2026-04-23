@@ -59,6 +59,8 @@ The web artifact does NOT have its own source code. Its `package.json` simply ru
 20. **Image Manager** — kelola gambar
 21. **Import Roadmap** — import learning roadmap
 22. **Anki Import** — `app/anki-import.tsx` parsing `.apkg`/`.colpkg` (server-side via `/api/anki/parse`) atau `.txt/.tsv/.csv` (client-side); jadi StandaloneCollection + Flashcards
+22b. **Audio Import (Flashcard)** — `app/create-flashcard/[lessonId].tsx` punya picker audio (mp3/m4a/wav, dll) via `DocumentPicker`; file di-copy ke `documentDirectory/flashcard-audio/`; preview play via `expo-audio`; tersimpan di field `Flashcard.audio` dan diputar di flashcard player (`app/flashcard/[lessonId].tsx`) lewat tombol "Putar audio". Field `audio`/`audioUrl` juga dikenali saat JSON import.
+22c. **View Card as Table (Mode Belajar)** — `app/flashcard/[lessonId].tsx` punya toggle viewMode `card`/`table`; mode tabel menampilkan semua kartu (#, Pertanyaan, Jawaban) lengkap dengan thumbnail gambar dan indikator audio.
 23. **Material/Note Fullview** — tap kartu pada lesson buka `app/study-material/view/[matId].tsx` & `app/notes/view/[noteId].tsx` dengan navigasi prev/next antar item dalam lesson yang sama; tombol "Edit" kembali ke list dengan param `openEditId` untuk auto-open editor
 24. **Canvas-style Image Attachments** — field opsional `images?: string[]` di `Note` & `StudyMaterial`; editor menyediakan ImagePicker multi-select; gambar di-copy ke `documentDirectory/notes/` & `documentDirectory/study-materials/`; ditampilkan di fullview dengan tap-to-zoom modal
 

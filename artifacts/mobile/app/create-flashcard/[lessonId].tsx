@@ -17,12 +17,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import {
   X, Trash2, ChevronDown, ChevronUp, ImagePlus, Bot,
-  Copy, Check, Download, PencilLine,
+  Copy, Check, Download, PencilLine, Music, Volume2,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
+import { useAudioPlayer } from "expo-audio";
 import { Button } from "@/components/Button";
 import {
   getFlashcards, saveFlashcard, deleteFlashcard,
@@ -37,6 +38,7 @@ import { callAI } from "@/utils/ai-providers";
 import type { AIKey, AIProvider } from "@/utils/ai-keys";
 
 const IMAGE_DIR = (FileSystem.documentDirectory ?? "") + "flashcard-images/";
+const AUDIO_DIR = (FileSystem.documentDirectory ?? "") + "flashcard-audio/";
 
 const ensureImageDir = async () => {
   if (Platform.OS === "web") return;
@@ -46,11 +48,28 @@ const ensureImageDir = async () => {
   }
 };
 
+const ensureAudioDir = async () => {
+  if (Platform.OS === "web") return;
+  const info = await FileSystem.getInfoAsync(AUDIO_DIR);
+  if (!info.exists) {
+    await FileSystem.makeDirectoryAsync(AUDIO_DIR, { intermediates: true });
+  }
+};
+
 const saveImageToLocal = async (uri: string, id: string): Promise<string> => {
   if (Platform.OS === "web") return uri;
   await ensureImageDir();
   const ext = uri.split(".").pop()?.split("?")[0] ?? "jpg";
   const dest = IMAGE_DIR + id + "." + ext;
+  await FileSystem.copyAsync({ from: uri, to: dest });
+  return dest;
+};
+
+const saveAudioToLocal = async (uri: string, id: string): Promise<string> => {
+  if (Platform.OS === "web") return uri;
+  await ensureAudioDir();
+  const ext = uri.split(".").pop()?.split("?")[0] ?? "mp3";
+  const dest = AUDIO_DIR + id + "." + ext;
   await FileSystem.copyAsync({ from: uri, to: dest });
   return dest;
 };
@@ -153,6 +172,7 @@ export default function CreateFlashcardScreen() {
   const [answer, setAnswer] = useState("");
   const [tag, setTag] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
   const [existing, setExisting] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -171,7 +191,21 @@ export default function CreateFlashcardScreen() {
   const [editAnswer, setEditAnswer] = useState("");
   const [editTag, setEditTag] = useState("");
   const [editImageUri, setEditImageUri] = useState<string | null>(null);
+  const [editAudioUri, setEditAudioUri] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(false);
+
+  // Audio preview players
+  const previewPlayer = useAudioPlayer(audioUri ?? null);
+  const editPreviewPlayer = useAudioPlayer(editAudioUri ?? null);
+  const playPreview = (which: "new" | "edit") => {
+    try {
+      const p = which === "new" ? previewPlayer : editPreviewPlayer;
+      p.seekTo(0);
+      p.play();
+    } catch {
+      // ignore
+    }
+  };
 
   // AI Prompt Builder state
   const [showPrompt, setShowPrompt] = useState(false);
@@ -217,6 +251,22 @@ export default function CreateFlashcardScreen() {
     }
   };
 
+  const pickAudio = async (mode: "new" | "edit") => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["audio/*"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      if (mode === "new") setAudioUri(asset.uri);
+      else setEditAudioUri(asset.uri);
+    } catch {
+      Alert.alert("Gagal Memilih Audio", "Tidak dapat memilih file audio.");
+    }
+  };
+
   const handleSave = async () => {
     if (!question.trim() || !answer.trim()) {
       Alert.alert(t.create_fc.question_ph, t.create_fc.fill_form);
@@ -243,6 +293,14 @@ export default function CreateFlashcardScreen() {
         savedImage = imageUri;
       }
     }
+    let savedAudio: string | undefined;
+    if (audioUri) {
+      try {
+        savedAudio = await saveAudioToLocal(audioUri, id);
+      } catch {
+        savedAudio = audioUri;
+      }
+    }
     const card: Flashcard = {
       id,
       lessonId: lessonId ?? "",
@@ -250,6 +308,7 @@ export default function CreateFlashcardScreen() {
       answer: answer.trim(),
       tag: tag.trim(),
       image: savedImage,
+      audio: savedAudio,
       createdAt: new Date().toISOString(),
     };
     await saveFlashcard(card);
@@ -258,6 +317,7 @@ export default function CreateFlashcardScreen() {
     setAnswer("");
     setTag("");
     setImageUri(null);
+    setAudioUri(null);
     setLoading(false);
     toast.success(t.create_fc.added);
   };
@@ -274,6 +334,7 @@ export default function CreateFlashcardScreen() {
     setEditAnswer(card.answer);
     setEditTag(card.tag ?? "");
     setEditImageUri(card.image ?? null);
+    setEditAudioUri(card.audio ?? null);
   };
 
   const pickEditImage = async () => {
@@ -320,12 +381,21 @@ export default function CreateFlashcardScreen() {
         savedImage = editImageUri;
       }
     }
+    let savedAudio: string | undefined = editAudioUri ?? undefined;
+    if (editAudioUri && editAudioUri !== editingCard.audio) {
+      try {
+        savedAudio = await saveAudioToLocal(editAudioUri, editingCard.id);
+      } catch {
+        savedAudio = editAudioUri;
+      }
+    }
     const updated: Flashcard = {
       ...editingCard,
       question: editQuestion.trim(),
       answer: editAnswer.trim(),
       tag: editTag.trim(),
       image: savedImage,
+      audio: savedAudio,
     };
     await saveFlashcard(updated);
     setExisting((prev) => prev.map((c) => c.id === updated.id ? updated : c));
@@ -411,6 +481,7 @@ export default function CreateFlashcardScreen() {
       const q = item.question ?? item.front ?? item.pertanyaan ?? "";
       const a = item.answer ?? item.back ?? item.jawaban ?? "";
       const t = item.tag ?? item.kategori ?? "";
+      const audio = item.audio ?? item.audioUrl ?? item.audio_url ?? undefined;
       if (!String(q).trim()) continue;
       const card: Flashcard = {
         id: generateId(),
@@ -419,6 +490,7 @@ export default function CreateFlashcardScreen() {
         question: String(q).trim(),
         answer: String(a).trim(),
         tag: String(t).trim(),
+        audio: audio ? String(audio).trim() : undefined,
         createdAt: new Date().toISOString(),
       };
       await saveFlashcard(card);
@@ -903,6 +975,29 @@ export default function CreateFlashcardScreen() {
           )}
         </View>
 
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Audio (opsional)</Text>
+          {audioUri ? (
+            <View style={styles.audioPickedRow}>
+              <Music size={18} color={Colors.primary} />
+              <Text style={styles.audioPickedText} numberOfLines={1}>
+                {audioUri.split("/").pop() ?? "Audio terpilih"}
+              </Text>
+              <TouchableOpacity onPress={() => playPreview("new")} style={styles.audioMiniBtn}>
+                <Volume2 size={14} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setAudioUri(null)} style={styles.audioMiniBtn}>
+                <X size={14} color={Colors.danger} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => pickAudio("new")} style={styles.audioPickerBtn} activeOpacity={0.75}>
+              <Music size={20} color={Colors.primary} />
+              <Text style={styles.audioPickerText}>Pilih file audio (mp3, m4a, wav...)</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <Button
           label="Tambah Flashcard"
           loading={loading}
@@ -1015,6 +1110,28 @@ export default function CreateFlashcardScreen() {
                 <TouchableOpacity onPress={pickEditImage} style={styles.imgPickerBtn}>
                   <ImagePlus size={18} color={Colors.primary} />
                   <Text style={styles.imgPickerText}>Pilih Foto</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Audio */}
+              <Text style={[styles.editFieldLabel, { marginTop: 12 }]}>Audio (opsional)</Text>
+              {editAudioUri ? (
+                <View style={styles.audioPickedRow}>
+                  <Music size={18} color={Colors.primary} />
+                  <Text style={styles.audioPickedText} numberOfLines={1}>
+                    {editAudioUri.split("/").pop() ?? "Audio terpilih"}
+                  </Text>
+                  <TouchableOpacity onPress={() => playPreview("edit")} style={styles.audioMiniBtn}>
+                    <Volume2 size={14} color={Colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setEditAudioUri(null)} style={styles.audioMiniBtn}>
+                    <X size={14} color={Colors.danger} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity onPress={() => pickAudio("edit")} style={styles.imgPickerBtn}>
+                  <Music size={18} color={Colors.primary} />
+                  <Text style={styles.imgPickerText}>Pilih Audio</Text>
                 </TouchableOpacity>
               )}
 
@@ -1308,6 +1425,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight, marginBottom: 4,
   },
   imgPickerText: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  audioPickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.border ?? "#E6ECF8",
+    backgroundColor: Colors.primaryLight,
+  },
+  audioPickerText: { fontSize: 13, fontWeight: "700", color: Colors.primary, flex: 1 },
+  audioPickedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border ?? "#E6ECF8",
+    backgroundColor: Colors.white,
+  },
+  audioPickedText: { flex: 1, fontSize: 12, color: Colors.text, fontWeight: "600" },
+  audioMiniBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+  },
 
   askAiBtn: { flex: 1, borderRadius: 12, overflow: "hidden" },
   askAiGrad: {

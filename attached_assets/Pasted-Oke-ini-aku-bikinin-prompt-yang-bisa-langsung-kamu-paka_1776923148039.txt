@@ -1,0 +1,223 @@
+Oke, ini aku bikinin prompt yang bisa langsung kamu pakai ke AI dev atau kamu sendiri untuk refactor. Sudah aku rapihin biar jelas per problem + expected behavior + solusi teknis.
+
+⸻
+
+🔧 PROMPT PERBAIKAN APLIKASI (React Native / Expo)
+
+1. 🧠 BUG: Keyboard menutupi input (Catatan / Form)
+
+Problem:
+Saat user mengetik di halaman “Catatan Baru”, keyboard menutupi field input sehingga UX buruk.
+
+Expected:
+
+* Input tetap terlihat saat keyboard muncul
+* Layout ikut naik dengan smooth
+* Support iOS & Android
+
+Fix Implementation:
+
+* Gunakan KeyboardAvoidingView
+* Tambahkan behavior="padding" untuk iOS, height untuk Android
+* Wrap seluruh screen atau bottom sheet
+* Gunakan ScrollView + keyboardShouldPersistTaps="handled"
+
+Contoh:
+
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+<KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+>
+  <ScrollView keyboardShouldPersistTaps="handled">
+    {/* Form input */}
+  </ScrollView>
+</KeyboardAvoidingView>
+
+Tambahan kalau pakai bottom sheet:
+
+* Gunakan react-native-keyboard-aware-scroll-view
+
+⸻
+
+2. 🎨 IMPROVEMENT: Feature List jangan vertical (boros layar)
+
+Problem:
+Menu seperti:
+
+* AI Keys
+* Pack Manager
+* Image Manager
+* dll
+
+ditampilkan vertical list, boros space
+
+Expected:
+
+* Grid / flex wrap
+* Icon + label
+* Responsif (2–3 kolom)
+* Scroll tetap smooth
+
+Fix Implementation:
+Gunakan FlatList dengan numColumns
+
+<FlatList
+  data={features}
+  numColumns={3}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => (
+    <TouchableOpacity style={styles.card}>
+      <Icon name={item.icon} />
+      <Text>{item.title}</Text>
+    </TouchableOpacity>
+  )}
+/>
+card: {
+  flex: 1,
+  margin: 8,
+  padding: 16,
+  borderRadius: 12,
+  alignItems: 'center',
+}
+
+Optional:
+
+* Gunakan flexWrap: 'wrap' kalau bukan FlatList
+* Tambahkan animasi kecil (scale on press)
+
+⸻
+
+3. 🚨 BUG: Import Anki error “file terlalu besar”
+
+Problem:
+Import file .apkg / JSON gagal karena limit size
+
+Goal kamu:
+Semua file disimpan LOCAL (offline) tanpa limit size
+
+Root Cause kemungkinan:
+
+* Limit dari state memory
+* Limit dari JSON parsing
+* Limit dari Expo FileSystem handling
+* Atau upload ke server (harusnya tidak)
+
+Expected:
+
+* Import file besar tetap jalan (10MB, 50MB, bahkan 100MB)
+* Tidak crash
+* Parsing bertahap
+
+Fix Implementation:
+
+✅ Gunakan:
+
+* expo-file-system
+* expo-document-picker
+
+✅ Jangan:
+
+* Simpan file besar di useState
+* Parse JSON langsung sekali
+
+⸻
+
+Contoh flow:
+
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+const pickFile = async () => {
+  const res = await DocumentPicker.getDocumentAsync({
+    type: '*/*',
+    copyToCacheDirectory: true,
+  });
+  if (res.assets) {
+    const file = res.assets[0];
+    // simpan path saja
+    const fileUri = file.uri;
+    // baca sebagai string (hati-hati size besar)
+    const content = await FileSystem.readAsStringAsync(fileUri);
+    // parsing bertahap kalau besar
+  }
+};
+
+⸻
+
+Advanced Fix (RECOMMENDED):
+
+* Gunakan SQLite (expo-sqlite)
+* Simpan data per chunk (bukan 1 JSON besar)
+* Parse .apkg pakai unzip (karena apkg = zip)
+
+⸻
+
+4. 🎥 FEATURE: YouTube Player Component (Full Screen Support)
+
+Goal:
+
+* Bisa embed video YouTube
+* Bisa fullscreen
+* Clean UI
+
+Gunakan:
+react-native-youtube-iframe
+
+⸻
+
+Implementasi:
+
+import YoutubePlayer from "react-native-youtube-iframe";
+<YoutubePlayer
+  height={220}
+  play={false}
+  videoId={"VIDEO_ID"}
+  onFullScreenChange={(status) => {
+    console.log("Fullscreen:", status);
+  }}
+/>
+
+⸻
+
+Optional Upgrade:
+
+* Auto rotate fullscreen
+* Lock orientation pakai expo-screen-orientation
+
+⸻
+
+5. ⚡ BONUS OPTIMIZATION (Highly Recommended)
+
+Tambahkan ini biar app kamu scalable:
+
+✅ Lazy load screen
+
+const Screen = React.lazy(() => import('./Screen'));
+
+✅ Memo component
+
+export default React.memo(Component);
+
+✅ Debounce input AI
+
+biar ga spam API
+
+⸻
+
+🚀 FINAL GOAL
+
+Setelah semua ini:
+
+* UX lebih smooth
+* Tidak ada keyboard bug
+* Layout hemat space
+* Import file besar aman (offline-first)
+* Ada multimedia support (YouTube)
+
+⸻
+
+Kalau kamu mau, aku bisa bantu lanjut:
+
+* ￼ Refactor struktur folder biar scalable
+* ￼ Design system (biar konsisten kaya app premium)
+* Atau ￼ langsung generate code full satu halaman (clean production ready)

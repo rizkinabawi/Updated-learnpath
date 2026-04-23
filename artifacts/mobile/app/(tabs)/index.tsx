@@ -104,6 +104,12 @@ export default function Dashboard() {
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.iconBtn}
+                onPress={() => router.push("/external-screens" as any)}
+              >
+                <Feather name="globe" size={18} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconBtn}
                 onPress={() => router.push("/search" as any)}
               >
                 <Feather name="search" size={18} color="#fff" />

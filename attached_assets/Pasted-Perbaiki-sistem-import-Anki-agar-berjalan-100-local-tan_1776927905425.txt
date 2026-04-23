@@ -1,0 +1,81 @@
+Perbaiki sistem import Anki agar berjalan 100% local tanpa menggunakan server sama sekali.
+
+Requirement utama:
+- Hapus semua request ke backend (fetch, axios, upload API)
+- Semua proses dilakukan di client (React Native / Expo environment)
+- Tidak boleh ada limit file dari server
+
+Fitur yang harus didukung:
+1. Import file:
+   - .apkg (Anki deck)
+   - .colpkg
+   - .txt / .csv / .tsv
+
+2. Parsing .apkg:
+   - Extract file sebagai ZIP
+   - Ambil file SQLite (collection.anki2 / collection.anki21)
+   - Parse database:
+     - notes
+     - cards
+     - decks
+     - models (note types)
+   - Map relasi:
+     - note → card
+     - card → deck
+   - Extract media:
+     - Baca file "media" JSON mapping
+     - Hubungkan file media ke field (gambar/audio)
+
+3. Data processing:
+   - Convert semua data menjadi JSON format:
+     {
+       deckName,
+       cards: [
+         {
+           front,
+           back,
+           extra,
+           media: []
+         }
+       ]
+     }
+
+4. Storage:
+   - Simpan hasil parsing ke local database:
+     - gunakan expo-sqlite atau async storage
+   - Tidak boleh kirim data ke server
+
+5. Performance:
+   - Support file besar (100MB+)
+   - Gunakan streaming / chunk processing jika perlu
+   - Hindari load full file ke memory jika memungkinkan
+
+6. UI behavior:
+   - Tampilkan loading progress saat parsing
+   - Tampilkan error handling jika file corrupt
+   - Tidak boleh muncul error 413 atau network error
+
+7. Library yang boleh digunakan:
+   - jszip (untuk extract .apkg)
+   - expo-file-system
+   - expo-document-picker
+   - expo-sqlite
+
+8. Constraint:
+   - Semua harus offline-first
+   - Tidak ada dependency ke server/cloud
+   - Harus berjalan di mobile (iOS/Android)
+
+Tambahkan validasi:
+- Deteksi apakah file benar-benar .apkg (ZIP signature)
+- Cek apakah SQLite valid
+- Fallback jika format lama / baru
+
+Tambahkan optimasi:
+- Lazy load media (jangan load semua sekaligus)
+- Indexing deck untuk pencarian cepat
+
+Output yang diharapkan:
+- Fungsi parser .apkg lengkap
+- Flow import → parse → simpan → tampil
+- Struktur code clean dan modular

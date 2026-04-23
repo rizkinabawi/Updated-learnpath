@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,7 @@ import {
   saveStandaloneCollection,
 } from "@/utils/storage";
 import Colors, { shadow, shadowSm } from "@/constants/colors";
+import { parseAnkiPackage, ParseProgress } from "@/utils/anki-parser";
 
 interface ParsedDeck {
   name: string;
@@ -40,13 +40,6 @@ interface PickedFile {
 
 const generateId = () =>
   Date.now().toString() + Math.random().toString(36).substring(2, 9);
-
-function getApiBase(): string {
-  if (Platform.OS === "web") return "";
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (!domain) return "";
-  return `https://${domain.replace(/^https?:\/\//, "")}`;
-}
 
 function formatBytes(bytes?: number): string {
   if (!bytes && bytes !== 0) return "—";
@@ -83,6 +76,7 @@ export default function AnkiImportScreen() {
   const [status, setStatus] = useState<{ type: "ok" | "err" | "info"; msg: string } | null>(null);
   const [pickedFile, setPickedFile] = useState<PickedFile | null>(null);
   const [expanded, setExpanded] = useState<number | null>(0);
+  const [progress, setProgress] = useState<ParseProgress | null>(null);
 
   const totalCards = decks.reduce((s, d) => s + d.cards.length, 0);
 
@@ -166,34 +160,9 @@ export default function AnkiImportScreen() {
           });
         }
       } else if (name.endsWith(".apkg") || name.endsWith(".colpkg")) {
-        const form = new FormData();
-        if (Platform.OS === "web") {
-          const resp = await fetch(asset.uri);
-          const blob = await resp.blob();
-          form.append("file", blob, asset.name ?? "deck.apkg");
-        } else {
-          form.append("file", {
-            uri: asset.uri,
-            name: asset.name ?? "deck.apkg",
-            type: "application/zip",
-          } as unknown as Blob);
-        }
-        const res = await fetch(`${getApiBase()}/api/anki/parse`, {
-          method: "POST",
-          body: form,
-        });
-        if (!res.ok) {
-          const errTxt = await res.text();
-          let msg = errTxt;
-          try {
-            msg = JSON.parse(errTxt).error ?? errTxt;
-          } catch {}
-          throw new Error(msg);
-        }
-        const data = (await res.json()) as {
-          totalCards: number;
-          decks: ParsedDeck[];
-        };
+        // 100% client-side parser — no backend, no upload limit
+        const data = await parseAnkiPackage(asset.uri, (p) => setProgress(p));
+        setProgress(null);
         if (!data.decks || data.decks.length === 0) {
           setStatus({ type: "err", msg: "Tidak ada kartu ditemukan dalam .apkg." });
         } else {
@@ -205,7 +174,7 @@ export default function AnkiImportScreen() {
           );
           setStatus({
             type: "ok",
-            msg: `Berhasil parsing ${data.totalCards} kartu dari ${data.decks.length} deck.`,
+            msg: `Berhasil parsing ${data.totalCards} kartu dari ${data.decks.length} deck (lokal, tanpa server).`,
           });
         }
       } else {
@@ -364,8 +333,8 @@ export default function AnkiImportScreen() {
               </Text>
               <Text style={styles.dropSubtitle}>
                 {busy
-                  ? "Sedang membaca dan parsing kartu"
-                  : "Tap di sini untuk membuka file picker"}
+                  ? progress?.message ?? "Sedang membaca dan parsing kartu"
+                  : "Tap di sini untuk membuka file picker (100% offline)"}
               </Text>
 
               {pickedFile && !busy && (

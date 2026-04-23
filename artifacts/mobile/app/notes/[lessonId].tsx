@@ -11,6 +11,7 @@ import {
   Animated,
   ScrollView,
   Image,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -292,11 +293,15 @@ export default function NotesScreen() {
 
       {/* Add / Edit Modal */}
       <Modal visible={showModal} transparent animationType="slide">
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={styles.modalOverlay}>
           <View
             style={[
               styles.modalBox,
-              { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+              { paddingBottom: Math.max(insets.bottom, 24) + 16, maxHeight: "90%" },
             ]}
           >
             <View style={styles.modalHandle} />
@@ -304,6 +309,11 @@ export default function NotesScreen() {
               {editNote ? t.notes.modal_edit : t.notes.modal_new}
             </Text>
 
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 8 }}
+            >
             <Text style={styles.fieldLabel}>{t.notes.title_ph.replace("...", "")}</Text>
             <TextInput
               value={title}
@@ -373,6 +383,8 @@ export default function NotesScreen() {
               )}
             </View>
 
+            </ScrollView>
+
             <View style={styles.modalBtns}>
               <TouchableOpacity
                 onPress={() => setShowModal(false)}
@@ -392,6 +404,7 @@ export default function NotesScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

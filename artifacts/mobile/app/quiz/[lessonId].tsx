@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, ChevronRight, Check, Plus, RotateCcw } from "lucide-react-native";
+import { X, ChevronRight, Check, Plus, RotateCcw, Volume2 } from "lucide-react-native";
+import { useAudioPlayer } from "expo-audio";
 import { Feather } from "@expo/vector-icons";
 import { AdBanner } from "@/components/AdBanner";
 import * as Haptics from "expo-haptics";
@@ -94,6 +95,13 @@ export default function QuizScreen() {
   };
 
   const currentQuiz = quizzes[currentIndex];
+  const audioPlayer = useAudioPlayer(currentQuiz?.audio ?? null);
+  const playQuestionAudio = () => {
+    try {
+      audioPlayer.seekTo(0);
+      audioPlayer.play();
+    } catch {}
+  };
   const progress = (currentIndex / Math.max(quizzes.length, 1)) * 100;
 
   const handleOptionSelect = async (idx: number) => {
@@ -282,6 +290,16 @@ export default function QuizScreen() {
             />
           )}
           <Text style={styles.questionText}>{currentQuiz.question}</Text>
+          {currentQuiz.audio && (
+            <TouchableOpacity
+              onPress={playQuestionAudio}
+              style={styles.questionAudioBtn}
+              activeOpacity={0.75}
+            >
+              <Volume2 size={16} color="#fff" />
+              <Text style={styles.questionAudioText}>Putar Audio</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Options */}
@@ -429,6 +447,18 @@ const styles = StyleSheet.create({
     color: Colors.black,
     lineHeight: 26,
   },
+  questionAudioBtn: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  questionAudioText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   optionsWrap: { gap: 10 },
   option: {
     flexDirection: "row",

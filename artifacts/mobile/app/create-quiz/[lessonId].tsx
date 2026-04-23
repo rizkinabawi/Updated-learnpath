@@ -26,11 +26,14 @@ import {
   Check,
   Download,
   PencilLine,
+  Music,
+  Volume2,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
+import { useAudioPlayer } from "expo-audio";
 import { Button } from "@/components/Button";
 import {
   getQuizzes,
@@ -52,6 +55,7 @@ import { callAI } from "@/utils/ai-providers";
 import type { AIKey, AIProvider } from "@/utils/ai-keys";
 
 const IMAGE_DIR = ((FileSystem as any).documentDirectory ?? "") + "quiz-images/";
+const AUDIO_DIR = ((FileSystem as any).documentDirectory ?? "") + "quiz-audio/";
 
 const ensureImageDir = async () => {
   if (Platform.OS === "web") return;
@@ -61,11 +65,28 @@ const ensureImageDir = async () => {
   }
 };
 
+const ensureAudioDir = async () => {
+  if (Platform.OS === "web") return;
+  const info = await FileSystem.getInfoAsync(AUDIO_DIR);
+  if (!info.exists) {
+    await FileSystem.makeDirectoryAsync(AUDIO_DIR, { intermediates: true });
+  }
+};
+
 const saveImageToLocal = async (uri: string, id: string): Promise<string> => {
   if (Platform.OS === "web") return uri;
   await ensureImageDir();
   const ext = uri.split(".").pop()?.split("?")[0] ?? "jpg";
   const dest = IMAGE_DIR + id + "." + ext;
+  await FileSystem.copyAsync({ from: uri, to: dest });
+  return dest;
+};
+
+const saveAudioToLocal = async (uri: string, id: string): Promise<string> => {
+  if (Platform.OS === "web") return uri;
+  await ensureAudioDir();
+  const ext = uri.split(".").pop()?.split("?")[0] ?? "mp3";
+  const dest = AUDIO_DIR + id + "." + ext;
   await FileSystem.copyAsync({ from: uri, to: dest });
   return dest;
 };
@@ -167,6 +188,7 @@ export default function CreateQuizScreen() {
   const [options, setOptions] = useState(["", "", "", ""]);
   const [correctOption, setCorrectOption] = useState<number | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
   const [existing, setExisting] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -186,7 +208,34 @@ export default function CreateQuizScreen() {
   const [editOptions, setEditOptions] = useState(["", "", "", ""]);
   const [editCorrectOption, setEditCorrectOption] = useState<number | null>(null);
   const [editImageUri, setEditImageUri] = useState<string | null>(null);
+  const [editAudioUri, setEditAudioUri] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(false);
+
+  const previewPlayer = useAudioPlayer(audioUri ?? null);
+  const editPreviewPlayer = useAudioPlayer(editAudioUri ?? null);
+  const playPreview = (which: "new" | "edit") => {
+    try {
+      const p = which === "new" ? previewPlayer : editPreviewPlayer;
+      p.seekTo(0);
+      p.play();
+    } catch {}
+  };
+
+  const pickAudio = async (mode: "new" | "edit") => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["audio/*"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      if (mode === "new") setAudioUri(asset.uri);
+      else setEditAudioUri(asset.uri);
+    } catch {
+      Alert.alert("Gagal Memilih Audio", "Tidak dapat memilih file audio.");
+    }
+  };
 
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptTopic, setPromptTopic] = useState("");
@@ -266,6 +315,14 @@ export default function CreateQuizScreen() {
         savedImage = imageUri;
       }
     }
+    let savedAudio: string | undefined;
+    if (audioUri) {
+      try {
+        savedAudio = await saveAudioToLocal(audioUri, id);
+      } catch {
+        savedAudio = audioUri;
+      }
+    }
     const quiz: Quiz = {
       id,
       lessonId: lessonId ?? "",
@@ -274,6 +331,7 @@ export default function CreateQuizScreen() {
       answer: options[correctOption].trim(),
       type: "multiple-choice",
       image: savedImage,
+      audio: savedAudio,
       createdAt: new Date().toISOString(),
     };
     await saveQuiz(quiz);
@@ -282,6 +340,7 @@ export default function CreateQuizScreen() {
     setOptions(["", "", "", ""]);
     setCorrectOption(null);
     setImageUri(null);
+    setAudioUri(null);
     setLoading(false);
     toast.success(t.create_qz.added);
   };
@@ -389,6 +448,7 @@ export default function CreateQuizScreen() {
       if (!item.question || !Array.isArray(item.options)) continue;
       const { options, answer } = resolveAnswer(item);
       if (!answer) continue;
+      const audioField = item.audio || item.audioUrl || item.audio_url;
       toAdd.push({
         id: generateId(),
         lessonId: lessonId ?? "",
@@ -398,6 +458,7 @@ export default function CreateQuizScreen() {
         answer,
         explanation: item.explanation ? String(item.explanation).trim() : undefined,
         type: "multiple-choice",
+        audio: audioField ? String(audioField).trim() : undefined,
         createdAt: new Date().toISOString(),
       });
     }
@@ -431,6 +492,7 @@ export default function CreateQuizScreen() {
     setEditOptions(opts);
     setEditCorrectOption(correctIdx >= 0 ? correctIdx : null);
     setEditImageUri(quiz.image ?? null);
+    setEditAudioUri(quiz.audio ?? null);
   };
 
   const pickEditImage = async () => {
@@ -486,12 +548,21 @@ export default function CreateQuizScreen() {
         savedImage = editImageUri;
       }
     }
+    let savedAudio: string | undefined = editAudioUri ?? undefined;
+    if (editAudioUri && editAudioUri !== editingQuiz.audio) {
+      try {
+        savedAudio = await saveAudioToLocal(editAudioUri, editingQuiz.id);
+      } catch {
+        savedAudio = editAudioUri;
+      }
+    }
     const updated: Quiz = {
       ...editingQuiz,
       question: editQuestion.trim(),
       options: editOptions.filter((o) => o.trim()),
       answer: editOptions[editCorrectOption].trim(),
       image: savedImage,
+      audio: savedAudio,
     };
     try {
       await saveQuiz(updated);
@@ -984,6 +1055,45 @@ export default function CreateQuizScreen() {
           )}
         </View>
 
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Audio Soal (opsional)</Text>
+          <View style={styles.audioRow}>
+            <TouchableOpacity
+              onPress={() => pickAudio("new")}
+              style={styles.audioPickBtn}
+              activeOpacity={0.75}
+            >
+              <Music size={18} color={Colors.primary} />
+              <Text style={styles.audioPickText} numberOfLines={1}>
+                {audioUri ? "Ganti audio" : "Pilih file audio"}
+              </Text>
+            </TouchableOpacity>
+            {audioUri && (
+              <>
+                <TouchableOpacity
+                  onPress={() => playPreview("new")}
+                  style={styles.audioPlayBtn}
+                  activeOpacity={0.75}
+                >
+                  <Volume2 size={18} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setAudioUri(null)}
+                  style={styles.audioRemoveBtn}
+                  activeOpacity={0.75}
+                >
+                  <X size={18} color={Colors.danger} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+          {audioUri && (
+            <Text style={styles.audioHint} numberOfLines={1}>
+              {audioUri.split("/").pop()}
+            </Text>
+          )}
+        </View>
+
         <Text style={styles.fieldLabel}>{t.create_qz.answer_label}</Text>
         <Text style={styles.fieldHint}>
           Tap salah satu pilihan untuk menandai sebagai jawaban benar
@@ -1145,6 +1255,44 @@ export default function CreateQuizScreen() {
                 <TouchableOpacity style={styles.removeImage} onPress={() => setEditImageUri(null)}>
                   <Text style={styles.removeImageText}>Hapus Foto</Text>
                 </TouchableOpacity>
+              )}
+
+              {/* Audio */}
+              <Text style={[styles.editFieldLabel, { marginTop: 12 }]}>Audio Soal (opsional)</Text>
+              <View style={styles.audioRow}>
+                <TouchableOpacity
+                  onPress={() => pickAudio("edit")}
+                  style={styles.audioPickBtn}
+                  activeOpacity={0.75}
+                >
+                  <Music size={18} color={Colors.primary} />
+                  <Text style={styles.audioPickText} numberOfLines={1}>
+                    {editAudioUri ? "Ganti audio" : "Pilih file audio"}
+                  </Text>
+                </TouchableOpacity>
+                {editAudioUri && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => playPreview("edit")}
+                      style={styles.audioPlayBtn}
+                      activeOpacity={0.75}
+                    >
+                      <Volume2 size={18} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setEditAudioUri(null)}
+                      style={styles.audioRemoveBtn}
+                      activeOpacity={0.75}
+                    >
+                      <X size={18} color={Colors.danger} />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+              {editAudioUri && (
+                <Text style={styles.audioHint} numberOfLines={1}>
+                  {editAudioUri.split("/").pop()}
+                </Text>
               )}
 
               {/* Options */}
@@ -1508,6 +1656,32 @@ const styles = StyleSheet.create({
   },
   removeImage: { alignSelf: "flex-end", marginTop: 4 },
   removeImageText: { fontSize: 12, color: Colors.danger, fontWeight: "700" },
+  audioRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  audioPickBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  audioPickText: { flex: 1, fontSize: 14, color: Colors.text, fontWeight: "600" },
+  audioPlayBtn: {
+    width: 42, height: 42, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.primary,
+  },
+  audioRemoveBtn: {
+    width: 42, height: 42, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: Colors.danger,
+    backgroundColor: Colors.surface,
+  },
+  audioHint: { marginTop: 6, fontSize: 12, color: Colors.textMuted },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",

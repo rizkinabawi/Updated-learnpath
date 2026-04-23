@@ -101,6 +101,8 @@ export interface Quiz {
   lessonId: string;
   packId?: string;
   image?: string;
+  /** Optional local audio file URI played during the quiz. */
+  audio?: string;
   createdAt: string;
 }
 

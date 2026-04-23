@@ -1,5 +1,5 @@
 kind = "mobile"
-previewPath = "/"
+previewPath = "/m"
 title = "LearningPath"
 version = "1.0.0"
 id = "artifacts/mobile"
@@ -12,7 +12,7 @@ version = "1.0.0"
 [[services]]
 ensurePreviewReachable = "/status"
 name = "expo"
-paths = [ "/" ]
+paths = [ "/m" ]
 localPort = 18115
 
 [services.development]
@@ -29,4 +29,4 @@ publicDir = "artifacts/mobile/.replit-artifact/empty"
 
 [services.env]
 PORT = "18115"
-BASE_PATH = "/"
+BASE_PATH = "/m"

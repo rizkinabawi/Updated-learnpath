@@ -18,9 +18,14 @@ localPort = 18115
 [services.development]
 run = "pnpm --filter @workspace/mobile run dev"
 
+# The mobile (Expo) artifact is for local development only. The web build of
+# this Expo app is published via the separate `web` artifact, which calls
+# `expo export --platform web`. Mobile is intentionally excluded from
+# deployment by leaving production with a no-op build and a static empty serve.
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/mobile", "run", "build" ]
-run = [ "pnpm", "--filter", "@workspace/mobile", "run", "serve" ]
+build = [ "true" ]
+serve = "static"
+publicDir = "artifacts/mobile/.replit-artifact/empty"
 
 [services.env]
 PORT = "18115"

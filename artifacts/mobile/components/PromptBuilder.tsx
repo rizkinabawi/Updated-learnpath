@@ -460,7 +460,7 @@ export const PromptBuilder = () => {
             id: generateId(), lessonId: resolvedId,
             question: String(item.question ?? item.front ?? "").trim(),
             answer: String(item.answer ?? item.back ?? "").trim(),
-            tag: String(item.tag ?? "").trim() || undefined,
+            tag: String(item.tag ?? "").trim(),
             createdAt: new Date().toISOString(),
           });
         }

@@ -709,7 +709,7 @@ export default function StudyMaterialScreen() {
                     <View style={styles.matMeta}>
                       <Clock size={10} color={Colors.textMuted} />
                       <Text style={styles.matDate}>{formatDate(mat.createdAt)}</Text>
-                      {mat.type === "file" && mat.fileSize && (
+                      {mat.type === "file" && typeof mat.fileSize === "number" && (
                         <Text style={styles.matDate}>
                           · {formatBytes(mat.fileSize)}
                         </Text>
@@ -779,11 +779,11 @@ export default function StudyMaterialScreen() {
                           <Paperclip size={20} color={Colors.amber} />
                           <View style={{ flex: 1 }}>
                             <Text style={styles.fileName}>{mat.fileName}</Text>
-                            {mat.fileSize && (
+                            {mat.fileSize !== undefined ? (
                               <Text style={styles.fileSize}>
-                                {formatBytes(mat.fileSize)}
+                                {formatBytes(mat.fileSize as number)}
                               </Text>
-                            )}
+                            ) : null}
                           </View>
                         </View>
                         <TouchableOpacity

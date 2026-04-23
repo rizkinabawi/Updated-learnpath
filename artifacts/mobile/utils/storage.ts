@@ -37,6 +37,8 @@ export interface LearningPath {
   description: string;
   userId: string;
   tags?: string[];
+  completedLessons?: number;
+  totalLessons?: number;
   createdAt: string;
 }
 

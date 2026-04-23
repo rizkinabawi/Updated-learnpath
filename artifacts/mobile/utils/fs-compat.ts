@@ -29,11 +29,17 @@ const webStub = {
   async getInfoAsync(_uri: string): Promise<FileInfo> {
     return { exists: false, uri: _uri };
   },
-  async readAsStringAsync(_uri: string): Promise<string> {
+  async readAsStringAsync(
+    _uri: string,
+    _options?: { encoding?: "utf8" | "base64" },
+  ): Promise<string> {
     return "";
   },
   async writeAsStringAsync(_uri: string, _contents: string): Promise<void> {},
-  async makeDirectoryAsync(_uri: string): Promise<void> {},
+  async makeDirectoryAsync(
+    _uri: string,
+    _options?: { intermediates?: boolean },
+  ): Promise<void> {},
   async deleteAsync(_uri: string): Promise<void> {},
   async copyAsync(_opts: { from: string; to: string }): Promise<void> {},
   async readDirectoryAsync(_uri: string): Promise<string[]> {

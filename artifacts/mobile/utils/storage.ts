@@ -37,6 +37,8 @@ export interface LearningPath {
   description: string;
   userId: string;
   tags?: string[];
+  /** Feather icon name override (e.g. "book", "code") */
+  icon?: string;
   completedLessons?: number;
   totalLessons?: number;
   createdAt: string;

@@ -243,7 +243,7 @@ export default function Dashboard() {
                 const modIds = new Set(pathMods.map((m) => m.id));
                 const pathLessons = allLessons.filter((l) => modIds.has(l.moduleId));
                 const grad = CARD_GRADIENTS[i % CARD_GRADIENTS.length];
-                const icon = COURSE_ICONS[i % COURSE_ICONS.length];
+                const icon = (path.icon as React.ComponentProps<typeof Feather>["name"]) || COURSE_ICONS[i % COURSE_ICONS.length];
                 return (
                   <TouchableOpacity
                     key={path.id}

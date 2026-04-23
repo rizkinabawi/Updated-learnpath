@@ -18,7 +18,7 @@ import { ToastContainer } from "@/components/Toast";
 import { scheduleDailyMotivation, getReminderSettings, scheduleStudyReminder } from "@/utils/notifications";
 import { isCancellationError } from "@/utils/safe-share";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
 // Suppress share-cancellation noise in dev overlay
 LogBox.ignoreLogs([
@@ -227,8 +227,9 @@ const splashStyles = StyleSheet.create({
 
 // ─── Navigation stack ─────────────────────────────────────────────────────────
 function RootLayoutNav() {
+  const { themeKey } = useTheme();
   return (
-    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+    <Stack key={themeKey} screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen
@@ -297,6 +298,10 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="external-view/[id]"
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="theme-settings"
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
     </Stack>

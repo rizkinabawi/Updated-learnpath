@@ -196,6 +196,12 @@ export default function ProfileTab() {
       onPress: () => router.push("/session-history"),
     },
     {
+      icon: "droplet" as const, label: "Tema",
+      sub: "Pilih palet warna & mode terang/gelap",
+      color: "#0F1F3D",
+      onPress: () => router.push("/theme-settings" as any),
+    },
+    {
       icon: "code" as const, label: t.profile.about_dev,
       sub: t.profile.about_dev_sub,
       color: "#7C47FF",

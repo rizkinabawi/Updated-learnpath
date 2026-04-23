@@ -29,6 +29,7 @@ import { isCancellationError, safeShareFile } from "@/utils/safe-share";
 import Colors from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
+import { IconPicker } from "@/components/IconPicker";
 
 const COURSE_GRADIENTS: [string, string][] = [
   ["#4C6FFF", "#7C47FF"],
@@ -62,6 +63,9 @@ export default function LearnPage() {
   const [showNewPath, setShowNewPath] = useState(false);
   const [pathName, setPathName] = useState("");
   const [pathDesc, setPathDesc] = useState("");
+  const [pathIcon, setPathIcon] = useState<string>("book");
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [editingIconFor, setEditingIconFor] = useState<LearningPath | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -91,11 +95,27 @@ export default function LearnPage() {
     const p: LearningPath = {
       id: generateId(), name: pathName.trim(),
       description: pathDesc.trim(), userId: "local",
+      icon: pathIcon,
       createdAt: new Date().toISOString(),
     };
     await saveLearningPath(p);
-    setPathName(""); setPathDesc(""); setShowNewPath(false);
+    setPathName(""); setPathDesc(""); setPathIcon("book"); setShowNewPath(false);
     loadData();
+  };
+
+  const handleChangeIcon = (p: LearningPath) => {
+    setEditingIconFor(p);
+    setShowIconPicker(true);
+  };
+
+  const handleIconSelected = async (icon: string) => {
+    if (editingIconFor) {
+      await saveLearningPath({ ...editingIconFor, icon });
+      setEditingIconFor(null);
+      loadData();
+    } else {
+      setPathIcon(icon);
+    }
   };
 
   const handleDelete = (p: LearningPath) => {
@@ -284,7 +304,13 @@ export default function LearnPage() {
                 <TouchableOpacity
                   key={p.id}
                   onPress={() => router.push(`/course/${p.id}`)}
-                  onLongPress={() => handleDelete(p)}
+                  onLongPress={() =>
+                    Alert.alert(p.name, undefined, [
+                      { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
+                      { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
+                      { text: t.common.cancel, style: "cancel" },
+                    ])
+                  }
                   activeOpacity={0.92}
                   style={[styles.courseCard, isTablet && styles.courseCardTablet]}
                 >
@@ -301,7 +327,11 @@ export default function LearnPage() {
                     {/* Top row: emoji icon + arrow */}
                     <View style={styles.cardTopRow}>
                       <View style={styles.courseIconWrap}>
-                        <Text style={styles.courseEmoji}>{emoji}</Text>
+                        {p.icon ? (
+                          <Feather name={p.icon as any} size={22} color="#fff" />
+                        ) : (
+                          <Text style={styles.courseEmoji}>{emoji}</Text>
+                        )}
                       </View>
                       <View style={styles.arrowWrap}>
                         <Feather name="arrow-right" size={18} color="rgba(255,255,255,0.8)" />
@@ -366,6 +396,20 @@ export default function LearnPage() {
           <View style={styles.mOverlay}>
             <View style={styles.mBox}>
               <Text style={styles.mTitle}>{t.learn.new_course_modal}</Text>
+              <TouchableOpacity
+                style={styles.iconPickRow}
+                onPress={() => { setEditingIconFor(null); setShowIconPicker(true); }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.iconPickPreview}>
+                  <Feather name={pathIcon as any} size={22} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.iconPickLabel}>Ikon Course</Text>
+                  <Text style={styles.iconPickSub}>Tap untuk ganti ikon</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={Colors.textMuted} />
+              </TouchableOpacity>
               <TextInput
                 placeholder="Nama kursus" value={pathName}
                 onChangeText={setPathName} style={styles.mInput}
@@ -390,6 +434,13 @@ export default function LearnPage() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <IconPicker
+        visible={showIconPicker}
+        current={editingIconFor?.icon ?? pathIcon}
+        onClose={() => setShowIconPicker(false)}
+        onSelect={handleIconSelected}
+      />
     </View>
   );
 }
@@ -497,6 +548,18 @@ const styles = StyleSheet.create({
 
   mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
   mBox: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
+  iconPickRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.background, borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  iconPickPreview: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center", justifyContent: "center",
+  },
+  iconPickLabel: { fontSize: 13, fontWeight: "700", color: Colors.text },
+  iconPickSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   mTitle: { fontSize: 20, fontWeight: "900", color: Colors.dark },
   mInput: {
     backgroundColor: Colors.background, borderRadius: 14,

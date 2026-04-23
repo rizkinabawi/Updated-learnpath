@@ -1,4 +1,4 @@
-const DarkColors = {
+const DarkPalette = {
   primary: "#6B8EFF",
   primaryDark: "#5577EE",
   primaryLight: "#1A2040",
@@ -36,5 +36,53 @@ const DarkColors = {
   card3: "#2AADDD",
   card4: "#6A3ACD",
 };
+
+const MinimalDarkPalette: typeof DarkPalette = {
+  primary: "#FFFFFF",
+  primaryDark: "#E5E5E5",
+  primaryLight: "#1A1A1A",
+  accent: "#CCCCCC",
+  accentLight: "#1A1A1A",
+  teal: "#BBBBBB",
+  tealLight: "#1A1A1A",
+  amber: "#AAAAAA",
+  amberLight: "#1A1A1A",
+  purple: "#DDDDDD",
+  purpleLight: "#1A1A1A",
+  emerald: "#CCCCCC",
+  emeraldLight: "#1A1A1A",
+  dark: "#FFFFFF",
+  black: "#FFFFFF",
+  darkMed: "#DDDDDD",
+  white: "#111111",
+  background: "#000000",
+  surface: "#0E0E0E",
+  border: "#262626",
+  borderLight: "#1A1A1A",
+  text: "#FAFAFA",
+  textSecondary: "#BBBBBB",
+  textMuted: "#777777",
+  success: "#FFFFFF",
+  successLight: "#1A1A1A",
+  danger: "#EEEEEE",
+  dangerLight: "#1A1A1A",
+  warning: "#CCCCCC",
+  warningLight: "#1A1A1A",
+  tabActive: "#FFFFFF",
+  tabInactive: "#777777",
+  card1: "#2A2A2A",
+  card2: "#1F1F1F",
+  card3: "#333333",
+  card4: "#252525",
+};
+
+const DarkColors: typeof DarkPalette = { ...DarkPalette };
+
+export function applyMinimalDarkPalette(minimal: boolean) {
+  const src = minimal ? MinimalDarkPalette : DarkPalette;
+  (Object.keys(src) as Array<keyof typeof DarkPalette>).forEach((k) => {
+    (DarkColors as any)[k] = src[k];
+  });
+}
 
 export default DarkColors;

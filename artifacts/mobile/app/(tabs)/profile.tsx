@@ -160,6 +160,12 @@ export default function ProfileTab() {
       onPress: handleImportCourse,
     },
     {
+      icon: "hard-drive" as const, label: "Backup & Pulih",
+      sub: "Simpan / pulihkan semua data + media (offline)",
+      color: "#0EA5E9",
+      onPress: () => router.push("/backup" as any),
+    },
+    {
       icon: "share-2" as const, label: t.profile.share_progress,
       sub: t.profile.share_progress_sub,
       color: Colors.amber,

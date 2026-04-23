@@ -86,6 +86,8 @@ export interface Flashcard {
   lessonId: string;
   packId?: string;
   image?: string;
+  /** Optional local audio file URI (e.g. extracted from imported Anki deck). */
+  audio?: string;
   createdAt: string;
 }
 

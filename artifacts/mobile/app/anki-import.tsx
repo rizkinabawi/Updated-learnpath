@@ -29,7 +29,7 @@ import { parseAnkiPackage, ParseProgress } from "@/utils/anki-parser";
 
 interface ParsedDeck {
   name: string;
-  cards: { front: string; back: string; tags?: string }[];
+  cards: { front: string; back: string; tags?: string; imageUri?: string; audioUris?: string[] }[];
 }
 
 interface PickedFile {
@@ -161,7 +161,8 @@ export default function AnkiImportScreen() {
         }
       } else if (name.endsWith(".apkg") || name.endsWith(".colpkg")) {
         // 100% client-side parser — no backend, no upload limit
-        const data = await parseAnkiPackage(asset.uri, (p) => setProgress(p));
+        const importId = `imp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const data = await parseAnkiPackage(asset.uri, (p) => setProgress(p), { importId });
         setProgress(null);
         if (!data.decks || data.decks.length === 0) {
           setStatus({ type: "err", msg: "Tidak ada kartu ditemukan dalam .apkg." });
@@ -215,6 +216,10 @@ export default function AnkiImportScreen() {
             answer: c.back,
             tag: deck.name,
             lessonId: colId,
+            ...(c.imageUri ? { image: c.imageUri } : {}),
+            ...(c.audioUris && c.audioUris.length > 0
+              ? { audio: c.audioUris[0] }
+              : {}),
             createdAt: now,
           };
           await saveFlashcard(card);

@@ -8,14 +8,18 @@
 
 import { Platform } from "react-native";
 import JSZip from "jszip";
-import * as FileSystem from "expo-file-system";
 import * as fsCompat from "./fs-compat";
 
 export interface AnkiCard {
   front: string;
   back: string;
   tags?: string;
+  /** Original media filenames referenced by the card (front + back). */
   media?: string[];
+  /** Local file:// URI of the first image found, if any. */
+  imageUri?: string;
+  /** Local file:// URIs of any audio/sound clips referenced. */
+  audioUris?: string[];
 }
 
 export interface AnkiDeck {
@@ -26,6 +30,13 @@ export interface AnkiDeck {
 export interface AnkiParseResult {
   totalCards: number;
   decks: AnkiDeck[];
+  /** Directory where media files were extracted (if requested). */
+  mediaDir?: string;
+}
+
+export interface ParseOptions {
+  /** When provided, media files are extracted to <mediaDir>/<importId>/ and referenced from cards. */
+  importId?: string;
 }
 
 export interface ParseProgress {
@@ -113,6 +124,43 @@ async function readFileAsUint8Array(uri: string): Promise<Uint8Array> {
   return base64ToUint8Array(b64);
 }
 
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  if (typeof globalThis.btoa === "function") {
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(
+        null,
+        Array.from(bytes.subarray(i, i + chunk)) as unknown as number[],
+      );
+    }
+    return globalThis.btoa(binary);
+  }
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let out = "";
+  let i = 0;
+  for (; i + 2 < bytes.length; i += 3) {
+    const a = bytes[i]!, b = bytes[i + 1]!, c = bytes[i + 2]!;
+    out +=
+      chars[a >> 2]! +
+      chars[((a & 3) << 4) | (b >> 4)]! +
+      chars[((b & 15) << 2) | (c >> 6)]! +
+      chars[c & 63]!;
+  }
+  if (i < bytes.length) {
+    const a = bytes[i]!;
+    const b = i + 1 < bytes.length ? bytes[i + 1]! : 0;
+    out += chars[a >> 2]! + chars[((a & 3) << 4) | (b >> 4)]!;
+    if (i + 1 < bytes.length) {
+      out += chars[(b & 15) << 2]! + "=";
+    } else {
+      out += "==";
+    }
+  }
+  return out;
+}
+
 function base64ToUint8Array(b64: string): Uint8Array {
   // Use a tiny inline decoder; works in Hermes which lacks atob in some cases
   if (typeof globalThis.atob === "function") {
@@ -173,6 +221,7 @@ function isSqliteSignature(bytes: Uint8Array): boolean {
 export async function parseAnkiPackage(
   fileUri: string,
   onProgress?: ProgressCb,
+  options?: ParseOptions,
 ): Promise<AnkiParseResult> {
   onProgress?.({ stage: "reading", message: "Membaca file..." });
   const raw = await readFileAsUint8Array(fileUri);
@@ -213,8 +262,9 @@ export async function parseAnkiPackage(
     );
   }
 
-  // Build media name -> filename map (so we can later resolve refs if needed)
-  // mediaMap is JSON: {"0":"image.jpg",...}
+  // Build media name -> filename map. Inside the zip, media files are stored under
+  // numeric names ("0", "1", ...) and the "media" file is a JSON mapping
+  // {"0":"image.jpg", "1":"audio.mp3", ...}.
   let mediaMap: Record<string, string> = {};
   const mediaEntry = zip.file("media");
   if (mediaEntry) {
@@ -223,6 +273,53 @@ export async function parseAnkiPackage(
       mediaMap = JSON.parse(txt);
     } catch {
       mediaMap = {};
+    }
+  }
+  // Reverse map: original filename -> numeric key in zip
+  const filenameToKey: Record<string, string> = {};
+  for (const [k, v] of Object.entries(mediaMap)) {
+    filenameToKey[String(v)] = String(k);
+  }
+
+  // Extract media files to a per-import directory if requested.
+  // We only extract files that are referenced by cards (lazy-ish: filter later),
+  // but to keep things simple and offline-first we extract all referenced files
+  // after we know which ones cards point to. For now, prepare the target dir.
+  let mediaDirUri: string | null = null;
+  if (options?.importId && Platform.OS !== "web" && fsCompat.documentDirectory) {
+    mediaDirUri = `${fsCompat.documentDirectory}anki-media/${options.importId}/`;
+    try {
+      await fsCompat.makeDirectoryAsync(mediaDirUri, { intermediates: true });
+    } catch {
+      // ignore
+    }
+  }
+
+  const isImageName = (n: string) =>
+    /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n);
+  const isAudioName = (n: string) =>
+    /\.(mp3|m4a|wav|ogg|oga|opus|aac|flac)$/i.test(n);
+
+  // Cache of already-extracted file URIs so we don't extract the same file twice
+  const extractedCache = new Map<string, string>();
+
+  async function extractMediaFile(filename: string): Promise<string | null> {
+    if (!mediaDirUri) return null;
+    if (extractedCache.has(filename)) return extractedCache.get(filename) ?? null;
+    const key = filenameToKey[filename];
+    if (!key) return null;
+    const entry = zip.file(key);
+    if (!entry) return null;
+    try {
+      const bytes = await entry.async("uint8array");
+      const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const targetUri = `${mediaDirUri}${safeName}`;
+      const b64 = uint8ArrayToBase64(bytes);
+      await fsCompat.writeAsStringAsync(targetUri, b64, { encoding: "base64" });
+      extractedCache.set(filename, targetUri);
+      return targetUri;
+    } catch {
+      return null;
     }
   }
 
@@ -269,11 +366,12 @@ export async function parseAnkiPackage(
 
         const deckName = deckMap[did] ?? `Deck ${did}`;
         const arr = buckets.get(deckName) ?? [];
+        const mediaList = [...front.media, ...back.media].filter(Boolean);
         arr.push({
           front: front.text,
           back: back.text,
           tags: tags || undefined,
-          media: [...front.media, ...back.media].filter(Boolean),
+          media: mediaList,
         });
         buckets.set(deckName, arr);
       }
@@ -282,18 +380,36 @@ export async function parseAnkiPackage(
     const decks: AnkiDeck[] = Array.from(buckets.entries()).map(
       ([name, cards]) => ({ name, cards }),
     );
+
+    // Resolve media: extract referenced files to disk and attach URIs to each card.
+    if (mediaDirUri) {
+      onProgress?.({ stage: "building-decks", message: "Mengekstrak media..." });
+      for (const deck of decks) {
+        for (const card of deck.cards) {
+          if (!card.media || card.media.length === 0) continue;
+          const audioUris: string[] = [];
+          let imageUri: string | undefined;
+          for (const name of card.media) {
+            const uri = await extractMediaFile(name);
+            if (!uri) continue;
+            if (!imageUri && isImageName(name)) imageUri = uri;
+            else if (isAudioName(name)) audioUris.push(uri);
+          }
+          if (imageUri) card.imageUri = imageUri;
+          if (audioUris.length > 0) card.audioUris = audioUris;
+        }
+      }
+    }
+
     const totalCards = decks.reduce((s, d) => s + d.cards.length, 0);
 
     onProgress?.({ stage: "done", percent: 100 });
-    return { totalCards, decks };
+    return { totalCards, decks, mediaDir: mediaDirUri ?? undefined };
   } finally {
     try {
       db.close();
     } catch {
       // ignore
     }
-    // mediaMap is referenced for future use (lazy media resolution)
-    void mediaMap;
-    void FileSystem;
   }
 }

@@ -10,8 +10,9 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, Plus, RotateCcw, Check } from "lucide-react-native";
+import { X, Plus, RotateCcw, Check, Volume2 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { useAudioPlayer } from "expo-audio";
 import {
   getFlashcards,
   saveProgress,
@@ -241,6 +242,16 @@ export default function FlashcardScreen() {
 
   const card = cards[currentIndex];
   const progress = (currentIndex / cards.length) * 100;
+  const audioPlayer = useAudioPlayer(card?.audio ?? null);
+  const playAudio = () => {
+    if (!card?.audio) return;
+    try {
+      audioPlayer.seekTo(0);
+      audioPlayer.play();
+    } catch {
+      // ignore audio errors
+    }
+  };
 
   const frontInterpolate = flipAnim.interpolate({
     inputRange: [0, 1],
@@ -315,6 +326,19 @@ export default function FlashcardScreen() {
             )}
             <Text style={styles.cardHint}>Pertanyaan</Text>
             <Text style={styles.cardText}>{card.question}</Text>
+            {card.audio && !flipped && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  playAudio();
+                }}
+                style={styles.audioBtn}
+                activeOpacity={0.85}
+              >
+                <Volume2 size={16} color={Colors.primary} />
+                <Text style={styles.audioBtnText}>Putar audio</Text>
+              </TouchableOpacity>
+            )}
             <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
           </Animated.View>
 
@@ -464,6 +488,21 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   tapHint: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  audioBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginTop: 12,
+  },
+  audioBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.primary,
+  },
   answerBtns: {
     flexDirection: "row",
     paddingHorizontal: 20,

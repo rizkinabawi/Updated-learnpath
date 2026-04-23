@@ -65,6 +65,7 @@
     "base64-js": "^1.5.1",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "expo-audio": "^55.0.14",
     "expo-clipboard": "^8.0.8",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "^19.0.21",

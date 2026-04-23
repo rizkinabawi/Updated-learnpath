@@ -1,88 +1,15 @@
-const DarkPalette = {
-  primary: "#6B8EFF",
-  primaryDark: "#5577EE",
-  primaryLight: "#1A2040",
-  accent: "#FF8080",
-  accentLight: "#2A1818",
-  teal: "#56CFFF",
-  tealLight: "#0A2030",
-  amber: "#FFB340",
-  amberLight: "#2A1E00",
-  purple: "#A57EFF",
-  purpleLight: "#1E1230",
-  emerald: "#34D399",
-  emeraldLight: "#0A2018",
-  dark: "#F1F5FF",
-  black: "#F1F5FF",
-  darkMed: "#C8D6F0",
-  white: "#1E2535",
-  background: "#0F1420",
-  surface: "#1A2035",
-  border: "#2A3555",
-  borderLight: "#1E2A45",
-  text: "#F1F5FF",
-  textSecondary: "#9AAACF",
-  textMuted: "#5B6E90",
-  success: "#34D399",
-  successLight: "#0A2018",
-  danger: "#FF6B6B",
-  dangerLight: "#2A1010",
-  warning: "#FFB340",
-  warningLight: "#2A1A00",
-  tabActive: "#6B8EFF",
-  tabInactive: "#5B6E90",
-  card1: "#3A5AEE",
-  card2: "#CC7700",
-  card3: "#2AADDD",
-  card4: "#6A3ACD",
-};
+/**
+ * Backwards-compatibility shim. Dark palettes now live in `colors.ts`
+ * and are swapped into the same mutable `Colors` object via `applyTheme`.
+ * This module re-exports the active `Colors` so any old code that did
+ * `import DarkColors from "@/constants/dark-colors"` keeps working.
+ */
+import Colors, { applyTheme } from "./colors";
 
-const MinimalDarkPalette: typeof DarkPalette = {
-  primary: "#FFFFFF",
-  primaryDark: "#E5E5E5",
-  primaryLight: "#1A1A1A",
-  accent: "#CCCCCC",
-  accentLight: "#1A1A1A",
-  teal: "#BBBBBB",
-  tealLight: "#1A1A1A",
-  amber: "#AAAAAA",
-  amberLight: "#1A1A1A",
-  purple: "#DDDDDD",
-  purpleLight: "#1A1A1A",
-  emerald: "#CCCCCC",
-  emeraldLight: "#1A1A1A",
-  dark: "#FFFFFF",
-  black: "#FFFFFF",
-  darkMed: "#DDDDDD",
-  white: "#111111",
-  background: "#000000",
-  surface: "#0E0E0E",
-  border: "#262626",
-  borderLight: "#1A1A1A",
-  text: "#FAFAFA",
-  textSecondary: "#BBBBBB",
-  textMuted: "#777777",
-  success: "#FFFFFF",
-  successLight: "#1A1A1A",
-  danger: "#EEEEEE",
-  dangerLight: "#1A1A1A",
-  warning: "#CCCCCC",
-  warningLight: "#1A1A1A",
-  tabActive: "#FFFFFF",
-  tabInactive: "#777777",
-  card1: "#2A2A2A",
-  card2: "#1F1F1F",
-  card3: "#333333",
-  card4: "#252525",
-};
-
-const DarkColors: typeof DarkPalette = { ...DarkPalette };
-
-export function applyMinimalDarkPalette(minimal: boolean) {
-  const src = minimal ? MinimalDarkPalette : DarkPalette;
-  (Object.keys(src) as Array<keyof typeof DarkPalette>).forEach((k) => {
-    (DarkColors as any)[k] = src[k];
-  });
+export function applyMinimalDarkPalette(_minimal: boolean) {
+  // No-op: theme/palette swapping is now driven by `applyTheme` in colors.ts.
+  // Kept to avoid breaking older imports.
 }
 
-export default DarkColors;
+export { applyTheme };
+export default Colors;

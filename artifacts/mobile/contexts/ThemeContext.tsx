@@ -1,22 +1,29 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "react-native";
-import LightColors, { applyMinimalPalette } from "@/constants/colors";
-import DarkColors, { applyMinimalDarkPalette } from "@/constants/dark-colors";
+import Colors, {
+  applyTheme,
+  applyGradientsForTheme,
+  type ColorScheme,
+  type Palette,
+} from "@/constants/colors";
 
-type ColorSet = typeof LightColors;
 export type ThemeMode = "light" | "dark" | "system";
-export type Palette = "color" | "minimal";
+export type { Palette };
 
 interface ThemeCtx {
   isDark: boolean;
   mode: ThemeMode;
   palette: Palette;
-  colors: ColorSet;
+  /**
+   * Active color set. Reactive — re-reads when theme changes.
+   * Prefer using `useColors()` in new code so re-renders happen automatically.
+   */
+  colors: ColorScheme;
   toggleTheme: () => void;
   setMode: (m: ThemeMode) => void;
   setPalette: (p: Palette) => void;
-  /** key bumped on theme/palette change — use to remount subtrees */
+  /** Bumped on theme/palette change — used to remount subtrees so StyleSheet picks up new colors. */
   themeKey: number;
 }
 
@@ -24,7 +31,7 @@ const ThemeContext = createContext<ThemeCtx>({
   isDark: false,
   mode: "system",
   palette: "color",
-  colors: LightColors,
+  colors: Colors,
   toggleTheme: () => {},
   setMode: () => {},
   setPalette: () => {},
@@ -34,10 +41,9 @@ const ThemeContext = createContext<ThemeCtx>({
 const THEME_KEY = "theme_preference";
 const PALETTE_KEY = "palette_preference";
 
-function applyPalette(p: Palette) {
-  const minimal = p === "minimal";
-  applyMinimalPalette(minimal);
-  applyMinimalDarkPalette(minimal);
+function syncTheme(palette: Palette, isDark: boolean) {
+  applyTheme(palette, isDark);
+  applyGradientsForTheme(palette, isDark);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -46,55 +52,81 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [palette, setPaletteState] = useState<Palette>("color");
   const [isDark, setIsDark] = useState(systemScheme === "dark");
   const [themeKey, setThemeKey] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Apply default theme synchronously on first render so children read the right colors.
+  if (!hydrated) {
+    syncTheme("color", systemScheme === "dark");
+  }
 
   useEffect(() => {
     (async () => {
-      const t = await AsyncStorage.getItem(THEME_KEY);
-      const p = await AsyncStorage.getItem(PALETTE_KEY);
-      if (t === "light" || t === "dark" || t === "system") {
-        setModeState(t);
-        setIsDark(t === "dark" || (t === "system" && systemScheme === "dark"));
+      try {
+        const t = await AsyncStorage.getItem(THEME_KEY);
+        const p = await AsyncStorage.getItem(PALETTE_KEY);
+        const nextMode: ThemeMode =
+          t === "light" || t === "dark" || t === "system" ? t : "system";
+        const nextPalette: Palette = p === "minimal" ? "minimal" : "color";
+        const nextDark =
+          nextMode === "dark" || (nextMode === "system" && systemScheme === "dark");
+        setModeState(nextMode);
+        setPaletteState(nextPalette);
+        setIsDark(nextDark);
+        syncTheme(nextPalette, nextDark);
+      } finally {
+        setHydrated(true);
+        setThemeKey((k) => k + 1);
       }
-      if (p === "color" || p === "minimal") {
-        setPaletteState(p);
-        applyPalette(p);
-      }
-      setThemeKey((k) => k + 1);
     })();
   }, []);
 
+  // Follow system scheme changes when in "system" mode.
   useEffect(() => {
-    if (mode === "system") setIsDark(systemScheme === "dark");
+    if (mode !== "system") return;
+    const nextDark = systemScheme === "dark";
+    if (nextDark !== isDark) {
+      setIsDark(nextDark);
+      syncTheme(palette, nextDark);
+      setThemeKey((k) => k + 1);
+    }
   }, [systemScheme, mode]);
 
   const setMode = (next: ThemeMode) => {
+    const nextDark =
+      next === "dark" || (next === "system" && systemScheme === "dark");
     setModeState(next);
-    setIsDark(next === "dark" || (next === "system" && systemScheme === "dark"));
+    setIsDark(nextDark);
+    syncTheme(palette, nextDark);
     AsyncStorage.setItem(THEME_KEY, next).catch(() => {});
     setThemeKey((k) => k + 1);
   };
 
   const setPalette = (p: Palette) => {
     setPaletteState(p);
-    applyPalette(p);
+    syncTheme(p, isDark);
     AsyncStorage.setItem(PALETTE_KEY, p).catch(() => {});
     setThemeKey((k) => k + 1);
   };
 
-  const toggleTheme = () => {
-    const next: ThemeMode = isDark ? "light" : "dark";
-    setMode(next);
-  };
+  const toggleTheme = () => setMode(isDark ? "light" : "dark");
 
-  const colors = isDark ? DarkColors : LightColors;
-
-  return (
-    <ThemeContext.Provider
-      value={{ isDark, mode, palette, colors, toggleTheme, setMode, setPalette, themeKey }}
-    >
-      {children}
-    </ThemeContext.Provider>
+  // `Colors` is the live mutable object — pass a fresh shallow copy by reference
+  // so consumers using `useColors()` re-render when themeKey changes.
+  const value = useMemo<ThemeCtx>(
+    () => ({
+      isDark,
+      mode,
+      palette,
+      colors: { ...Colors },
+      toggleTheme,
+      setMode,
+      setPalette,
+      themeKey,
+    }),
+    [isDark, mode, palette, themeKey],
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export const useTheme = () => useContext(ThemeContext);

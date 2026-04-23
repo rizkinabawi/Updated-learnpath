@@ -19,9 +19,17 @@ import * as FileSystem from "expo-file-system";
 
 import {
   Flashcard,
+  LearningPath,
+  Lesson,
+  Module,
   STANDALONE_COLLECTION_PREFIX,
   StandaloneCollection,
+  getLearningPaths,
+  getUser,
   saveFlashcard,
+  saveLearningPath,
+  saveLesson,
+  saveModule,
   saveStandaloneCollection,
 } from "@/utils/storage";
 import Colors, { shadow, shadowSm } from "@/constants/colors";
@@ -46,6 +54,44 @@ function formatBytes(bytes?: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+/**
+ * Compute the longest common `::`-separated prefix of an array of deck names.
+ * E.g. ["JLPT N5::Grammar", "JLPT N5::Vocab"] → "JLPT N5".
+ * Returns "" if there is no shared prefix.
+ */
+function commonDeckPrefix(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) {
+    const segs = names[0]!.split("::");
+    return segs.length > 1 ? segs.slice(0, -1).join("::") : "";
+  }
+  const split = names.map((n) => n.split("::"));
+  const minLen = Math.min(...split.map((s) => s.length));
+  const out: string[] = [];
+  for (let i = 0; i < minLen; i++) {
+    const seg = split[0]![i]!;
+    if (split.every((s) => s[i] === seg)) out.push(seg);
+    else break;
+  }
+  // Don't consume the leaf as the module name when all decks are identical
+  if (out.length === split[0]!.length) out.pop();
+  return out.join("::");
+}
+
+/** Strip a leading prefix (with `::`) from a deck name to get the lesson's leaf name. */
+function stripPrefix(name: string, prefix: string): string {
+  if (!prefix) return name;
+  if (name === prefix) return name.split("::").pop() ?? name;
+  if (name.startsWith(prefix + "::")) return name.slice(prefix.length + 2);
+  return name;
+}
+
+/** True when decks look hierarchical or there are multiple decks worth grouping. */
+function looksHierarchical(decks: { name: string }[]): boolean {
+  if (decks.length >= 2) return true;
+  return decks.some((d) => d.name.includes("::"));
 }
 
 function parseTxt(text: string): ParsedDeck {
@@ -77,6 +123,28 @@ export default function AnkiImportScreen() {
   const [pickedFile, setPickedFile] = useState<PickedFile | null>(null);
   const [expanded, setExpanded] = useState<number | null>(0);
   const [progress, setProgress] = useState<ParseProgress | null>(null);
+
+  // Mode: "collection" → flat standalone collection; "module" → Path/Module/Lesson hierarchy
+  const [mode, setMode] = useState<"collection" | "module">("collection");
+  const [moduleName, setModuleName] = useState("");
+  const [paths, setPaths] = useState<LearningPath[]>([]);
+  // Selected path id, or "__new__" to create one inline
+  const [selectedPathId, setSelectedPathId] = useState<string>("__new__");
+  const [newPathName, setNewPathName] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const ps = await getLearningPaths();
+      if (!alive) return;
+      setPaths(ps);
+      // Default: pick first existing path if any, else create-new
+      setSelectedPathId(ps[0]?.id ?? "__new__");
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const totalCards = decks.reduce((s, d) => s + d.cards.length, 0);
 
@@ -168,11 +236,22 @@ export default function AnkiImportScreen() {
           setStatus({ type: "err", msg: "Tidak ada kartu ditemukan dalam .apkg." });
         } else {
           setDecks(data.decks);
+          const isHier = looksHierarchical(data.decks);
           setCollectionName(
             data.decks.length === 1
               ? data.decks[0]!.name
               : `Anki Import (${data.totalCards} cards)`,
           );
+          // Auto-pick a sensible Module name + default to Module mode when hierarchical
+          const prefix = commonDeckPrefix(data.decks.map((d) => d.name));
+          setModuleName(
+            prefix ||
+              (data.decks.length === 1
+                ? data.decks[0]!.name
+                : `Anki Import (${data.decks.length} pelajaran)`),
+          );
+          setNewPathName(prefix || "Anki Import");
+          setMode(isHier ? "module" : "collection");
           setStatus({
             type: "ok",
             msg: `Berhasil parsing ${data.totalCards} kartu dari ${data.decks.length} deck (lokal, tanpa server).`,
@@ -193,45 +272,117 @@ export default function AnkiImportScreen() {
     }
   };
 
+  const importAsCollection = async () => {
+    const now = new Date().toISOString();
+    const colId = `${STANDALONE_COLLECTION_PREFIX}${generateId()}`;
+    const col: StandaloneCollection = {
+      id: colId,
+      name: collectionName.trim() || "Anki Import",
+      description: `Imported from Anki — ${totalCards} cards`,
+      type: "flashcard",
+      createdAt: now,
+    };
+    await saveStandaloneCollection(col);
+
+    for (const deck of decks) {
+      for (const c of deck.cards) {
+        const card: Flashcard = {
+          id: generateId(),
+          question: c.front,
+          answer: c.back,
+          tag: deck.name,
+          lessonId: colId,
+          ...(c.imageUri ? { image: c.imageUri } : {}),
+          ...(c.audioUris && c.audioUris.length > 0
+            ? { audio: c.audioUris[0] }
+            : {}),
+          createdAt: now,
+        };
+        await saveFlashcard(card);
+      }
+    }
+    return { name: col.name, target: "/(tabs)/practice" as const };
+  };
+
+  const importAsModule = async () => {
+    const now = new Date().toISOString();
+
+    // Resolve the path: existing or freshly-created
+    let pathId = selectedPathId;
+    if (selectedPathId === "__new__") {
+      const user = await getUser();
+      const newPath: LearningPath = {
+        id: generateId(),
+        name: newPathName.trim() || "Anki Import",
+        description: "Diimpor dari Anki",
+        userId: user?.id ?? "local",
+        icon: "layers",
+        createdAt: now,
+      };
+      await saveLearningPath(newPath);
+      pathId = newPath.id;
+    }
+
+    // Create the module
+    const mod: Module = {
+      id: generateId(),
+      name: moduleName.trim() || "Anki Import",
+      description: `${decks.length} pelajaran · ${totalCards} kartu`,
+      pathId,
+      order: Date.now(),
+      icon: "book-open",
+      createdAt: now,
+    };
+    await saveModule(mod);
+
+    // Strip the common deck prefix so each lesson uses its leaf-level name
+    const prefix = commonDeckPrefix(decks.map((d) => d.name));
+
+    let order = 0;
+    for (const deck of decks) {
+      const leafName = stripPrefix(deck.name, prefix) || deck.name;
+      const lesson: Lesson = {
+        id: generateId(),
+        name: leafName,
+        description: `${deck.cards.length} kartu`,
+        moduleId: mod.id,
+        order: order++,
+        createdAt: now,
+      };
+      await saveLesson(lesson);
+
+      for (const c of deck.cards) {
+        const card: Flashcard = {
+          id: generateId(),
+          question: c.front,
+          answer: c.back,
+          tag: deck.name,
+          lessonId: lesson.id,
+          ...(c.imageUri ? { image: c.imageUri } : {}),
+          ...(c.audioUris && c.audioUris.length > 0
+            ? { audio: c.audioUris[0] }
+            : {}),
+          createdAt: now,
+        };
+        await saveFlashcard(card);
+      }
+    }
+    return { name: mod.name, target: "/(tabs)/learn" as const };
+  };
+
   const importToCollection = async () => {
     if (decks.length === 0) return;
     setBusy(true);
     try {
-      const now = new Date().toISOString();
-      const colId = `${STANDALONE_COLLECTION_PREFIX}${generateId()}`;
-      const col: StandaloneCollection = {
-        id: colId,
-        name: collectionName.trim() || "Anki Import",
-        description: `Imported from Anki — ${totalCards} cards`,
-        type: "flashcard",
-        createdAt: now,
-      };
-      await saveStandaloneCollection(col);
-
-      for (const deck of decks) {
-        for (const c of deck.cards) {
-          const card: Flashcard = {
-            id: generateId(),
-            question: c.front,
-            answer: c.back,
-            tag: deck.name,
-            lessonId: colId,
-            ...(c.imageUri ? { image: c.imageUri } : {}),
-            ...(c.audioUris && c.audioUris.length > 0
-              ? { audio: c.audioUris[0] }
-              : {}),
-            createdAt: now,
-          };
-          await saveFlashcard(card);
-        }
-      }
+      const result =
+        mode === "module" ? await importAsModule() : await importAsCollection();
       setStatus({
         type: "ok",
-        msg: `Berhasil impor ${totalCards} kartu ke "${col.name}".`,
+        msg: `Berhasil impor ${totalCards} kartu ke "${result.name}".`,
       });
       setDecks([]);
       setPickedFile(null);
-      setTimeout(() => router.push("/(tabs)/practice"), 800);
+      setTimeout(() => router.push(result.target), 800);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setStatus({ type: "err", msg: `Gagal simpan: ${msg}` });
@@ -411,17 +562,173 @@ export default function AnkiImportScreen() {
 
               <View style={styles.divider} />
 
-              <Text style={styles.label}>Nama Koleksi</Text>
-              <View style={styles.inputWrap}>
-                <Feather name="bookmark" size={16} color={Colors.textMuted} />
-                <TextInput
-                  value={collectionName}
-                  onChangeText={setCollectionName}
-                  style={styles.input}
-                  placeholder="Beri nama koleksi…"
-                  placeholderTextColor={Colors.textMuted}
-                />
+              <Text style={styles.label}>Cara Impor</Text>
+              <View style={styles.modeRow}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setMode("collection")}
+                  style={[
+                    styles.modeBtn,
+                    mode === "collection" && styles.modeBtnActive,
+                  ]}
+                >
+                  <Feather
+                    name="folder"
+                    size={16}
+                    color={mode === "collection" ? "#fff" : Colors.textMuted}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.modeTitle,
+                        mode === "collection" && styles.modeTitleActive,
+                      ]}
+                    >
+                      Koleksi tunggal
+                    </Text>
+                    <Text
+                      style={[
+                        styles.modeDesc,
+                        mode === "collection" && styles.modeDescActive,
+                      ]}
+                    >
+                      Semua kartu masuk ke 1 koleksi
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setMode("module")}
+                  style={[
+                    styles.modeBtn,
+                    mode === "module" && styles.modeBtnActive,
+                  ]}
+                >
+                  <Feather
+                    name="layers"
+                    size={16}
+                    color={mode === "module" ? "#fff" : Colors.textMuted}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.modeTitle,
+                        mode === "module" && styles.modeTitleActive,
+                      ]}
+                    >
+                      Modul (deck → pelajaran)
+                    </Text>
+                    <Text
+                      style={[
+                        styles.modeDesc,
+                        mode === "module" && styles.modeDescActive,
+                      ]}
+                    >
+                      Tiap deck jadi pelajaran terpisah
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
+
+              {mode === "collection" ? (
+                <>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Nama Koleksi</Text>
+                  <View style={styles.inputWrap}>
+                    <Feather name="bookmark" size={16} color={Colors.textMuted} />
+                    <TextInput
+                      value={collectionName}
+                      onChangeText={setCollectionName}
+                      style={styles.input}
+                      placeholder="Beri nama koleksi…"
+                      placeholderTextColor={Colors.textMuted}
+                    />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Path Belajar</Text>
+                  <View style={styles.pathChips}>
+                    {paths.map((p) => (
+                      <TouchableOpacity
+                        key={p.id}
+                        onPress={() => setSelectedPathId(p.id)}
+                        style={[
+                          styles.pathChip,
+                          selectedPathId === p.id && styles.pathChipActive,
+                        ]}
+                      >
+                        <Feather
+                          name="bookmark"
+                          size={12}
+                          color={
+                            selectedPathId === p.id ? "#fff" : Colors.textMuted
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.pathChipText,
+                            selectedPathId === p.id && styles.pathChipTextActive,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {p.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      onPress={() => setSelectedPathId("__new__")}
+                      style={[
+                        styles.pathChip,
+                        selectedPathId === "__new__" && styles.pathChipActive,
+                      ]}
+                    >
+                      <Feather
+                        name="plus"
+                        size={12}
+                        color={
+                          selectedPathId === "__new__" ? "#fff" : Colors.textMuted
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.pathChipText,
+                          selectedPathId === "__new__" && styles.pathChipTextActive,
+                        ]}
+                      >
+                        Buat baru
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {selectedPathId === "__new__" && (
+                    <View style={[styles.inputWrap, { marginTop: 8 }]}>
+                      <Feather name="plus-circle" size={16} color={Colors.textMuted} />
+                      <TextInput
+                        value={newPathName}
+                        onChangeText={setNewPathName}
+                        style={styles.input}
+                        placeholder="Nama path baru…"
+                        placeholderTextColor={Colors.textMuted}
+                      />
+                    </View>
+                  )}
+
+                  <Text style={[styles.label, { marginTop: 14 }]}>Nama Modul</Text>
+                  <View style={styles.inputWrap}>
+                    <Feather name="layers" size={16} color={Colors.textMuted} />
+                    <TextInput
+                      value={moduleName}
+                      onChangeText={setModuleName}
+                      style={styles.input}
+                      placeholder="Beri nama modul…"
+                      placeholderTextColor={Colors.textMuted}
+                    />
+                  </View>
+                  <Text style={styles.helperText}>
+                    {decks.length} deck akan jadi {decks.length} pelajaran di dalam modul ini.
+                  </Text>
+                </>
+              )}
 
               <Text style={[styles.label, { marginTop: 18 }]}>Pratinjau Deck</Text>
               {decks.map((d, i) => {
@@ -884,4 +1191,57 @@ const styles = StyleSheet.create({
   },
   tipTitle: { fontSize: 13, fontWeight: "700", color: Colors.text },
   tipBody: { fontSize: 12.5, color: Colors.textSecondary, marginTop: 2, lineHeight: 17 },
+
+  modeRow: { gap: 8, marginTop: 8 },
+  modeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  modeBtnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  modeTitle: { fontSize: 13.5, fontWeight: "700", color: Colors.text },
+  modeTitleActive: { color: "#fff" },
+  modeDesc: { fontSize: 11.5, color: Colors.textMuted, marginTop: 1 },
+  modeDescActive: { color: "rgba(255,255,255,0.85)" },
+
+  pathChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  },
+  pathChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    maxWidth: 200,
+  },
+  pathChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  pathChipText: { fontSize: 12, color: Colors.textSecondary, fontWeight: "600" },
+  pathChipTextActive: { color: "#fff" },
+
+  helperText: {
+    fontSize: 11.5,
+    color: Colors.textMuted,
+    marginTop: 6,
+    fontStyle: "italic",
+  },
 });

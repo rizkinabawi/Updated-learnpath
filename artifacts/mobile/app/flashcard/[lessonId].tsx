@@ -57,6 +57,12 @@ export default function FlashcardScreen() {
   const [achievementValue, setAchievementValue] = useState(0);
   const [lessonName, setLessonName] = useState("");
   const [bookmarked, setBookmarked] = useState(false);
+  // Loading + error state so we can show a real message when reading
+  // AsyncStorage fails (corrupt JSON, OOM on giant blobs, etc.) instead of
+  // crashing the JS bundle silently.
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
 
@@ -70,27 +76,50 @@ export default function FlashcardScreen() {
   const audioPlayer = useAudioPlayer(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
     (async () => {
-      const rawData = await getFlashcards(lessonId);
-      const sorted = await sortBySpacedRep(rawData);
-      setCards(sorted);
-      if (lessonId?.startsWith("__sc__")) {
-        // Standalone collection — look up name from standalone_collections
-        const { getStandaloneCollections } = await import("@/utils/storage");
-        const cols = await getStandaloneCollections();
-        const col = cols.find((c) => c.id === lessonId);
-        if (col) setLessonName(col.name);
-      } else {
-        const lessons = await getLessons();
-        const lesson = lessons.find((l) => l.id === lessonId);
-        if (lesson) setLessonName(lesson.name);
-        const idx = lessons.findIndex((l) => l.id === lessonId);
-        if (idx !== -1 && idx + 1 < lessons.length) {
-          setNextLesson(lessons[idx + 1]);
+      try {
+        // The new per-lesson sharded storage means this only deserializes
+        // ONE lesson's cards (≈1 MB max) instead of the entire collection.
+        const rawData = await getFlashcards(lessonId);
+        const sorted = await sortBySpacedRep(rawData);
+        if (cancelled) return;
+        setCards(sorted);
+        if (lessonId?.startsWith("__sc__")) {
+          const { getStandaloneCollections } = await import("@/utils/storage");
+          const cols = await getStandaloneCollections();
+          if (cancelled) return;
+          const col = cols.find((c) => c.id === lessonId);
+          if (col) setLessonName(col.name);
+        } else {
+          const lessons = await getLessons();
+          if (cancelled) return;
+          const lesson = lessons.find((l) => l.id === lessonId);
+          if (lesson) setLessonName(lesson.name);
+          const idx = lessons.findIndex((l) => l.id === lessonId);
+          if (idx !== -1 && idx + 1 < lessons.length) {
+            setNextLesson(lessons[idx + 1]);
+          }
         }
+      } catch (e) {
+        // Surface the real reason — usually JSON.parse OOM or storage IO error
+        // — to the user. Without this catch the whole React tree would crash.
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : String(e);
+        setLoadError(msg);
+        if (typeof console !== "undefined") {
+          console.warn("[flashcard] failed to load lesson", lessonId, e);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [lessonId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId, reloadKey]);
 
   useEffect(() => {
     if (cards[currentIndex]) {
@@ -178,6 +207,32 @@ export default function FlashcardScreen() {
     setCompleted({});
     setDone(false);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptySub}>Memuat kartu...</Text>
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyTitle}>Gagal memuat deck</Text>
+        <Text style={[styles.emptySub, { color: colors.danger }]} numberOfLines={6}>
+          {loadError}
+        </Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setReloadKey((k) => k + 1)}>
+          <RotateCcw size={16} color={colors.white} />
+          <Text style={styles.addBtnText}>Coba lagi</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={styles.backLinkText}>{t.common.back}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (cards.length === 0) {
     return (

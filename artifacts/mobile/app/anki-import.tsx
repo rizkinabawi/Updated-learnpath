@@ -2,6 +2,7 @@ import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   Pressable,
@@ -106,6 +107,22 @@ function stripPrefix(name: string, prefix: string): string {
 function looksHierarchical(decks: { name: string }[]): boolean {
   if (decks.length >= 2) return true;
   return decks.some((d) => d.name.includes("::"));
+}
+
+/**
+ * Maximum number of cards we let live under one lessonId. Each lesson maps to
+ * a single AsyncStorage row; on Android the underlying SQLite store has a
+ * ~6 MB row size cap and the JS heap struggles with much bigger blobs anyway.
+ * Keeping any one lesson at <=1000 cards leaves ample headroom for media
+ * URIs and HTML-heavy fronts/backs.
+ */
+const MAX_CARDS_PER_LESSON = 1000;
+
+/** Split an array into fixed-size chunks (last chunk may be smaller). */
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
 /**
@@ -362,35 +379,90 @@ export default function AnkiImportScreen() {
     }
   };
 
+  /**
+   * Single-collection import. If the combined deck has more cards than
+   * MAX_CARDS_PER_LESSON we automatically split it into multiple sub-collections
+   * ("Name (1/3)", "Name (2/3)", …) so no single AsyncStorage row blows past
+   * the Android SQLite size cap and the open-deck path stays fast. Each
+   * sub-collection is saved before moving on to the next so memory stays flat
+   * even on imports of 50k+ cards.
+   */
   const importAsCollection = async () => {
     const now = new Date().toISOString();
-    const colId = `${STANDALONE_COLLECTION_PREFIX}${generateId()}`;
-    const col: StandaloneCollection = {
-      id: colId,
-      name: collectionName.trim() || "Anki Import",
-      description: `Imported from Anki — ${totalCards} cards`,
-      type: "flashcard",
-      createdAt: now,
-    };
-    await saveStandaloneCollection(col);
+    const baseName = collectionName.trim() || "Anki Import";
 
-    const allCards: Flashcard[] = [];
+    // Flatten every deck into one combined card list. We track the source deck
+    // name on each card so the `tag` field still reflects the original deck.
+    const combined: Array<{ deckName: string; card: ParsedDeck["cards"][number] }> = [];
     for (const deck of decks) {
-      for (const c of deck.cards) {
-        allCards.push(buildFlashcardFromAnki(c, deck.name, colId, now));
-      }
+      for (const c of deck.cards) combined.push({ deckName: deck.name, card: c });
     }
-    // Chunked write: yields back to the event loop between batches so the
-    // UI thread can keep drawing the loading spinner during a giant import
-    // (Anki decks with 10k+ cards used to freeze the app for 30+ seconds).
-    await saveFlashcardsBulkChunked(allCards, 500);
-    return { name: col.name, target: "/(tabs)/practice" as const };
+
+    if (combined.length <= MAX_CARDS_PER_LESSON) {
+      // Fast path — single collection, single AsyncStorage row.
+      const colId = `${STANDALONE_COLLECTION_PREFIX}${generateId()}`;
+      const col: StandaloneCollection = {
+        id: colId,
+        name: baseName,
+        description: `Imported from Anki — ${combined.length} cards`,
+        type: "flashcard",
+        createdAt: now,
+      };
+      await saveStandaloneCollection(col);
+      const cards = combined.map((x) =>
+        buildFlashcardFromAnki(x.card, x.deckName, colId, now),
+      );
+      await saveFlashcardsBulkChunked(cards, 500, (done, total) =>
+        setProgress({ stage: "building-decks", message: `Menyimpan ${done}/${total}...`, percent: Math.round((done / total) * 100) }),
+      );
+      setProgress(null);
+      return { name: col.name, target: "/(tabs)/practice" as const };
+    }
+
+    // Auto-split path — chunk into collections of MAX_CARDS_PER_LESSON each.
+    const chunks = chunkArray(combined, MAX_CARDS_PER_LESSON);
+    let savedTotal = 0;
+    for (let i = 0; i < chunks.length; i++) {
+      const colId = `${STANDALONE_COLLECTION_PREFIX}${generateId()}`;
+      const col: StandaloneCollection = {
+        id: colId,
+        name: `${baseName} (${i + 1}/${chunks.length})`,
+        description: `Auto-split chunk ${i + 1} of ${chunks.length} · ${chunks[i].length} cards`,
+        type: "flashcard",
+        createdAt: now,
+      };
+      await saveStandaloneCollection(col);
+      const cards = chunks[i].map((x) =>
+        buildFlashcardFromAnki(x.card, x.deckName, colId, now),
+      );
+      await saveFlashcardsBulkChunked(cards, 500);
+      savedTotal += chunks[i].length;
+      setProgress({
+        stage: "building-decks",
+        message: `Menyimpan koleksi ${i + 1}/${chunks.length} (${savedTotal}/${combined.length} kartu)...`,
+        percent: Math.round((savedTotal / combined.length) * 100),
+      });
+      // Help the GC: drop the chunk reference once persisted.
+      chunks[i] = [];
+    }
+    setProgress(null);
+    return {
+      name: `${baseName} (${chunks.length} koleksi)`,
+      target: "/(tabs)/practice" as const,
+    };
   };
 
+  /**
+   * Module import — each Anki deck becomes a lesson. If a deck has more cards
+   * than MAX_CARDS_PER_LESSON we split it into multiple lessons named
+   * "<leaf> (1/N)", "<leaf> (2/N)" so heavy decks stay openable. Lessons are
+   * saved one by one (cards immediately persisted) instead of accumulating in
+   * a single giant `allCards` array — that previous approach held every card
+   * in JS memory until the very last save call.
+   */
   const importAsModule = async () => {
     const now = new Date().toISOString();
 
-    // Resolve the path: existing or freshly-created
     let pathId = selectedPathId;
     if (selectedPathId === "__new__") {
       const user = await getUser();
@@ -406,7 +478,6 @@ export default function AnkiImportScreen() {
       pathId = newPath.id;
     }
 
-    // Create the module
     const mod: Module = {
       id: generateId(),
       name: moduleName.trim() || "Anki Import",
@@ -418,35 +489,74 @@ export default function AnkiImportScreen() {
     };
     await saveModule(mod);
 
-    // Strip the common deck prefix so each lesson uses its leaf-level name
     const prefix = commonDeckPrefix(decks.map((d) => d.name));
 
     let order = 0;
-    const allCards: Flashcard[] = [];
+    let savedTotal = 0;
+    let lessonCount = 0;
+
+    // Pre-count expected lessons so the auto-split labels can show "X (1/3)".
+    let expectedLessons = 0;
+    for (const deck of decks) {
+      expectedLessons += Math.max(
+        1,
+        Math.ceil(deck.cards.length / MAX_CARDS_PER_LESSON),
+      );
+    }
+
     for (const deck of decks) {
       const leafName = stripPrefix(deck.name, prefix) || deck.name;
-      const lesson: Lesson = {
-        id: generateId(),
-        name: leafName,
-        description: `${deck.cards.length} kartu`,
-        moduleId: mod.id,
-        order: order++,
-        createdAt: now,
-      };
-      await saveLesson(lesson);
+      const deckChunks =
+        deck.cards.length <= MAX_CARDS_PER_LESSON
+          ? [deck.cards]
+          : chunkArray(deck.cards, MAX_CARDS_PER_LESSON);
 
-      for (const c of deck.cards) {
-        allCards.push(buildFlashcardFromAnki(c, deck.name, lesson.id, now));
+      for (let i = 0; i < deckChunks.length; i++) {
+        const chunk = deckChunks[i];
+        const lessonName =
+          deckChunks.length === 1
+            ? leafName
+            : `${leafName} (${i + 1}/${deckChunks.length})`;
+        const lesson: Lesson = {
+          id: generateId(),
+          name: lessonName,
+          description: `${chunk.length} kartu`,
+          moduleId: mod.id,
+          order: order++,
+          createdAt: now,
+        };
+        await saveLesson(lesson);
+
+        const cards = chunk.map((c) =>
+          buildFlashcardFromAnki(c, deck.name, lesson.id, now),
+        );
+        // Save THIS lesson's cards now, then drop the array. Doing it
+        // per-lesson instead of building one global allCards[] keeps peak
+        // memory bounded by the largest single lesson.
+        await saveFlashcardsBulkChunked(cards, 500);
+        savedTotal += chunk.length;
+        lessonCount += 1;
+        setProgress({
+          stage: "building-decks",
+          message: `Pelajaran ${lessonCount}/${expectedLessons} · ${savedTotal}/${totalCards} kartu`,
+          percent: Math.round((savedTotal / Math.max(1, totalCards)) * 100),
+        });
       }
     }
-    // Chunked write — see importAsCollection for rationale.
-    await saveFlashcardsBulkChunked(allCards, 500);
+    setProgress(null);
     return { name: mod.name, target: `/course/${pathId}` as const };
   };
 
+  /**
+   * Top-level entry from the "Import" button. All save errors are caught
+   * here, surfaced in the status banner AND a modal alert (with the full
+   * message), so the user sees exactly what failed instead of staring at a
+   * silent crash.
+   */
   const importToCollection = async () => {
     if (decks.length === 0) return;
     setBusy(true);
+    setStatus(null);
     try {
       const result =
         mode === "module" ? await importAsModule() : await importAsCollection();
@@ -454,12 +564,22 @@ export default function AnkiImportScreen() {
         type: "ok",
         msg: `Berhasil impor ${totalCards} kartu ke "${result.name}".`,
       });
+      // Free the parsed-deck arrays from React state — these can hold tens of
+      // megabytes of card text + media URIs and would otherwise linger until
+      // the user navigates away.
       setDecks([]);
       setPickedFile(null);
       setTimeout(() => router.push(result.target), 800);
     } catch (e) {
+      setProgress(null);
       const msg = e instanceof Error ? e.message : String(e);
+      const stack = e instanceof Error && e.stack ? `\n\n${e.stack.slice(0, 400)}` : "";
       setStatus({ type: "err", msg: `Gagal simpan: ${msg}` });
+      Alert.alert(
+        "Gagal menyimpan import",
+        `${msg}${stack}\n\nCoba kurangi ukuran deck atau ekspor ulang dari Anki.`,
+        [{ text: "OK" }],
+      );
     } finally {
       setBusy(false);
     }

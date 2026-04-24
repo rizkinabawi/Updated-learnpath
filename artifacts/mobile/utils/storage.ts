@@ -223,7 +223,18 @@ const STORAGE_KEYS = {
   LESSONS: "lessons",
   FLASHCARD_PACKS: "flashcard_packs",
   QUIZ_PACKS: "quiz_packs",
+  /** LEGACY single-blob flashcards key — migrated on first read into the
+   *  per-lesson layout below (FLASHCARDS_INDEX + FLASHCARDS_LESSON_PREFIX).
+   *  Kept here only so the migration code can find and remove it. */
   FLASHCARDS: "flashcards",
+  /** New: small JSON map { lessonId: count } so we can render counts and
+   *  drive list views without loading any card bodies. */
+  FLASHCARDS_INDEX: "flashcards_idx",
+  /** New: per-lesson key prefix. Each lesson gets its own AsyncStorage row
+   *  containing a JSON array of just that lesson's cards. This is THE fix
+   *  for the OOM crashes on accounts with thousands of cards — opening one
+   *  deck only deserializes that deck's blob, not the entire collection. */
+  FLASHCARDS_LESSON_PREFIX: "flashcards_l:",
   QUIZZES: "quizzes",
   PROGRESS: "progress",
   STATS: "stats",
@@ -370,9 +381,9 @@ export const saveFlashcardPack = async (pack: FlashcardPack) => {
 export const deleteFlashcardPack = async (packId: string) => {
   const packs = await getFlashcardPacks();
   await saveToStorage(STORAGE_KEYS.FLASHCARD_PACKS, packs.filter((p) => p.id !== packId));
-  // Also delete all flashcards in this pack
-  const cards = await getFromStorage<Flashcard>(STORAGE_KEYS.FLASHCARDS);
-  await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards.filter((c) => c.packId !== packId));
+  // Also delete all flashcards in this pack — uses the per-lesson layout so we
+  // only rewrite lessons that actually contain cards from this pack.
+  await deleteFlashcardsByPack(packId);
 };
 
 // ─── Quiz Packs ────────────────────────────────────────────────
@@ -396,128 +407,280 @@ export const deleteQuizPack = async (packId: string) => {
   await saveToStorage(STORAGE_KEYS.QUIZZES, quizzes.filter((q) => q.packId !== packId));
 };
 
-// ─── Flashcards ────────────────────────────────────────────────
-// In-memory cache to avoid repeated giant JSON.parse on every read.
-// Invalidated on every write below. Safe because AsyncStorage is local
-// and single-threaded — the cache always reflects the latest write.
-let _flashcardsCache: Flashcard[] | null = null;
+// ─── Flashcards (per-lesson sharded storage) ───────────────────
+//
+// Why per-lesson sharding:
+//   The original layout stored EVERY flashcard the user owned in a single
+//   AsyncStorage row under "flashcards". With heavy Anki imports this row
+//   easily hit 50–100 MB of JSON, which caused two unrecoverable crashes:
+//     1. JSON.parse on the entire blob → JS heap OOM on entry to any
+//        flashcard screen.
+//     2. AsyncStorage.setItem of the entire blob → SQLite cursor row size
+//        limit exceeded on Android (the underlying RKStorage table has a
+//        hard ~6 MB row cap on most devices) → silent native crash.
+//
+//   The new layout shards cards by lessonId:
+//     • flashcards_idx        — { lessonId: count } map (small, always loaded)
+//     • flashcards_l:<lid>    — Flashcard[] for one lesson (~1 MB max in practice)
+//
+//   Open-deck and bulk-import only ever touch one lesson's row, so the JSON
+//   payload stays small no matter how many decks the user owns. Migration
+//   from the legacy single-blob is automatic on first read.
+//
+//   Caches:
+//     • _flashcardsIndex      — the count map, in-memory mirror of FLASHCARDS_INDEX
+//     • _flashcardsByLesson   — per-lesson card arrays we've loaded this session
+//
+//   Everything below preserves the public API the rest of the app already
+//   uses (getFlashcards, saveFlashcard, saveFlashcardsBulk, etc.) so callers
+//   need no changes.
 
-const _readAllFlashcards = async (): Promise<Flashcard[]> => {
-  if (_flashcardsCache) return _flashcardsCache;
-  const cards = await getFromStorage<Flashcard>(STORAGE_KEYS.FLASHCARDS);
-  _flashcardsCache = cards;
-  return cards;
-};
+let _flashcardsIndex: Record<string, number> | null = null;
+const _flashcardsByLesson = new Map<string, Flashcard[]>();
+let _migrated = false;
 
-const _writeAllFlashcards = async (cards: Flashcard[]) => {
-  _flashcardsCache = cards;
-  await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards);
-};
+const _flashcardLessonKey = (lessonId: string) =>
+  `${STORAGE_KEYS.FLASHCARDS_LESSON_PREFIX}${lessonId}`;
 
-/** Drop the in-memory flashcards cache. Call after external mutations. */
+/** Migrate the legacy single-blob "flashcards" row into per-lesson rows.
+ *  Idempotent — only runs the first time per app session, and skips entirely
+ *  once the new index key exists. */
+async function _ensureFlashcardsMigrated(): Promise<void> {
+  if (_migrated) return;
+  // Fast path: already migrated in a previous session.
+  const existingIdxRaw = await AsyncStorage.getItem(STORAGE_KEYS.FLASHCARDS_INDEX);
+  if (existingIdxRaw) {
+    try {
+      _flashcardsIndex = JSON.parse(existingIdxRaw) ?? {};
+    } catch {
+      _flashcardsIndex = {};
+    }
+    _migrated = true;
+    return;
+  }
+
+  // Slow path: split the legacy "flashcards" blob (if any) into per-lesson rows.
+  let legacyRaw: string | null = null;
+  try {
+    legacyRaw = await AsyncStorage.getItem(STORAGE_KEYS.FLASHCARDS);
+  } catch {
+    legacyRaw = null;
+  }
+  if (!legacyRaw) {
+    _flashcardsIndex = {};
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.FLASHCARDS_INDEX, "{}");
+    } catch {}
+    _migrated = true;
+    return;
+  }
+
+  let cards: Flashcard[] = [];
+  try {
+    cards = JSON.parse(legacyRaw) ?? [];
+  } catch (e) {
+    // Legacy blob corrupt or too large to parse — start fresh under the new
+    // layout. Old blob is left in place so a future repair tool can recover.
+    if (typeof console !== "undefined") {
+      console.warn("[storage] legacy flashcards parse failed:", e);
+    }
+    _flashcardsIndex = {};
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.FLASHCARDS_INDEX, "{}");
+    } catch {}
+    _migrated = true;
+    return;
+  }
+
+  // Group by lessonId.
+  const groups = new Map<string, Flashcard[]>();
+  for (const c of cards) {
+    const lid = c.lessonId || "__orphan__";
+    let arr = groups.get(lid);
+    if (!arr) {
+      arr = [];
+      groups.set(lid, arr);
+    }
+    arr.push(c);
+  }
+
+  // Write each per-lesson row, then the index. Index is written LAST so that
+  // a crash mid-migration leaves us with the legacy blob intact + no stale
+  // index — next launch will retry the migration.
+  const newIndex: Record<string, number> = {};
+  for (const [lessonId, list] of groups) {
+    try {
+      await AsyncStorage.setItem(_flashcardLessonKey(lessonId), JSON.stringify(list));
+      newIndex[lessonId] = list.length;
+    } catch (e) {
+      if (typeof console !== "undefined") {
+        console.warn(`[storage] migration write failed for lesson ${lessonId}:`, e);
+      }
+    }
+  }
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.FLASHCARDS_INDEX, JSON.stringify(newIndex));
+    // Only remove the legacy blob after the index is durably written.
+    await AsyncStorage.removeItem(STORAGE_KEYS.FLASHCARDS);
+  } catch {}
+  _flashcardsIndex = newIndex;
+  _migrated = true;
+}
+
+async function _readLessonFlashcards(lessonId: string): Promise<Flashcard[]> {
+  await _ensureFlashcardsMigrated();
+  const cached = _flashcardsByLesson.get(lessonId);
+  if (cached) return cached;
+  let list: Flashcard[] = [];
+  try {
+    const raw = await AsyncStorage.getItem(_flashcardLessonKey(lessonId));
+    if (raw) list = JSON.parse(raw) ?? [];
+  } catch (e) {
+    if (typeof console !== "undefined") {
+      console.warn(`[storage] read lesson ${lessonId} failed:`, e);
+    }
+    list = [];
+  }
+  _flashcardsByLesson.set(lessonId, list);
+  return list;
+}
+
+async function _writeLessonFlashcards(lessonId: string, list: Flashcard[]): Promise<void> {
+  await _ensureFlashcardsMigrated();
+  // Update cache first so subsequent reads see the new state even if the
+  // disk write is slow/in-flight.
+  _flashcardsByLesson.set(lessonId, list);
+  if (!_flashcardsIndex) _flashcardsIndex = {};
+
+  const key = _flashcardLessonKey(lessonId);
+  if (list.length === 0) {
+    try { await AsyncStorage.removeItem(key); } catch {}
+    delete _flashcardsIndex[lessonId];
+  } else {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(list));
+      _flashcardsIndex[lessonId] = list.length;
+    } catch (e) {
+      // Re-throw so callers (especially imports) can surface a real error
+      // message to the user instead of silently dropping the write.
+      throw new Error(
+        `Gagal menyimpan ${list.length} kartu untuk pelajaran ${lessonId}: ` +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
+  }
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.FLASHCARDS_INDEX, JSON.stringify(_flashcardsIndex));
+  } catch {}
+}
+
+/** Drop in-memory flashcard caches. Call after restore-from-backup or when
+ *  external code mutates AsyncStorage rows directly. */
 export const invalidateFlashcardsCache = () => {
-  _flashcardsCache = null;
+  _flashcardsIndex = null;
+  _flashcardsByLesson.clear();
+  _migrated = false;
+};
+
+/** Returns the count map { lessonId: count } without loading any card bodies. */
+export const getFlashcardsIndex = async (): Promise<Record<string, number>> => {
+  await _ensureFlashcardsMigrated();
+  return _flashcardsIndex ? { ..._flashcardsIndex } : {};
 };
 
 export const getFlashcards = async (lessonId?: string): Promise<Flashcard[]> => {
-  const cards = await _readAllFlashcards();
-  return lessonId ? cards.filter((c) => c.lessonId === lessonId) : cards;
+  await _ensureFlashcardsMigrated();
+  if (lessonId) {
+    return _readLessonFlashcards(lessonId);
+  }
+  // Whole-collection read: walk the index and concat. Callers should avoid
+  // this path on hot screens — prefer getFlashcardsIndex / getFlashcardCount.
+  const idx = _flashcardsIndex ?? {};
+  const all: Flashcard[] = [];
+  for (const lid of Object.keys(idx)) {
+    const list = await _readLessonFlashcards(lid);
+    for (const c of list) all.push(c);
+  }
+  return all;
 };
 
-/**
- * Paginated flashcard fetch. Equivalent to `SELECT * FROM cards WHERE lessonId=?
- * LIMIT ? OFFSET ?`. Use this in list views that need to lazy-load thousands
- * of cards instead of materializing the whole array into React state.
- */
+/** Paginated flashcard fetch — slices the per-lesson cache. */
 export const getFlashcardsPaginated = async (
   lessonId: string | undefined,
   offset: number,
   limit: number,
 ): Promise<Flashcard[]> => {
-  const cards = await _readAllFlashcards();
-  const filtered = lessonId ? cards.filter((c) => c.lessonId === lessonId) : cards;
-  return filtered.slice(offset, offset + limit);
-};
-
-/** Returns the number of flashcards in a lesson (or total when omitted). */
-export const getFlashcardCount = async (lessonId?: string): Promise<number> => {
-  const cards = await _readAllFlashcards();
-  return lessonId ? cards.reduce((n, c) => (c.lessonId === lessonId ? n + 1 : n), 0) : cards.length;
-};
-
-/**
- * Single-pass grouping of every flashcard by lessonId. Replaces the N+1
- * pattern where callers loop over lessons and call getFlashcards(lessonId)
- * for each one (which re-deserialized the entire blob every time).
- */
-export const getAllFlashcardsGroupedByLesson = async (): Promise<Map<string, number>> => {
-  const cards = await _readAllFlashcards();
-  const counts = new Map<string, number>();
-  for (const c of cards) {
-    counts.set(c.lessonId, (counts.get(c.lessonId) ?? 0) + 1);
+  if (lessonId) {
+    const list = await _readLessonFlashcards(lessonId);
+    return list.slice(offset, offset + limit);
   }
-  return counts;
+  const all = await getFlashcards();
+  return all.slice(offset, offset + limit);
 };
 
+/** Returns the number of flashcards in a lesson (or total when omitted).
+ *  No card bodies are loaded — pulled straight from the index. */
+export const getFlashcardCount = async (lessonId?: string): Promise<number> => {
+  await _ensureFlashcardsMigrated();
+  const idx = _flashcardsIndex ?? {};
+  if (lessonId) return idx[lessonId] ?? 0;
+  let total = 0;
+  for (const k of Object.keys(idx)) total += idx[k] ?? 0;
+  return total;
+};
+
+/** Returns a Map<lessonId, count> straight from the index — O(L) and zero
+ *  card-body deserialization. Replaces the old N+1 read pattern. */
+export const getAllFlashcardsGroupedByLesson = async (): Promise<Map<string, number>> => {
+  await _ensureFlashcardsMigrated();
+  const idx = _flashcardsIndex ?? {};
+  const m = new Map<string, number>();
+  for (const k of Object.keys(idx)) m.set(k, idx[k] ?? 0);
+  return m;
+};
+
+/** Find every card belonging to a pack — needs to scan all lessons. Cheap
+ *  in practice because each lesson row is small. */
 export const getFlashcardsByPack = async (packId: string): Promise<Flashcard[]> => {
-  const cards = await _readAllFlashcards();
-  return cards.filter((c) => c.packId === packId);
+  await _ensureFlashcardsMigrated();
+  const idx = _flashcardsIndex ?? {};
+  const out: Flashcard[] = [];
+  for (const lid of Object.keys(idx)) {
+    const list = await _readLessonFlashcards(lid);
+    for (const c of list) if (c.packId === packId) out.push(c);
+  }
+  return out;
 };
 
 export const saveFlashcard = async (card: Flashcard) => {
-  const cards = await _readAllFlashcards();
-  const index = cards.findIndex((c) => c.id === card.id);
-  const updated = [...cards];
-  if (index >= 0) updated[index] = card;
+  const list = await _readLessonFlashcards(card.lessonId);
+  const idx = list.findIndex((c) => c.id === card.id);
+  const updated = list.slice();
+  if (idx >= 0) updated[idx] = card;
   else updated.push(card);
-  await _writeAllFlashcards(updated);
+  await _writeLessonFlashcards(card.lessonId, updated);
 };
 
-/**
- * O(n + m) bulk merge: builds an index map once, then a single pass over the
- * existing cards. The previous implementation called `findIndex` inside a
- * loop — O(n*m) — which froze the JS thread when importing thousands of
- * cards from Anki.
- */
+/** O(n + m) bulk merge, sharded by lesson — only the lessons actually being
+ *  written are loaded and rewritten. Big imports stay flat in memory. */
 export const saveFlashcardsBulk = async (newCards: Flashcard[]) => {
   if (newCards.length === 0) return;
-  const cards = await _readAllFlashcards();
-  const indexById = new Map<string, number>();
-  for (let i = 0; i < cards.length; i++) indexById.set(cards[i].id, i);
-
-  const updated = cards.slice();
-  for (const card of newCards) {
-    const idx = indexById.get(card.id);
-    if (idx !== undefined) {
-      updated[idx] = card;
-    } else {
-      indexById.set(card.id, updated.length);
-      updated.push(card);
+  // Group incoming cards by lessonId.
+  const byLesson = new Map<string, Flashcard[]>();
+  for (const c of newCards) {
+    let arr = byLesson.get(c.lessonId);
+    if (!arr) {
+      arr = [];
+      byLesson.set(c.lessonId, arr);
     }
+    arr.push(c);
   }
-  await _writeAllFlashcards(updated);
-};
-
-/**
- * Chunked variant of saveFlashcardsBulk that yields back to the event loop
- * between chunks so the UI thread can process touches / draw frames during
- * a giant import. Use this when inserting hundreds or thousands of cards.
- */
-export const saveFlashcardsBulkChunked = async (
-  newCards: Flashcard[],
-  chunkSize = 500,
-  onProgress?: (done: number, total: number) => void,
-) => {
-  if (newCards.length === 0) return;
-  const cards = await _readAllFlashcards();
-  const indexById = new Map<string, number>();
-  for (let i = 0; i < cards.length; i++) indexById.set(cards[i].id, i);
-  const updated = cards.slice();
-
-  for (let i = 0; i < newCards.length; i += chunkSize) {
-    const end = Math.min(i + chunkSize, newCards.length);
-    for (let j = i; j < end; j++) {
-      const card = newCards[j];
+  for (const [lessonId, batch] of byLesson) {
+    const existing = await _readLessonFlashcards(lessonId);
+    const indexById = new Map<string, number>();
+    for (let i = 0; i < existing.length; i++) indexById.set(existing[i].id, i);
+    const updated = existing.slice();
+    for (const card of batch) {
       const idx = indexById.get(card.id);
       if (idx !== undefined) {
         updated[idx] = card;
@@ -526,26 +689,95 @@ export const saveFlashcardsBulkChunked = async (
         updated.push(card);
       }
     }
-    onProgress?.(end, newCards.length);
-    // Yield to the event loop so the JS thread isn't blocked the whole time.
-    if (end < newCards.length) await new Promise<void>((r) => setTimeout(r, 0));
+    await _writeLessonFlashcards(lessonId, updated);
+  }
+};
+
+/** Chunked variant — yields between lesson writes so the UI thread keeps
+ *  drawing during a multi-thousand-card import. Errors propagate to the
+ *  caller (via the rethrow inside _writeLessonFlashcards) so the import UI
+ *  can show the real failure message. */
+export const saveFlashcardsBulkChunked = async (
+  newCards: Flashcard[],
+  chunkSize = 500,
+  onProgress?: (done: number, total: number) => void,
+) => {
+  if (newCards.length === 0) return;
+  const total = newCards.length;
+  let done = 0;
+
+  // Group by lesson, then write each lesson's batch in sub-chunks. We drop
+  // the input array reference progressively to let the GC reclaim card
+  // objects we've already persisted.
+  const byLesson = new Map<string, Flashcard[]>();
+  for (const c of newCards) {
+    let arr = byLesson.get(c.lessonId);
+    if (!arr) {
+      arr = [];
+      byLesson.set(c.lessonId, arr);
+    }
+    arr.push(c);
   }
 
-  await _writeAllFlashcards(updated);
+  for (const [lessonId, batch] of byLesson) {
+    const existing = await _readLessonFlashcards(lessonId);
+    const indexById = new Map<string, number>();
+    for (let i = 0; i < existing.length; i++) indexById.set(existing[i].id, i);
+    const updated = existing.slice();
+
+    for (let i = 0; i < batch.length; i += chunkSize) {
+      const end = Math.min(i + chunkSize, batch.length);
+      for (let j = i; j < end; j++) {
+        const card = batch[j];
+        const idx = indexById.get(card.id);
+        if (idx !== undefined) {
+          updated[idx] = card;
+        } else {
+          indexById.set(card.id, updated.length);
+          updated.push(card);
+        }
+      }
+      done += end - i;
+      onProgress?.(done, total);
+      // Yield so the spinner / progress indicator keeps painting.
+      await new Promise<void>((r) => setTimeout(r, 0));
+    }
+    await _writeLessonFlashcards(lessonId, updated);
+    // Help the GC by dropping per-batch refs eagerly.
+    byLesson.set(lessonId, []);
+  }
 };
 
 export const deleteFlashcard = async (id: string) => {
-  const cards = await _readAllFlashcards();
-  const card = cards.find((c) => c.id === id);
-  if (card) {
+  await _ensureFlashcardsMigrated();
+  const idx = _flashcardsIndex ?? {};
+  // Find the lesson that holds this card. Worst case scans every lesson row,
+  // but each row is small and we stop on first hit.
+  for (const lid of Object.keys(idx)) {
+    const list = await _readLessonFlashcards(lid);
+    const card = list.find((c) => c.id === id);
+    if (!card) continue;
     await deleteFileIfLocal(card.image);
     await deleteFileIfLocal(card.audio);
     if (card.images) for (const u of card.images) await deleteFileIfLocal(u);
     if (card.imagesBack) for (const u of card.imagesBack) await deleteFileIfLocal(u);
     if (card.audios) for (const u of card.audios) await deleteFileIfLocal(u);
     if (card.audiosBack) for (const u of card.audiosBack) await deleteFileIfLocal(u);
+    await _writeLessonFlashcards(lid, list.filter((c) => c.id !== id));
+    return;
   }
-  await _writeAllFlashcards(cards.filter((c) => c.id !== id));
+};
+
+/** Remove every card belonging to a pack. Touches only the lessons that
+ *  contain pack cards. */
+export const deleteFlashcardsByPack = async (packId: string) => {
+  await _ensureFlashcardsMigrated();
+  const idx = _flashcardsIndex ?? {};
+  for (const lid of Object.keys(idx)) {
+    const list = await _readLessonFlashcards(lid);
+    if (!list.some((c) => c.packId === packId)) continue;
+    await _writeLessonFlashcards(lid, list.filter((c) => c.packId !== packId));
+  }
 };
 
 // ─── Quizzes ───────────────────────────────────────────────────
@@ -618,7 +850,25 @@ export const updateStats = async (updates: Partial<Stats>) => {
 };
 
 export const clearAllData = async () => {
-  _flashcardsCache = null;
+  // Reset the per-lesson sharded flashcard caches so the next read re-runs
+  // migration cleanly against the (now empty) store.
+  invalidateFlashcardsCache();
+
+  // Remove every per-lesson flashcard row (`flashcards_l:<lessonId>`) in
+  // addition to the top-level keys — those don't appear in STORAGE_KEYS and
+  // would otherwise be orphaned across a wipe.
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const perLessonKeys = allKeys.filter((k) =>
+      k.startsWith(STORAGE_KEYS.FLASHCARDS_LESSON_PREFIX),
+    );
+    if (perLessonKeys.length > 0) {
+      await AsyncStorage.multiRemove(perLessonKeys);
+    }
+  } catch {
+    // Best-effort — fall through to multiRemove of known keys below.
+  }
+
   await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
 };
 

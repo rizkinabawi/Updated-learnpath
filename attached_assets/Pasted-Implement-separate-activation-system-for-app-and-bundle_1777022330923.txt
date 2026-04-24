@@ -1,0 +1,126 @@
+Implement separate activation system for app and bundle with strong asset protection.
+
+====================
+1. SYSTEM OVERVIEW
+====================
+
+- App license system (device-bound)
+- Bundle activation system (transferable)
+- Bundle integrity protection (non-editable)
+
+====================
+2. BUNDLE SIGNATURE (PERMANENT)
+====================
+
+Each bundle must include:
+
+{
+  "bundleId": "string",
+  "creator": "string",
+  "contentHash": "string",
+  "signature": "base64"
+}
+
+- contentHash = SHA256 of all bundle files
+
+- Signature created using:
+  SIGN(privateKey, bundleId|creator|contentHash)
+
+- On app load:
+  - verify signature using public key
+  - reject if invalid
+
+- Prevent:
+  - bundle modification
+  - ownership tampering
+  - asset theft
+
+====================
+3. BUNDLE ACTIVATION KEY
+====================
+
+Separate from app license
+
+Format:
+
+{
+  "bundleId": "string",
+  "issuedAt": number,
+  "expiry": number,
+  "signature": "base64"
+}
+
+Signed data:
+bundleId|issuedAt|expiry
+
+====================
+4. BUNDLE VALIDATION FLOW
+====================
+
+On bundle open:
+
+1. Verify bundle signature (integrity)
+2. Check if already unlocked
+3. If locked:
+   - request activation key
+   - verify signature
+   - validate expiry
+4. If valid:
+   - mark bundle as unlocked
+
+====================
+5. STORAGE
+====================
+
+- Store unlocked bundles locally:
+  - use secure storage
+
+Example:
+
+{
+  "unlockedBundles": ["bundle_001"]
+}
+
+====================
+6. APP LICENSE SYSTEM
+====================
+
+- Separate from bundle system
+- Device-bound license key
+- Verified on app start
+
+====================
+7. SECURITY
+====================
+
+- Use asymmetric cryptography (Ed25519 or RSA)
+- App stores public key only
+- Never store private key in app
+
+====================
+8. UX
+====================
+
+- Bundle locked screen:
+  - show bundle info
+  - input activation key
+
+- Show clear error:
+  - invalid key
+  - expired key
+
+====================
+9. HARDENING
+====================
+
+- Obfuscate app code
+- Validate bundle before use
+- Reject tampered bundles
+
+====================
+10. FUTURE
+====================
+
+- allow bundle resale
+- allow marketplace system
+- multi-key per bundle

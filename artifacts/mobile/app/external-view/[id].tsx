@@ -1,5 +1,5 @@
 import { useColors } from "@/contexts/ThemeContext";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,

@@ -1,5 +1,5 @@
 import { useColors } from "@/contexts/ThemeContext";
-import React from "react";
+import React, { useMemo } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { type ColorScheme } from "@/constants/colors";

@@ -26,7 +26,7 @@ interface Props {
   onClose: () => void;
 }
 
-const CONFIGS: Record<AchievementType, { emoji: string; title: string; sub: (v?: number) => string; color: string; bg: string }> = {
+const makeConfigs = (colors: ColorScheme): Record<AchievementType, { emoji: string; title: string; sub: (v?: number) => string; color: string; bg: string }> => ({
   lesson_complete: {
     emoji: "🎉",
     title: "Pelajaran Selesai!",
@@ -69,7 +69,7 @@ const CONFIGS: Record<AchievementType, { emoji: string; title: string; sub: (v?:
     color: colors.primary,
     bg: colors.primaryLight,
   },
-};
+});
 
 const STARS = ["⭐", "✨", "🌟", "💫", "⭐", "✨"];
 
@@ -117,7 +117,7 @@ export function AchievementPopup({ visible, type, value, onClose }: Props) {
     }
   }, [visible]);
 
-  const cfg = CONFIGS[type];
+  const cfg = useMemo(() => makeConfigs(colors), [colors])[type];
   const { width } = Dimensions.get("window");
 
   return (

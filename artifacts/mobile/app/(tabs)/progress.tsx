@@ -41,13 +41,13 @@ interface PathStat {
   total: number;
 }
 
-const DIFF_CONFIG = {
+const makeDiffConfig = (colors: ColorScheme) => ({
   mudah:  { color: colors.teal, bg: colors.tealLight, icon: "trending-up"  as const, emoji: "✅" },
   sedang: { color: colors.amber,  bg: colors.amberLight,   icon: "minus-circle"  as const, emoji: "⚡" },
   susah:  { color: colors.accent,  bg: colors.accentLight,  icon: "alert-triangle" as const, emoji: "🔥" },
-};
+});
 
-const SHARE_GRADS: [string, string][] = [
+const makeShareGrads = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
   [colors.accent, colors.amber],
   [colors.teal, "#0EA5E9"],
@@ -59,6 +59,8 @@ const SHARE_GRADS: [string, string][] = [
 export default function ProgressTab() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const DIFF_CONFIG = useMemo(() => makeDiffConfig(colors), [colors]);
+  const SHARE_GRADS = useMemo(() => makeShareGrads(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

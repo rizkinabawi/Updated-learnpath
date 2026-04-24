@@ -19,7 +19,7 @@ const IMAGE_EXTS = new Set([
   "JPG", "JPEG", "PNG", "GIF", "WEBP", "HEIC", "HEIF",
 ]);
 
-const DIR_DEFS = [
+const makeDirDefs = (colors: ColorScheme) => [
   { label: "Foto Quiz",      key: "quiz",      folder: "quiz-images/",     color: colors.danger },
   { label: "Foto Flashcard", key: "flashcard", folder: "flashcard-images/", color: colors.purple },
   { label: "Materi Belajar", key: "material",  folder: "study-materials/",  color: colors.teal },
@@ -50,6 +50,7 @@ function formatBytes(bytes: number) {
 export default function ImageManager() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const DIR_DEFS = useMemo(() => makeDirDefs(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

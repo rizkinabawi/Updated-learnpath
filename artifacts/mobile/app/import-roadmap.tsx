@@ -784,7 +784,7 @@ export default function ImportRoadmapScreen() {
               </Text>
               {mod.lessons.map((les, li) => (
                 <View key={li} style={styles.lesRow}>
-                  <View style={[styles.typeDot, { backgroundColor: lessonTypeColor(les.type) }]} />
+                  <View style={[styles.typeDot, { backgroundColor: lessonTypeColor(les.type, colors) }]} />
                   <Text style={styles.lesName} numberOfLines={1}>{les.name}</Text>
                   <Text style={styles.lesType}>{les.type}</Text>
                   {les.contentCount > 0 && (
@@ -827,7 +827,7 @@ export default function ImportRoadmapScreen() {
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
-function lessonTypeColor(type: string): string {
+function lessonTypeColor(type: string, colors: ColorScheme): string {
   switch (type) {
     case "video": return colors.accent;
     case "quiz": return colors.warning;

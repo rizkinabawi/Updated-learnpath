@@ -121,6 +121,9 @@ function PickerSheet<T extends { id: string }>({
   title: string; items: T[]; getLabel: (item: T) => string; getSub: (item: T) => string;
   onSelect: (item: T) => void; onClose: () => void; onBack?: () => void;
 }) {
+  const colors = useColors();
+  const pickerStyles = useMemo(() => makePickerStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={pickerStyles.overlay}>
       <View style={pickerStyles.sheet}>

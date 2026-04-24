@@ -29,15 +29,16 @@ function fmtTime(sec: number) {
   return `${m}:${s}`;
 }
 
-const PHASE_CONFIG = {
+const makePhaseConfig = (colors: ColorScheme) => ({
   work: { label: "Fokus Belajar", emoji: "🎯", grad: [colors.primary, colors.purple] as [string, string] },
   break: { label: "Istirahat Sebentar", emoji: "☕", grad: [colors.success, colors.emerald] as [string, string] },
   "long-break": { label: "Istirahat Panjang", emoji: "🌴", grad: [colors.teal, "#0EA5E9"] as [string, string] },
-};
+});
 
 export default function PomodoroScreen() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const PHASE_CONFIG = useMemo(() => makePhaseConfig(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

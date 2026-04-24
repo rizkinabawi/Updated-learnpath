@@ -23,7 +23,7 @@ interface LessonRow {
   count: number;
 }
 
-const GRAD: [string, string][] = [
+const makeGrad = (colors: ColorScheme): [string, string][] => [
   [colors.accent, colors.amber],
   [colors.primary, colors.purple],
   [colors.purple, "#A855F7"],
@@ -35,6 +35,7 @@ const GRAD: [string, string][] = [
 export default function QuizBrowseAll() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const GRAD = useMemo(() => makeGrad(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

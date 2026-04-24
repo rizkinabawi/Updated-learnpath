@@ -32,7 +32,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
 import { IconPicker } from "@/components/IconPicker";
 
-const COURSE_GRADIENTS: [string, string][] = [
+const makeCourseGradients = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
   [colors.accent, colors.amber],
   [colors.teal, "#0EA5E9"],
@@ -55,6 +55,7 @@ interface CourseStats {
 export default function LearnPage() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const COURSE_GRADIENTS = useMemo(() => makeCourseGradients(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

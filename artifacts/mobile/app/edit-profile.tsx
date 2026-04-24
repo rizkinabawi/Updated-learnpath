@@ -22,7 +22,7 @@ const ensureAvatarDir = async () => {
   if (!info.exists) await FileSystem.makeDirectoryAsync(AVATAR_DIR, { intermediates: true });
 };
 
-const LEVELS = [
+const makeLevels = (colors: ColorScheme) => [
   { key: "beginner" as const, label: "Pemula", emoji: "🌱", color: colors.teal },
   { key: "intermediate" as const, label: "Menengah", emoji: "⚡", color: colors.amber },
   { key: "advanced" as const, label: "Mahir", emoji: "🔥", color: colors.danger },
@@ -31,6 +31,7 @@ const LEVELS = [
 export default function EditProfile() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const LEVELS = useMemo(() => makeLevels(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

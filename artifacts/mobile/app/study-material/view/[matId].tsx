@@ -71,31 +71,31 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-const TYPE_META: Record<
+const makeTypeMeta = (colors: ColorScheme): Record<
   StudyMaterial["type"],
   { label: string; color: string; bg: string; Icon: any }
-> = {
+> => ({
   text: { label: "Teks", color: colors.primary, bg: colors.primaryLight, Icon: FileText },
   html: { label: "HTML", color: colors.purple, bg: colors.purpleLight, Icon: Code2 },
   file: { label: "File", color: colors.amber, bg: colors.amberLight, Icon: Paperclip },
   youtube: { label: "YouTube", color: "#FF0000", bg: "#FFF0F0", Icon: Video },
   googledoc: { label: "Google Docs", color: "#1967D2", bg: "#E8F0FE", Icon: Globe },
   image: { label: "Gambar", color: colors.success, bg: colors.successLight, Icon: FileImage },
-};
+});
 
-function YoutubePlayer({ url }: { url: string }) {
+function YoutubePlayer({ url, linkBoxStyle, mutedColor }: { url: string; linkBoxStyle: any; mutedColor: string }) {
   const id = extractYoutubeId(url);
   if (!id)
     return (
       <TouchableOpacity
-        style={styles.linkBox}
+        style={linkBoxStyle}
         onPress={() => Linking.openURL(url).catch(() => {})}
       >
         <Video size={20} color="#FF0000" />
         <Text style={{ flex: 1, fontWeight: "700", color: "#FF0000" }}>
           Buka di YouTube
         </Text>
-        <ExternalLink size={14} color={colors.textMuted} />
+        <ExternalLink size={14} color={mutedColor} />
       </TouchableOpacity>
     );
 
@@ -239,7 +239,7 @@ export default function MaterialFullView() {
     );
   }
 
-  const meta = TYPE_META[current.type];
+  const meta = makeTypeMeta(colors)[current.type];
   const Icon = meta.Icon;
   const total = materials.length;
   const hasPrev = idx > 0;
@@ -324,7 +324,7 @@ export default function MaterialFullView() {
 
         {current.type === "youtube" && (
           <View style={{ alignItems: "center" }}>
-            <YoutubePlayer url={current.videoUrl || current.content} />
+            <YoutubePlayer url={current.videoUrl || current.content} linkBoxStyle={styles.linkBox} mutedColor={colors.textMuted} />
           </View>
         )}
 

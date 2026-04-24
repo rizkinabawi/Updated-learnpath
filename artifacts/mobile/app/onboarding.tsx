@@ -29,7 +29,7 @@ const LEVELS: { val: Level; label: string; emoji: string }[] = [
 ];
 
 // ── Tutorial slides (steps 0–3) ─────────────────────────────────────────────
-const TUTORIAL_STEPS = [
+const makeTutorialSteps = (colors: ColorScheme) => [
   {
     key: "welcome",
     emoji: "👋",
@@ -37,7 +37,7 @@ const TUTORIAL_STEPS = [
     accent: colors.primary,
     title: "Selamat Datang\ndi LearningPath!",
     sub: "Aplikasi belajar personal yang fleksibel. Ikuti tur singkat ini untuk memulai.",
-    features: [],
+    features: [] as { icon: any; text: string }[],
   },
   {
     key: "paths",
@@ -83,6 +83,7 @@ const TUTORIAL_STEPS = [
 export default function Onboarding() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const TUTORIAL_STEPS = useMemo(() => makeTutorialSteps(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

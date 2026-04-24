@@ -14,7 +14,7 @@ import {
   deleteStandaloneCollection, assignStandaloneCollection,
   type LearningPath, type Module, type Lesson, type StandaloneCollection,
 } from "@/utils/storage";
-import { shadowSm, type ColorScheme } from "@/constants/colors";
+import Colors, { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddFlashcardModal } from "@/components/QuickAddFlashcardModal";
 
@@ -30,7 +30,7 @@ interface CollectionRow {
   count: number;
 }
 
-const GRAD: [string, string][] = [
+const makeGrad = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
   [colors.accent, colors.amber],
   [colors.teal, "#0EA5E9"],
@@ -39,7 +39,7 @@ const GRAD: [string, string][] = [
   [colors.amber, colors.danger],
 ];
 
-const COL_GRADS: [string, string][] = [
+const makeColGrads = (colors: ColorScheme): [string, string][] => [
   [colors.emerald, colors.success],
   ["#6366F1", colors.purple],
   [colors.amber, colors.danger],
@@ -58,6 +58,7 @@ function CollectionEditModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const colors = useColors();
   const [name, setName] = useState(col.name);
   const [desc, setDesc] = useState(col.description ?? "");
   const [saving, setSaving] = useState(false);
@@ -129,6 +130,7 @@ function CollectionAssignModal({
   onClose: () => void;
   onAssigned: () => void;
 }) {
+  const colors = useColors();
   const [courses, setCourses] = useState<LearningPath[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -224,6 +226,8 @@ function CollectionAssignModal({
 // ─── Main Screen ────────────────────────────────────────────────
 export default function FlashcardBrowseAll() {
   const colors = useColors();
+  const GRAD = useMemo(() => makeGrad(colors), [colors]);
+  const COL_GRADS = useMemo(() => makeColGrads(colors), [colors]);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const router = useRouter();

@@ -59,8 +59,8 @@ const DEV = {
       icon: "globe" as const,
       label: "kipotraits.com",
       url: "https://www.kipotraits.com",
-      color: colors.teal,
-      bg: colors.teal + "18",
+      color: "#38BDF8",
+      bg: "#38BDF818",
     },
   ],
 };

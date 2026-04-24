@@ -13,21 +13,23 @@ interface ProgressBarProps {
 
 export const ProgressBar = ({
   value,
-  color = colors.primary,
-  backgroundColor = colors.border,
+  color,
+  backgroundColor,
   height = 6,
   borderRadius = 999,
 }: ProgressBarProps) => {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const fillColor = color ?? colors.primary;
+  const trackBg = backgroundColor ?? colors.border;
 
   const pct = Math.min(100, Math.max(0, value));
   return (
-    <View style={[styles.track, { backgroundColor, height, borderRadius }]}>
+    <View style={[styles.track, { backgroundColor: trackBg, height, borderRadius }]}>
       <View
         style={[
           styles.fill,
-          { backgroundColor: color, width: `${pct}%`, borderRadius },
+          { backgroundColor: fillColor, width: `${pct}%`, borderRadius },
         ]}
       />
     </View>

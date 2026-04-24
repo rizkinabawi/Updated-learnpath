@@ -881,6 +881,8 @@ function StatPill({
   color: string;
   bg: string;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={[styles.statPill, { backgroundColor: bg }]}>
       <Feather name={icon} size={14} color={color} />
@@ -903,6 +905,8 @@ function TipRow({
   title: string;
   body: string;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.tipRow}>
       <View style={[styles.tipIcon, { backgroundColor: bg }]}>

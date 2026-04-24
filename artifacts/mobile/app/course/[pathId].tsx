@@ -27,7 +27,7 @@ import {
 import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 
-const GRAD_PALETTE: [string, string][] = [
+const makeGradPalette = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
   [colors.accent, colors.amber],
   [colors.teal, "#0EA5E9"],
@@ -41,6 +41,7 @@ type ModCounts = { fc: number; qz: number; nt: number; mt: number };
 export default function CourseDetailPage() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const GRAD_PALETTE = useMemo(() => makeGradPalette(colors), [colors]);
 
   const { pathId } = useLocalSearchParams<{ pathId: string }>();
   const router = useRouter();

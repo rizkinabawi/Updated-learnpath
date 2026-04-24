@@ -81,6 +81,8 @@ const extractYoutubeId = (url: string): string | null => {
 
 /** Inline YouTube embed using WebView */
 function YoutubeEmbed({ url }: { url: string }) {
+  const colors = useColors();
+  const ytStyles = useMemo(() => makeYtStyles(colors), [colors]);
   const videoId = extractYoutubeId(url);
   if (!videoId) {
     return (
@@ -185,7 +187,7 @@ function YoutubeEmbed({ url }: { url: string }) {
   );
 }
 
-const ytStyles = StyleSheet.create({
+const makeYtStyles = (colors: ColorScheme) => StyleSheet.create({
   container: { gap: 8 },
   fallback: {
     flexDirection: "row", alignItems: "center", gap: 10,
@@ -226,7 +228,7 @@ const formatDate = (iso: string) => {
 
 type TabType = "text" | "html" | "file" | "youtube" | "googledoc" | "image";
 
-const TYPE_INFO: Record<TabType, { icon: React.ReactNode; label: string; color: string; bg: string }> = {
+const makeTypeInfo = (colors: ColorScheme): Record<TabType, { icon: React.ReactNode; label: string; color: string; bg: string }> => ({
   text: {
     icon: <FileText size={14} color={colors.primary} />,
     label: "Teks",
@@ -263,7 +265,7 @@ const TYPE_INFO: Record<TabType, { icon: React.ReactNode; label: string; color: 
     color: colors.success,
     bg: colors.successLight,
   },
-};
+});
 
 function ExtraImagesEditor({
   images,
@@ -274,6 +276,8 @@ function ExtraImagesEditor({
   onAdd: () => void;
   onRemove: (i: number) => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={{ marginTop: 12, gap: 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -328,6 +332,7 @@ function ExtraImagesEditor({
 export default function StudyMaterialScreen() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const typeInfo = useMemo(() => makeTypeInfo(colors), [colors]);
 
   const { lessonId, openEditId } = useLocalSearchParams<{
     lessonId: string;
@@ -693,7 +698,7 @@ export default function StudyMaterialScreen() {
           </TouchableOpacity>
         ) : (
           materials.map((mat) => {
-            const info = TYPE_INFO[mat.type];
+            const info = typeInfo[mat.type];
             const hasAttachments = mat.images && mat.images.length > 0;
             return (
               <View key={mat.id} style={styles.matCard}>

@@ -23,7 +23,7 @@ import {
   saveStandaloneCollection, STANDALONE_COLLECTION_PREFIX,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
-import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
+import Colors, { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
@@ -56,33 +56,40 @@ const extractJson = (text: string): string => {
   return t;
 };
 
-const DIFFICULTY_OPTIONS = [
+const makeDifficultyOptions = (colors: ColorScheme) => [
   { id: "beginner", label: "Mudah", color: colors.success, bg: colors.successLight },
   { id: "intermediate", label: "Sedang", color: colors.amber, bg: colors.amberLight },
   { id: "advanced", label: "Sulit", color: colors.danger, bg: colors.dangerLight },
 ];
 
-const TYPE_OPTIONS = [
+const makeTypeOptions = (colors: ColorScheme) => [
   { id: "flashcard", label: "Flashcard", icon: "credit-card" as const, color: colors.primary, bg: colors.primaryLight },
   { id: "quiz", label: "Quiz", icon: "help-circle" as const, color: colors.amber, bg: colors.amberLight },
 ];
 
-function Chip({
-  label,
-  active,
-  color,
-  bg,
-  icon,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  color: string;
-  bg: string;
-  icon?: React.ComponentProps<typeof Feather>["name"];
-  onPress: () => void;
-}) {
-  return (
+type Tab = "builder" | "share";
+
+export const PromptBuilder = () => {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const DIFFICULTY_OPTIONS = useMemo(() => makeDifficultyOptions(colors), [colors]);
+  const TYPE_OPTIONS = useMemo(() => makeTypeOptions(colors), [colors]);
+
+  const Chip = ({
+    label,
+    active,
+    color,
+    bg,
+    icon,
+    onPress,
+  }: {
+    label: string;
+    active: boolean;
+    color: string;
+    bg: string;
+    icon?: React.ComponentProps<typeof Feather>["name"];
+    onPress: () => void;
+  }) => (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
@@ -95,58 +102,55 @@ function Chip({
       <Text style={[styles.chipText, active && { color }]}>{label}</Text>
     </TouchableOpacity>
   );
-}
 
-function TemplateCard({
-  t,
-  active,
-  onPress,
-}: {
-  t: PromptTemplate;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const isFlashcard = t.type === "flashcard";
-  const color = isFlashcard ? colors.primary : colors.amber;
-  const bg = isFlashcard ? colors.primaryLight : colors.amberLight;
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.78}
-      style={[styles.templateCard, active && { borderColor: color, backgroundColor: bg }]}
-    >
-      <View style={[styles.templateIconWrap, { backgroundColor: active ? color : colors.border }]}>
-        <Feather
-          name={isFlashcard ? "credit-card" : "help-circle"}
-          size={16}
-          color={active ? "#fff" : colors.textMuted}
-        />
-      </View>
-      <View style={styles.templateInfo}>
-        <Text style={[styles.templateTitle, active && { color }]}>{t.title}</Text>
-        <Text style={styles.templateSub}>{t.description}</Text>
-      </View>
-      {active ? (
-        <Feather name="check-circle" size={18} color={color} />
-      ) : (
-        <Feather name="chevron-right" size={16} color={colors.textMuted} />
-      )}
-    </TouchableOpacity>
+  const TemplateCard = ({
+    t,
+    active,
+    onPress,
+  }: {
+    t: PromptTemplate;
+    active: boolean;
+    onPress: () => void;
+  }) => {
+    const isFlashcard = t.type === "flashcard";
+    const color = isFlashcard ? colors.primary : colors.amber;
+    const bg = isFlashcard ? colors.primaryLight : colors.amberLight;
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.78}
+        style={[styles.templateCard, active && { borderColor: color, backgroundColor: bg }]}
+      >
+        <View style={[styles.templateIconWrap, { backgroundColor: active ? color : colors.border }]}>
+          <Feather
+            name={isFlashcard ? "credit-card" : "help-circle"}
+            size={16}
+            color={active ? "#fff" : colors.textMuted}
+          />
+        </View>
+        <View style={styles.templateInfo}>
+          <Text style={[styles.templateTitle, active && { color }]}>{t.title}</Text>
+          <Text style={styles.templateSub}>{t.description}</Text>
+        </View>
+        {active ? (
+          <Feather name="check-circle" size={18} color={color} />
+        ) : (
+          <Feather name="chevron-right" size={16} color={colors.textMuted} />
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const SectionLabel = ({ text }: { text: string }) => (
+    <Text style={styles.sectionLabel}>{text}</Text>
   );
-}
 
-function SectionLabel({ text }: { text: string }) {
-  return <Text style={styles.sectionLabel}>{text}</Text>;
-}
-
-// ─── Cascade Picker ──────────────────────────────────────────────
-function PickerSheet<T extends { id: string }>({
-  title, items, getLabel, getSub, onSelect, onClose, onBack,
-}: {
-  title: string; items: T[]; getLabel: (item: T) => string; getSub: (item: T) => string;
-  onSelect: (item: T) => void; onClose: () => void; onBack?: () => void;
-}) {
-  return (
+  const PickerSheet = <T extends { id: string }>({
+    title, items, getLabel, getSub, onSelect, onClose, onBack,
+  }: {
+    title: string; items: T[]; getLabel: (item: T) => string; getSub: (item: T) => string;
+    onSelect: (item: T) => void; onClose: () => void; onBack?: () => void;
+  }) => (
     <View style={ps.overlay}>
       <View style={ps.sheet}>
         <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
@@ -175,13 +179,6 @@ function PickerSheet<T extends { id: string }>({
       </View>
     </View>
   );
-}
-
-type Tab = "builder" | "share";
-
-export const PromptBuilder = () => {
-  const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [activeTab, setActiveTab] = useState<Tab>("builder");
   const [topic, setTopic] = useState("");

@@ -43,14 +43,14 @@ interface SearchResult {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const KIND_CONFIG: Record<ResultKind, { label: string; icon: React.ComponentProps<typeof Feather>["name"]; color: string; bg: string }> = {
+const makeKindConfig = (colors: ColorScheme): Record<ResultKind, { label: string; icon: React.ComponentProps<typeof Feather>["name"]; color: string; bg: string }> => ({
   course:     { label: "Kursus",        icon: "book",          color: colors.primary, bg: colors.primaryLight },
   module:     { label: "Modul",         icon: "layers",        color: colors.purple, bg: colors.purpleLight },
   lesson:     { label: "Pelajaran",     icon: "file-text",     color: colors.teal, bg: colors.tealLight },
   collection: { label: "Koleksi",       icon: "folder",        color: colors.emerald, bg: colors.emeraldLight },
   flashcard:  { label: "Flashcard",     icon: "credit-card",   color: colors.amber, bg: colors.amberLight },
   quiz:       { label: "Soal Quiz",     icon: "help-circle",   color: colors.danger, bg: colors.dangerLight },
-};
+});
 
 const SECTION_ORDER: ResultKind[] = ["course", "module", "lesson", "collection", "flashcard", "quiz"];
 const SECTION_LABELS: Record<ResultKind, string> = {
@@ -66,6 +66,7 @@ const SECTION_LABELS: Record<ResultKind, string> = {
 export default function SearchScreen() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const KIND_CONFIG = useMemo(() => makeKindConfig(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -332,7 +333,7 @@ export default function SearchScreen() {
                     </View>
                     <View style={styles.resultBody}>
                       <Text style={styles.resultTitle} numberOfLines={2}>
-                        {highlightText(r.title, query)}
+                        <HighlightText text={r.title} query={query} />
                       </Text>
                       <Text style={styles.resultSubtitle} numberOfLines={1}>
                         {r.subtitle}
@@ -356,7 +357,9 @@ export default function SearchScreen() {
 }
 
 // ─── Helper to highlight matching text ───────────────────────────────────────
-function highlightText(text: string, query: string): React.ReactNode {
+function HighlightText({ text, query }: { text: string; query: string }): React.ReactNode {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   if (!query.trim()) return text;
   const idx = text.toLowerCase().indexOf(query.toLowerCase());
   if (idx === -1) return text;
@@ -371,6 +374,8 @@ function highlightText(text: string, query: string): React.ReactNode {
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 function EmptyPrompt() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const tips = [
     { icon: "book" as const,        text: "Kursus & modul pembelajaran" },
     { icon: "file-text" as const,   text: "Nama pelajaran dalam kursus" },
@@ -398,6 +403,8 @@ function EmptyPrompt() {
 }
 
 function NoResults({ query }: { query: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.centerBox}>
       <Feather name="search" size={40} color={colors.border} />

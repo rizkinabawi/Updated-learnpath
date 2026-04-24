@@ -65,11 +65,11 @@
       "reactCompiler": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "279d3643-bb83-407e-ba8d-99981cee17c6"
-      },
-      "router": {}
+        "projectId": "1d09e591-35a4-4a1d-9d0b-f6580c2757fe"
+      }
     },
-    "owner": "rizkinabawii"
+    "owner": "rizkinabawiiuuu"
   }
 }

@@ -1,0 +1,38 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "6CPOM3_DJgELDBTpb0Cf4"
+uri = "file://activation_keys/activation_key_1.json"
+type = "unspecified"
+title = "Activation Key 1"
+
+[[outputs]]
+id = "B6wMk21f2t0pE-pz3LkQn"
+uri = "file://activation_keys/activation_key_2.json"
+type = "unspecified"
+title = "Activation Key 2"
+
+[[outputs]]
+id = "b-2EhQLBws__CYfmuu5r0"
+uri = "file://activation_keys/activation_key_3.json"
+type = "unspecified"
+title = "Activation Key 3"
+
+[[outputs]]
+id = "5RcTsfDfw7yOQxJUOIU7r"
+uri = "file://activation_keys/activation_key_4.json"
+type = "unspecified"
+title = "Activation Key 4"
+
+[[outputs]]
+id = "ecvNI1QC-GxIMmzgfjKo4"
+uri = "file://activation_keys/activation_key_5.json"
+type = "unspecified"
+title = "Activation Key 5"
+
+[[outputs]]
+id = "BWt9nrSwfhhVGWHx-jBzw"
+uri = "file://activation_keys/activation_keys.json"
+type = "unspecified"
+title = "All Keys (combined)"

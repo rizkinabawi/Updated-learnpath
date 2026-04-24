@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-04-24T12:01:00.374Z",
+  "count": 5,
+  "keys": [
+    {
+      "id": 1,
+      "activation_key": "D029C-8D521-335A8-A731E-3191F-63D12-E5D04-40AB3",
+      "issued_at": "2026-04-24T12:01:00.374Z",
+      "expires_at": "2027-04-24T12:01:00.374Z",
+      "duration_days": 365,
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "activation_key": "6B550-73173-71FA9-54176-DC055-507F6-A4C58-66D50",
+      "issued_at": "2026-04-24T12:01:00.374Z",
+      "expires_at": "2027-04-24T12:01:00.374Z",
+      "duration_days": 365,
+      "status": "active"
+    },
+    {
+      "id": 3,
+      "activation_key": "B9377-63FF7-FF634-AB7DC-C4068-672D0-66C6A-42AE1",
+      "issued_at": "2026-04-24T12:01:00.374Z",
+      "expires_at": "2027-04-24T12:01:00.374Z",
+      "duration_days": 365,
+      "status": "active"
+    },
+    {
+      "id": 4,
+      "activation_key": "646C1-D929C-8A1EE-D6D97-C8310-95822-44363-AB8C9",
+      "issued_at": "2026-04-24T12:01:00.374Z",
+      "expires_at": "2027-04-24T12:01:00.374Z",
+      "duration_days": 365,
+      "status": "active"
+    },
+    {
+      "id": 5,
+      "activation_key": "9746B-EA62A-F2E4D-211D1-BE0FC-6779D-6EDA9-1CA98",
+      "issued_at": "2026-04-24T12:01:00.374Z",
+      "expires_at": "2027-04-24T12:01:00.374Z",
+      "duration_days": 365,
+      "status": "active"
+    }
+  ]
+}

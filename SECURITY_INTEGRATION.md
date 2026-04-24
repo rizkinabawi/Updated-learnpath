@@ -109,13 +109,14 @@ calls, and no third-party crypto SaaS — only `@noble/ed25519`,
   "appId": "learningpath",
   "issuedAt": 1735689600000,
   "expiry": 2050240000000,        // ms epoch
-  "deviceId": null,                // null = unbound, or specific deviceId
-  "signature": "<base64 Ed25519>"  // over canonicalJSON of the rest
+  "deviceId": "abc123…",           // OPTIONAL — omit field for unbound key
+  "signature": "<base64 Ed25519>"  // see signed-message format below
 }
 ```
-Signature input (canonical JSON, sorted keys, no whitespace):
+Signed-message format (UTF-8 bytes of the literal string, pipe-delimited;
+empty string when `deviceId` is omitted):
 ```
-{"appId":"learningpath","deviceId":null,"expiry":2050240000000,"issuedAt":1735689600000}
+${appId}|${issuedAt}|${expiry}|${deviceId ?? ""}
 ```
 
 ### Signed + encrypted bundle
@@ -123,26 +124,35 @@ Signature input (canonical JSON, sorted keys, no whitespace):
 {
   "bundleId": "kursus-fisika-vol1",
   "creatorId": "5bcb7dd5ffad642aa5a651ee193d094b",
-  "creatorPublicKey": "<base64 Ed25519 pub>",
-  "contentHash": "<sha256 hex of plaintext content>",
-  "passwordHash": "<sha256 hex of 'pw:'+password>",
-  "encryptedContent": "<base64(iv||ciphertext||tag)>",
-  "signature": "<base64 Ed25519 sig over canonicalJSON of meta>"
+  "creatorPublicKey": "<base64 Ed25519 pub (32 bytes)>",
+  "contentHash": "<sha256 hex of canonicalJSON({cards, media})>",
+  "passwordHash": "<sha256 hex of password>",
+  "encryptedContent": "<base64(iv(12) || ciphertext || tag(16))>",
+  "signature": "<base64 Ed25519 over the pipe-delimited message below>"
 }
 ```
-Signature input:
+Signed-message format (UTF-8 bytes of the literal string):
 ```
-canonicalJSON({ bundleId, contentHash, creatorId, creatorPublicKey, passwordHash })
+${bundleId}|${creatorId}|${contentHash}
 ```
-- `creatorId` MUST equal `sha256("creator:" + hex(creatorPublicKey)).slice(0, 32)` — verifier rejects mismatch (prevents identity hijacking by re-signing with another keypair).
+- `creatorId` MUST equal `sha256("creator:" + publicKeyHex).slice(0, 32)` (16-byte
+  truncated hex digest of the public key in hex form). The verifier rejects a
+  mismatch — prevents identity hijacking by re-signing with another keypair.
+- `passwordHash = sha256(password)` (hex). Used for fast wrong-password rejection
+  before attempting AES decryption.
+- `encryptedContent` plaintext = `canonicalJSON({cards, media})` (UTF-8); key
+  for AES-256-GCM = `sha256(password)`.
 
 ### Dynamic unlock token (Section 7)
-At each unlock attempt, the verifier computes:
+At each unlock attempt, the verifier computes locally:
 ```
-timeWindow = floor(Date.now() / 60000)        // 1-minute windows
-expected   = sha256("unlock:" + passwordHash + ":" + timeWindow)
+timeWindow = floor(Date.now() / 1000 / 3600)      // 1-hour windows
+expected   = sha256(password + bundleId + timeWindow)
 ```
-The check accepts `timeWindow`, `timeWindow-1`, and `timeWindow+1` to absorb clock skew. The token never travels — it is recomputed locally and gates the decryption attempt; this prevents replay loops if someone else inspects the bundle on the wire.
+The check accepts `timeWindow`, `timeWindow-1`, and `timeWindow+1` to absorb
+clock skew (≈ ±1 hour). The token never travels — it is recomputed locally and
+gates the decryption attempt, ensuring the unlock happens in a recent time
+window (no static reuse of a captured payload+attempt pair).
 
 ---
 
@@ -154,38 +164,40 @@ import from the mobile app's `node_modules`).
 ### One-time: generate the app master key
 ```bash
 node artifacts/mobile/scripts/security/keygen-app.mjs
+# → Writes keys/security/app-master-private.hex (KEEP OFFLINE)
 # → Prints the public key in hex.
-# → COPY it into utils/security/master-public-key.ts
-# → Save the printed private key OFFLINE; never commit, never ship in the app
+# → COPY the public key into utils/security/master-public-key.ts
 ```
 
 ### Generate a creator keypair (offline)
 ```bash
 node artifacts/mobile/scripts/security/keygen-creator.mjs
+# → Writes keys/security/creator-<id>-private.hex
 ```
 
 ### Sign an activation key
 ```bash
-node artifacts/mobile/scripts/security/sign-app-activation.mjs \
-  --priv <APP_MASTER_PRIV_HEX> \
-  --appId learningpath \
-  --days 365 \
-  [--device <DEVICE_ID>] \
-  --out examples/activation-key.json
+APP_MASTER_PRIVATE_KEY=<hex>  \
+  node artifacts/mobile/scripts/security/sign-app-activation.mjs \
+    --appId=learningpath \
+    --days=365 \
+    [--deviceId=<DEVICE_ID>] \
+    --out=examples/activation-key.json
 ```
-Omit `--device` for an unbound key (any device with the JSON can activate).
+Or place the key at `keys/security/app-master-private.hex` (the path used by
+`keygen-app.mjs` by default) and omit the env var.
+Omit `--deviceId` for an unbound key (any device with the JSON can activate).
 
 ### Sign + encrypt a bundle
 ```bash
-node artifacts/mobile/scripts/security/sign-bundle.mjs \
-  --priv <CREATOR_PRIV_HEX> \
-  --pub  <CREATOR_PUB_HEX> \
-  --bundleId my-deck \
-  --password hunter2 \
-  --in  examples/bundle-source.json \
-  --out examples/bundle.json
+node artifacts/mobile/scripts/security/sign-bundle.mjs examples/bundle-source.json \
+  --bundleId=my-deck \
+  --password=hunter2 \
+  --creatorKey=keys/security/creator-XXXX-private.hex \
+  --out=examples/bundle.json
 ```
-Where `bundle-source.json` looks like:
+The script derives the creator public key (and `creatorId`) from the private key
+file. Where `bundle-source.json` looks like:
 ```json
 { "cards": [{ "q": "...", "a": "..." }, ...], "media": {} }
 ```
@@ -223,9 +235,9 @@ Where `bundle-source.json` looks like:
 | 2 | Per-user creator Ed25519 keypair, on-device | `creator.ts` — generated, stored in expo-secure-store, never exported |
 | 3 | Self-signed bundles with embedded creator pubkey | `bundle.ts:createSignedBundle` — creator pub embedded; verifier uses embedded pub |
 | 4 | Deterministic SHA-256 content hash | `crypto.ts:canonicalJson` (sorted keys) → `sha256` |
-| 5 | AES-256 encryption with key=SHA256(password) | `crypto.ts:aesEncryptGcm` with key from `passwordToKey` |
-| 6 | Password hash stored | `passwordHash = sha256("pw:" + password)` |
-| 7 | Dynamic ±1-window unlock token | `crypto.ts:dynamicUnlockToken` + `verifyDynamicUnlockToken` |
+| 5 | AES-256 encryption with key=SHA256(password) | `crypto.ts:aesEncrypt` (AES-256-GCM) with key from `deriveEncryptionKey` |
+| 6 | Password hash stored | `passwordHash = sha256(password)` |
+| 7 | Dynamic ±1-window unlock token | `crypto.ts:generateUnlockToken` + `validateUnlockToken` |
 | 8 | Full unlock flow | `bundle.ts:unlockBundle` does verify→token→decrypt→hash check |
 | 9 | Never persist decrypted content | Decrypted content lives only in `useState` of `bundle/open.tsx` |
 | 10 | Offline Node.js CLI | `scripts/security/*.mjs`, no network |

@@ -67,13 +67,14 @@ function RealBannerAd({ size }: { size: "banner" | "largeBanner" | "adaptiveBann
 }
 
 // ─── Mock Banner (Expo Go / Web / dev fallback) ───────────────────────────────
-const MOCK_ADS = [
-  { label: "Belajar lebih cepat dengan AI", cta: "Coba Gratis", color: colors.primary },
-  { label: "Flashcard & Quiz tersedia 24/7", cta: "Mulai Sekarang", color: colors.purple },
-  { label: "Raih target belajarmu hari ini", cta: "Lihat Tips", color: colors.emerald },
-];
-
 function MockBannerAd({ size = "banner" }: { size?: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const MOCK_ADS = useMemo(() => [
+    { label: "Belajar lebih cepat dengan AI", cta: "Coba Gratis", color: colors.primary },
+    { label: "Flashcard & Quiz tersedia 24/7", cta: "Mulai Sekarang", color: colors.purple },
+    { label: "Raih target belajarmu hari ini", cta: "Lihat Tips", color: colors.emerald },
+  ], [colors]);
   const [adIndex, setAdIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
 

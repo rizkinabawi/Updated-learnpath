@@ -42,12 +42,6 @@ const ICON_MAP: Record<ToastType, React.ComponentProps<typeof Feather>["name"]> 
   info: "info",
 };
 
-const COLOR_MAP: Record<ToastType, string> = {
-  success: colors.success,
-  error: colors.danger,
-  info: colors.primary,
-};
-
 const BG_MAP: Record<ToastType, string> = {
   success: "#F0FDF4",
   error: "#FEF2F2",
@@ -99,6 +93,12 @@ export function ToastContainer() {
   }, []);
 
   if (!state.visible) return null;
+
+  const COLOR_MAP: Record<ToastType, string> = {
+    success: colors.success,
+    error: colors.danger,
+    info: colors.primary,
+  };
 
   const color = COLOR_MAP[state.type];
   const bg = BG_MAP[state.type];

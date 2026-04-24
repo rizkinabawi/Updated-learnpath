@@ -16,10 +16,18 @@ export interface AnkiCard {
   tags?: string;
   /** Original media filenames referenced by the card (front + back). */
   media?: string[];
-  /** Local file:// URI of the first image found, if any. */
+  /** Local file:// URI of the first image found on the front, if any. */
   imageUri?: string;
-  /** Local file:// URIs of any audio/sound clips referenced. */
+  /** Local file:// URIs of any audio/sound clips referenced (front + back combined). */
   audioUris?: string[];
+  /** All image URIs referenced on the FRONT (question) side, in order. */
+  frontImageUris?: string[];
+  /** All image URIs referenced on the BACK (answer) side, in order. */
+  backImageUris?: string[];
+  /** All audio URIs referenced on the FRONT (question) side, in order. */
+  frontAudioUris?: string[];
+  /** All audio URIs referenced on the BACK (answer) side, in order. */
+  backAudioUris?: string[];
 }
 
 export interface AnkiDeck {
@@ -87,8 +95,23 @@ function stripHtmlAndMedia(input: string): { text: string; media: string[] } {
   const media: string[] = [];
 
   let s = input;
-  // capture <img src="...">
-  s = s.replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (_, src) => {
+  // capture <img src="..."> (quoted)
+  s = s.replace(/<img[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi, (_, src) => {
+    media.push(String(src));
+    return "";
+  });
+  // capture <img src=filename> (unquoted) — Anki sometimes exports without quotes
+  s = s.replace(/<img[^>]*\bsrc\s*=\s*([^\s>]+)[^>]*>/gi, (_, src) => {
+    media.push(String(src));
+    return "";
+  });
+  // capture <source src="..."> inside <audio>/<video> tags
+  s = s.replace(/<source[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi, (_, src) => {
+    media.push(String(src));
+    return "";
+  });
+  // capture <audio src="..."> direct
+  s = s.replace(/<audio[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi, (_, src) => {
     media.push(String(src));
     return "";
   });
@@ -459,6 +482,12 @@ async function parseAnkiPackageOnce(
 
     const buckets = new Map<string, AnkiCard[]>();
 
+    // Track per-card front/back media filenames so we can attach URIs to the
+    // correct side after extraction (front images stay on front, back images
+    // on back, etc).
+    const frontMediaByCard = new Map<AnkiCard, string[]>();
+    const backMediaByCard = new Map<AnkiCard, string[]>();
+
     if (rows[0]?.values) {
       for (const row of rows[0].values) {
         const did = String(row[0] ?? "0");
@@ -467,17 +496,20 @@ async function parseAnkiPackageOnce(
         const fields = splitFields(flds);
         const front = stripHtmlAndMedia(fields[0] ?? "");
         const back = stripHtmlAndMedia(fields.slice(1).join("\n\n") ?? "");
-        if (!front.text && !back.text) continue;
+        if (!front.text && !back.text && front.media.length === 0 && back.media.length === 0) continue;
 
         const deckName = deckMap[did] ?? `Deck ${did}`;
         const arr = buckets.get(deckName) ?? [];
         const mediaList = [...front.media, ...back.media].filter(Boolean);
-        arr.push({
+        const card: AnkiCard = {
           front: front.text,
           back: back.text,
           tags: tags || undefined,
           media: mediaList,
-        });
+        };
+        arr.push(card);
+        frontMediaByCard.set(card, front.media.filter(Boolean));
+        backMediaByCard.set(card, back.media.filter(Boolean));
         buckets.set(deckName, arr);
       }
     }
@@ -486,22 +518,42 @@ async function parseAnkiPackageOnce(
       ([name, cards]) => ({ name, cards }),
     );
 
-    // Resolve media: extract referenced files to disk and attach URIs to each card.
+    // Resolve media: extract referenced files to disk and attach URIs to each
+    // card. Preserve EVERY image and EVERY audio, separated by front/back so
+    // the player can show the correct media on the correct side.
     if (mediaDirUri) {
       onProgress?.({ stage: "building-decks", message: "Mengekstrak media..." });
       for (const deck of decks) {
         for (const card of deck.cards) {
-          if (!card.media || card.media.length === 0) continue;
-          const audioUris: string[] = [];
-          let imageUri: string | undefined;
-          for (const name of card.media) {
+          const frontNames = frontMediaByCard.get(card) ?? [];
+          const backNames = backMediaByCard.get(card) ?? [];
+          const frontImages: string[] = [];
+          const frontAudios: string[] = [];
+          const backImages: string[] = [];
+          const backAudios: string[] = [];
+
+          for (const name of frontNames) {
             const uri = await extractMediaFile(name);
             if (!uri) continue;
-            if (!imageUri && isImageName(name)) imageUri = uri;
-            else if (isAudioName(name)) audioUris.push(uri);
+            if (isImageName(name)) frontImages.push(uri);
+            else if (isAudioName(name)) frontAudios.push(uri);
           }
-          if (imageUri) card.imageUri = imageUri;
-          if (audioUris.length > 0) card.audioUris = audioUris;
+          for (const name of backNames) {
+            const uri = await extractMediaFile(name);
+            if (!uri) continue;
+            if (isImageName(name)) backImages.push(uri);
+            else if (isAudioName(name)) backAudios.push(uri);
+          }
+
+          if (frontImages.length > 0) {
+            card.imageUri = frontImages[0];
+            card.frontImageUris = frontImages;
+          }
+          if (backImages.length > 0) card.backImageUris = backImages;
+          if (frontAudios.length > 0) card.frontAudioUris = frontAudios;
+          if (backAudios.length > 0) card.backAudioUris = backAudios;
+          const allAudio = [...frontAudios, ...backAudios];
+          if (allAudio.length > 0) card.audioUris = allAudio;
         }
       }
     }

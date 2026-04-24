@@ -62,7 +62,10 @@ export default function FlashcardScreen() {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   const card = cards[currentIndex];
-  const audioPlayer = useAudioPlayer(card?.audio ?? null);
+  // Single shared player whose source is swapped on demand. This lets the
+  // same player handle multiple audios per card (front + back, plus extras
+  // imported from Anki decks that have several [sound:...] tags).
+  const audioPlayer = useAudioPlayer(null);
 
   useEffect(() => {
     (async () => {
@@ -250,15 +253,46 @@ export default function FlashcardScreen() {
   }
 
   const progress = (currentIndex / cards.length) * 100;
-  const playAudio = () => {
-    if (!card?.audio) return;
+  const playAudioUri = (uri?: string | null) => {
+    if (!uri) return;
     try {
+      // Swap source then play. expo-audio's `replace` accepts a URI string or
+      // an AudioSource object — the string form matches what we did with
+      // `useAudioPlayer(card.audio)` previously.
+      (audioPlayer as any).replace?.(uri);
       audioPlayer.seekTo(0);
       audioPlayer.play();
     } catch {
       // ignore audio errors
     }
   };
+  const playPrimaryAudio = () => playAudioUri(card?.audio);
+
+  // Collect every image / audio for the current card, deduplicated and
+  // separated by side. The legacy single-value fields (`image`, `audio`) are
+  // promoted into the array form so old data keeps working.
+  const frontImagesAll = useMemo(() => {
+    if (!card) return [] as string[];
+    const arr: string[] = [];
+    if (card.images && card.images.length > 0) arr.push(...card.images);
+    else if (card.image) arr.push(card.image);
+    return Array.from(new Set(arr.filter(Boolean)));
+  }, [card]);
+  const backImagesAll = useMemo(() => {
+    if (!card) return [] as string[];
+    return Array.from(new Set((card.imagesBack ?? []).filter(Boolean)));
+  }, [card]);
+  const frontAudiosAll = useMemo(() => {
+    if (!card) return [] as string[];
+    const arr: string[] = [];
+    if (card.audios && card.audios.length > 0) arr.push(...card.audios);
+    else if (card.audio) arr.push(card.audio);
+    return Array.from(new Set(arr.filter(Boolean)));
+  }, [card]);
+  const backAudiosAll = useMemo(() => {
+    if (!card) return [] as string[];
+    return Array.from(new Set((card.audiosBack ?? []).filter(Boolean)));
+  }, [card]);
 
   const frontInterpolate = flipAnim.interpolate({
     inputRange: [0, 1],
@@ -356,13 +390,24 @@ export default function FlashcardScreen() {
                   {i + 1}
                 </Text>
                 <View style={styles.colQ}>
-                  {c.image ? (
-                    <Image
-                      source={{ uri: c.image }}
-                      style={styles.tableThumb}
-                      resizeMode="contain"
-                    />
-                  ) : null}
+                  {(() => {
+                    const imgs = (c.images && c.images.length > 0)
+                      ? c.images
+                      : (c.image ? [c.image] : []);
+                    if (imgs.length === 0) return null;
+                    return (
+                      <View style={styles.tableThumbRow}>
+                        {imgs.slice(0, 3).map((u, idx) => (
+                          <Image
+                            key={`${u}-${idx}`}
+                            source={{ uri: u }}
+                            style={styles.tableThumb}
+                            resizeMode="contain"
+                          />
+                        ))}
+                      </View>
+                    );
+                  })()}
                   <Text
                     style={[
                       styles.tableCellQ,
@@ -371,14 +416,44 @@ export default function FlashcardScreen() {
                   >
                     {c.question}
                   </Text>
-                  {c.audio ? (
+                  {(() => {
+                    const audCount = (c.audios?.length ?? 0) || (c.audio ? 1 : 0);
+                    if (audCount === 0) return null;
+                    return (
+                      <View style={styles.tableMediaRow}>
+                        <Volume2 size={14} color={colors.primary} />
+                        <Text style={styles.tableMediaText}>
+                          {audCount > 1 ? `${audCount} audio` : "audio"}
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+                <View style={styles.colA}>
+                  {c.imagesBack && c.imagesBack.length > 0 ? (
+                    <View style={styles.tableThumbRow}>
+                      {c.imagesBack.slice(0, 2).map((u, idx) => (
+                        <Image
+                          key={`${u}-${idx}`}
+                          source={{ uri: u }}
+                          style={styles.tableThumb}
+                          resizeMode="contain"
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                  <Text style={styles.tableCellA}>{c.answer}</Text>
+                  {c.audiosBack && c.audiosBack.length > 0 ? (
                     <View style={styles.tableMediaRow}>
                       <Volume2 size={14} color={colors.primary} />
-                      <Text style={styles.tableMediaText}>audio</Text>
+                      <Text style={styles.tableMediaText}>
+                        {c.audiosBack.length > 1
+                          ? `${c.audiosBack.length} audio`
+                          : "audio"}
+                      </Text>
                     </View>
                   ) : null}
                 </View>
-                <Text style={[styles.tableCellA, styles.colA]}>{c.answer}</Text>
               </View>
             ))}
             {cards.length === 0 && (
@@ -396,7 +471,12 @@ export default function FlashcardScreen() {
           backInterpolate={backInterpolate}
           handleFlip={handleFlip}
           handleAnswer={handleAnswer}
-          playAudio={playAudio}
+          playAudio={playPrimaryAudio}
+          playAudioUri={playAudioUri}
+          frontImages={frontImagesAll}
+          backImages={backImagesAll}
+          frontAudios={frontAudiosAll}
+          backAudios={backAudiosAll}
           t={t}
         />
       )}
@@ -412,6 +492,11 @@ interface FlashcardCardViewProps {
   handleFlip: () => void;
   handleAnswer: (correct: boolean) => void;
   playAudio: () => void;
+  playAudioUri: (uri?: string | null) => void;
+  frontImages: string[];
+  backImages: string[];
+  frontAudios: string[];
+  backAudios: string[];
   t: any;
 }
 
@@ -423,11 +508,71 @@ function FlashcardCardView({
   handleFlip,
   handleAnswer,
   playAudio,
+  playAudioUri,
+  frontImages,
+  backImages,
+  frontAudios,
+  backAudios,
   t,
 }: FlashcardCardViewProps) {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   if (!card) return null;
+
+  const renderImageStrip = (uris: string[]) => {
+    if (uris.length === 0) return null;
+    if (uris.length === 1) {
+      return (
+        <Image
+          source={{ uri: uris[0] }}
+          style={styles.cardImage}
+          resizeMode="cover"
+        />
+      );
+    }
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.cardImageRow}
+      >
+        {uris.map((u, idx) => (
+          <Image
+            key={`${u}-${idx}`}
+            source={{ uri: u }}
+            style={styles.cardImageMulti}
+            resizeMode="cover"
+          />
+        ))}
+      </ScrollView>
+    );
+  };
+
+  const renderAudioButtons = (uris: string[]) => {
+    if (uris.length === 0) return null;
+    return (
+      <View style={styles.audioRow}>
+        {uris.map((u, idx) => (
+          <TouchableOpacity
+            key={`${u}-${idx}`}
+            onPress={(e) => {
+              e.stopPropagation();
+              if (uris.length === 1 && idx === 0) playAudio();
+              else playAudioUri(u);
+            }}
+            style={styles.audioBtn}
+            activeOpacity={0.85}
+          >
+            <Volume2 size={16} color={colors.primary} />
+            <Text style={styles.audioBtnText}>
+              {uris.length > 1 ? `Audio ${idx + 1}` : "Putar audio"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <>
       {card.tag ? <Text style={styles.cardTag}>{card.tag}</Text> : null}
@@ -448,29 +593,16 @@ function FlashcardCardView({
               { opacity: flipped ? 0 : 1 },
             ]}
           >
-            {card.image && !flipped && (
-              <Image
-                source={{ uri: card.image }}
-                style={styles.cardImage}
-                resizeMode="cover"
-              />
-            )}
-            <Text style={styles.cardHint}>Pertanyaan</Text>
-            <Text style={styles.cardText}>{card.question}</Text>
-            {card.audio && !flipped && (
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  playAudio();
-                }}
-                style={styles.audioBtn}
-                activeOpacity={0.85}
-              >
-                <Volume2 size={16} color={colors.primary} />
-                <Text style={styles.audioBtnText}>Putar audio</Text>
-              </TouchableOpacity>
-            )}
-            <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
+            <ScrollView
+              contentContainerStyle={styles.cardScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              {!flipped && renderImageStrip(frontImages)}
+              <Text style={styles.cardHint}>Pertanyaan</Text>
+              <Text style={styles.cardText}>{card.question}</Text>
+              {!flipped && renderAudioButtons(frontAudios)}
+              <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
+            </ScrollView>
           </Animated.View>
 
           {/* Back */}
@@ -482,8 +614,15 @@ function FlashcardCardView({
               { opacity: flipped ? 1 : 0, position: "absolute", top: 0 },
             ]}
           >
-            <Text style={styles.cardHint}>Jawaban</Text>
-            <Text style={styles.cardText}>{card.answer}</Text>
+            <ScrollView
+              contentContainerStyle={styles.cardScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              {flipped && renderImageStrip(backImages)}
+              <Text style={styles.cardHint}>Jawaban</Text>
+              <Text style={styles.cardText}>{card.answer}</Text>
+              {flipped && renderAudioButtons(backAudios)}
+            </ScrollView>
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -598,11 +737,34 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: "#BFDBFE",
   },
+  cardScroll: {
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
   cardImage: {
     width: "100%",
     height: 140,
     borderRadius: 16,
     marginBottom: 4,
+  },
+  cardImageRow: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  cardImageMulti: {
+    width: 180,
+    height: 140,
+    borderRadius: 14,
+  },
+  audioRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+    marginTop: 8,
   },
   cardHint: {
     fontSize: 11,
@@ -698,6 +860,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     aspectRatio: 16 / 10,
     borderRadius: 10,
     backgroundColor: "#0001",
+    marginBottom: 4,
+    flex: 1,
+  },
+  tableThumbRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
     marginBottom: 4,
   },
   tableMediaRow: {

@@ -89,6 +89,14 @@ export interface Flashcard {
   image?: string;
   /** Optional local audio file URI (e.g. extracted from imported Anki deck). */
   audio?: string;
+  /** Additional images on the FRONT (question) side. `image` is index 0. */
+  images?: string[];
+  /** All images on the BACK (answer) side. */
+  imagesBack?: string[];
+  /** All audio clips on the FRONT (question) side. `audio` is index 0. */
+  audios?: string[];
+  /** All audio clips on the BACK (answer) side. */
+  audiosBack?: string[];
   createdAt: string;
 }
 
@@ -424,6 +432,10 @@ export const deleteFlashcard = async (id: string) => {
   if (card) {
     await deleteFileIfLocal(card.image);
     await deleteFileIfLocal(card.audio);
+    if (card.images) for (const u of card.images) await deleteFileIfLocal(u);
+    if (card.imagesBack) for (const u of card.imagesBack) await deleteFileIfLocal(u);
+    if (card.audios) for (const u of card.audios) await deleteFileIfLocal(u);
+    if (card.audiosBack) for (const u of card.audiosBack) await deleteFileIfLocal(u);
   }
   await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards.filter((c) => c.id !== id));
 };

@@ -39,7 +39,17 @@ import { parseAnkiPackage, ParseProgress, AnkiImportError } from "@/utils/anki-p
 
 interface ParsedDeck {
   name: string;
-  cards: { front: string; back: string; tags?: string; imageUri?: string; audioUris?: string[] }[];
+  cards: {
+    front: string;
+    back: string;
+    tags?: string;
+    imageUri?: string;
+    audioUris?: string[];
+    frontImageUris?: string[];
+    backImageUris?: string[];
+    frontAudioUris?: string[];
+    backAudioUris?: string[];
+  }[];
 }
 
 interface PickedFile {
@@ -96,6 +106,46 @@ function stripPrefix(name: string, prefix: string): string {
 function looksHierarchical(decks: { name: string }[]): boolean {
   if (decks.length >= 2) return true;
   return decks.some((d) => d.name.includes("::"));
+}
+
+/**
+ * Build a Flashcard from a parsed Anki card while preserving every image and
+ * audio file referenced — front-side media stays on the question side, back-side
+ * media on the answer side. Only adds non-empty media arrays so the AsyncStorage
+ * payload stays small for cards without media.
+ */
+function buildFlashcardFromAnki(
+  c: ParsedDeck["cards"][number],
+  deckName: string,
+  lessonId: string,
+  now: string,
+): Flashcard {
+  const frontImages = c.frontImageUris ?? (c.imageUri ? [c.imageUri] : []);
+  const backImages = c.backImageUris ?? [];
+  // Fall back to legacy `audioUris` (front-only assumption) when the parser
+  // didn't split front/back — e.g. for older imports.
+  const frontAudios = c.frontAudioUris ?? c.audioUris ?? [];
+  const backAudios = c.backAudioUris ?? [];
+
+  const card: Flashcard = {
+    id: generateId(),
+    question: c.front,
+    answer: c.back,
+    tag: deckName,
+    lessonId,
+    createdAt: now,
+  };
+  if (frontImages.length > 0) {
+    card.image = frontImages[0];
+    if (frontImages.length > 1) card.images = frontImages;
+  }
+  if (backImages.length > 0) card.imagesBack = backImages;
+  if (frontAudios.length > 0) {
+    card.audio = frontAudios[0];
+    if (frontAudios.length > 1) card.audios = frontAudios;
+  }
+  if (backAudios.length > 0) card.audiosBack = backAudios;
+  return card;
 }
 
 function parseTxt(text: string): ParsedDeck {
@@ -327,19 +377,7 @@ export default function AnkiImportScreen() {
     const allCards: Flashcard[] = [];
     for (const deck of decks) {
       for (const c of deck.cards) {
-        const card: Flashcard = {
-          id: generateId(),
-          question: c.front,
-          answer: c.back,
-          tag: deck.name,
-          lessonId: colId,
-          ...(c.imageUri ? { image: c.imageUri } : {}),
-          ...(c.audioUris && c.audioUris.length > 0
-            ? { audio: c.audioUris[0] }
-            : {}),
-          createdAt: now,
-        };
-        allCards.push(card);
+        allCards.push(buildFlashcardFromAnki(c, deck.name, colId, now));
       }
     }
     await saveFlashcardsBulk(allCards);
@@ -395,19 +433,7 @@ export default function AnkiImportScreen() {
       await saveLesson(lesson);
 
       for (const c of deck.cards) {
-        const card: Flashcard = {
-          id: generateId(),
-          question: c.front,
-          answer: c.back,
-          tag: deck.name,
-          lessonId: lesson.id,
-          ...(c.imageUri ? { image: c.imageUri } : {}),
-          ...(c.audioUris && c.audioUris.length > 0
-            ? { audio: c.audioUris[0] }
-            : {}),
-          createdAt: now,
-        };
-        allCards.push(card);
+        allCards.push(buildFlashcardFromAnki(c, deck.name, lesson.id, now));
       }
     }
     await saveFlashcardsBulk(allCards);

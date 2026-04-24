@@ -1,0 +1,19 @@
+{
+  "name": "learningpath-activation-cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline CLI to generate activation keys for the LearningPath app.",
+  "scripts": {
+    "keygen": "node scripts/keygen-app.mjs",
+    "sign": "node scripts/sign-app-activation.mjs"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.2.0",
+    "@noble/ed25519": "^3.1.0",
+    "@noble/hashes": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

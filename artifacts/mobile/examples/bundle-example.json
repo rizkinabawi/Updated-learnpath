@@ -1,0 +1,30 @@
+{
+  "bundleId": "demo-bundle-001",
+  "creator": "LearningPath Dev",
+  "contentHash": "c8628f5d7cab6a85e58094a2cce716134e416296cbaeea43fdbe73e8c42886ac",
+  "signature": "fKRhl17dRZ89K2Sd18wFjFRGYpkQ2ePGirEUVAUFLZlFqRHKZ6bvBdkv85L+V+m/EuW6ZtpXbrdbTH6kSR1bBw==",
+  "version": 2,
+  "exportedAt": "2026-04-24T00:00:00.000Z",
+  "paths": [
+    {
+      "id": 1,
+      "name": "Belajar Ed25519",
+      "description": "Demo bundle",
+      "icon": "🔐",
+      "color": "#7c3aed",
+      "createdAt": "2026-04-24T00:00:00.000Z"
+    }
+  ],
+  "modules": [
+    { "id": 1, "pathId": 1, "title": "Pengantar", "order": 1 }
+  ],
+  "lessons": [
+    { "id": 1, "moduleId": 1, "title": "Tanda tangan digital", "content": "Ed25519 adalah skema modern", "order": 1 }
+  ],
+  "flashcardPacks": [],
+  "quizPacks": [],
+  "flashcards": [],
+  "quizzes": [],
+  "materials": [],
+  "notes": []
+}

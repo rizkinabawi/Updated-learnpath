@@ -1,0 +1,160 @@
+Proceed with implementation exactly as specified below.
+
+Do not reduce scope, do not suggest removing features, and do not require a backend. This system must work fully offline.
+
+====================
+CORE REQUIREMENTS
+====================
+
+Implement a complete offline security system using Ed25519 with:
+
+1. Bundle signature verification
+2. Bundle activation key system
+3. Secure storage unlock state
+4. Offline signing CLI script
+5. Optional device binding (client-side only)
+
+Do NOT skip device binding. Implement it as best-effort using available client APIs.
+
+====================
+CRYPTO STANDARD
+====================
+
+- Use Ed25519
+- Use pure JS libraries compatible with Expo:
+  - @noble/ed25519
+  - @noble/hashes
+
+- No native modules
+- No Node-only crypto
+
+====================
+BUNDLE SIGNATURE (MANDATORY)
+====================
+
+Each bundle must include:
+
+{
+  "bundleId": "string",
+  "creator": "string",
+  "contentHash": "sha256",
+  "signature": "base64"
+}
+
+- contentHash = SHA256 of all bundle files
+- Signature = sign(bundleId|creator|contentHash)
+
+On bundle load:
+- recompute contentHash
+- verify signature
+- reject if invalid
+
+====================
+BUNDLE ACTIVATION KEY
+====================
+
+Format:
+
+{
+  "bundleId": "string",
+  "issuedAt": number,
+  "expiry": number,
+  "signature": "base64"
+}
+
+Signed data:
+bundleId|issuedAt|expiry
+
+Validation:
+- verify signature
+- check expiry
+
+====================
+DEVICE BINDING (REQUIRED)
+====================
+
+- Use expo-application:
+  - androidId (Android)
+  - getIosIdForVendorAsync (iOS)
+
+- Store deviceId in secure storage
+- Use stored value consistently
+
+- Include deviceId in activation validation (best-effort)
+- Do NOT remove this requirement
+
+====================
+STORAGE
+====================
+
+- Use expo-secure-store
+- Store:
+  - unlocked bundle IDs
+  - deviceId
+
+====================
+UNLOCK FLOW
+====================
+
+On bundle open:
+
+1. Verify bundle signature
+2. Check if unlocked
+3. If locked:
+   - show activation screen
+   - input activation key
+   - verify key
+4. If valid:
+   - store unlocked state
+   - allow access
+
+====================
+CLI SIGNING TOOL (MANDATORY)
+====================
+
+Create an offline CLI script that:
+
+1. Generates keypair
+2. Signs bundle:
+   - compute content hash
+   - sign bundle metadata
+3. Generates activation keys:
+   - sign bundleId + issuedAt + expiry
+
+This must run locally without server.
+
+====================
+UI REQUIREMENTS
+====================
+
+- Locked bundle screen
+- Input activation key
+- Show clear errors:
+  - invalid key
+  - expired key
+  - corrupted bundle
+
+====================
+CONSTRAINTS
+====================
+
+- No backend required
+- No server dependency
+- Must work in Expo environment
+- Must be fully offline
+
+====================
+DELIVERABLES
+====================
+
+Provide:
+
+1. React Native implementation (verification logic)
+2. CLI signing script
+3. Example bundle JSON
+4. Example activation key
+5. Integration instructions
+
+Do not propose alternative architectures.
+Do not defer features.
+Implement as specified.

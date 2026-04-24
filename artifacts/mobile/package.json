@@ -61,10 +61,13 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@noble/ed25519": "^3.1.0",
+    "@noble/hashes": "^2.2.0",
     "@types/sql.js": "^1.4.11",
     "base64-js": "^1.5.1",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "expo-application": "~7.0.8",
     "expo-audio": "^55.0.14",
     "expo-clipboard": "^8.0.8",
     "expo-document-picker": "~14.0.8",

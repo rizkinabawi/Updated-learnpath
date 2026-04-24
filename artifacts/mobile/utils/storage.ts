@@ -198,6 +198,14 @@ export interface CoursePack {
   materials: StudyMaterial[];
   notes: Note[];
   assetData?: Record<string, string>; // originalUri → base64 (version 2+)
+
+  // Optional Ed25519 signature envelope (see utils/bundle-crypto.ts).
+  // When present, the bundle is treated as a "signed bundle" and must pass
+  // signature verification + activation key check before import.
+  bundleId?: string;
+  creator?: string;
+  contentHash?: string; // hex sha256 of canonicalJson(packData)
+  signature?: string;   // base64 ed25519 over `${bundleId}|${creator}|${contentHash}`
 }
 
 const STORAGE_KEYS = {

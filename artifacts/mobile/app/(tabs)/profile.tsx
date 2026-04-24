@@ -19,7 +19,10 @@ import {
   type ReminderSettings,
 } from "@/utils/notifications";
 import { CourseBundleShareModal, CourseImportPreviewModal } from "@/components/CourseBundleModal";
+import { BundleActivationModal } from "@/components/BundleActivationModal";
 import { extractAssetsFromPack } from "@/utils/bundle-assets";
+import { verifyBundleSignature, describeVerifyError } from "@/utils/bundle-crypto";
+import { isBundleUnlocked } from "@/utils/bundle-activation";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
 import {
@@ -48,6 +51,8 @@ export default function ProfileTab() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showImportPreview, setShowImportPreview] = useState(false);
   const [importPreviewPack, setImportPreviewPack] = useState<CoursePack | null>(null);
+  const [pendingSignedBundle, setPendingSignedBundle] = useState<CoursePack | null>(null);
+  const [showActivationModal, setShowActivationModal] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [daysSinceBackup, setDaysSinceBackup] = useState<number | null>(null);
 
@@ -94,22 +99,48 @@ export default function ProfileTab() {
     if (next.enabled) await scheduleStudyReminder(next.hour, next.minute);
   };
 
+  const proceedToPreview = async (pack: CoursePack) => {
+    setImporting(true);
+    try {
+      const extractedPack = await extractAssetsFromPack(pack);
+      setImportPreviewPack(extractedPack);
+      setShowImportPreview(true);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleImportCourse = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: ["application/json", "*/*"], copyToCacheDirectory: true });
       if (result.canceled) return;
       const asset = result.assets[0];
       const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
-      const pack = JSON.parse(text);
+      const pack = JSON.parse(text) as CoursePack;
       if (!pack.version || !Array.isArray(pack.paths) || pack.paths.length === 0) {
         Alert.alert("Format Tidak Valid", "File bukan bundle kursus yang valid. Pastikan file dibuat dari fitur 'Bagikan Bundle Kursus'.");
         return;
       }
-      setImporting(true);
-      const extractedPack = await extractAssetsFromPack(pack as CoursePack);
-      setImporting(false);
-      setImportPreviewPack(extractedPack);
-      setShowImportPreview(true);
+
+      // Signed bundle? → verify integrity, then check activation.
+      const isSigned = !!(pack.bundleId && pack.creator && pack.contentHash && pack.signature);
+      if (isSigned) {
+        setImporting(true);
+        const verifyErr = await verifyBundleSignature(pack);
+        setImporting(false);
+        if (verifyErr) {
+          Alert.alert("Bundle Ditolak", `Verifikasi tanda tangan gagal: ${describeVerifyError(verifyErr)}`);
+          return;
+        }
+        const unlocked = await isBundleUnlocked(pack.bundleId!);
+        if (!unlocked) {
+          setPendingSignedBundle(pack);
+          setShowActivationModal(true);
+          return;
+        }
+      }
+
+      await proceedToPreview(pack);
     } catch {
       setImporting(false);
       Alert.alert("Gagal Membaca File", "Tidak dapat membaca file. Pastikan format JSON valid.");
@@ -566,6 +597,30 @@ export default function ProfileTab() {
       importing={importing}
       onConfirm={handleConfirmImport}
       onCancel={() => { setShowImportPreview(false); setImportPreviewPack(null); }}
+    />
+
+    {/* ── BUNDLE ACTIVATION MODAL (signed bundles) ── */}
+    <BundleActivationModal
+      visible={showActivationModal}
+      bundle={
+        pendingSignedBundle && pendingSignedBundle.bundleId && pendingSignedBundle.creator && pendingSignedBundle.contentHash
+          ? {
+              bundleId: pendingSignedBundle.bundleId,
+              creator: pendingSignedBundle.creator,
+              contentHash: pendingSignedBundle.contentHash,
+            }
+          : null
+      }
+      onUnlock={async () => {
+        const pack = pendingSignedBundle;
+        setShowActivationModal(false);
+        setPendingSignedBundle(null);
+        if (pack) await proceedToPreview(pack);
+      }}
+      onCancel={() => {
+        setShowActivationModal(false);
+        setPendingSignedBundle(null);
+      }}
     />
     </View>
   );

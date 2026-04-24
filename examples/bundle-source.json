@@ -1,0 +1,10 @@
+{
+  "cards": [
+    { "q": "What does AES-256 stand for?", "a": "Advanced Encryption Standard with a 256-bit key." },
+    { "q": "What curve does Ed25519 use?", "a": "The twisted Edwards curve Edwards25519." },
+    { "q": "What does SHA-256 produce?", "a": "A 256-bit (32-byte) cryptographic hash." }
+  ],
+  "media": {
+    "note.txt": "VGhpcyBpcyBhIGRlbW8gbWVkaWEgZmlsZSBhdHRhY2hlZCB0byB0aGUgYnVuZGxlLg=="
+  }
+}

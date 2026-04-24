@@ -192,6 +192,18 @@ export default function ProfileTab() {
       onPress: () => router.push("/pack-manager"),
     },
     {
+      icon: "shield" as const, label: "Creator (Bundle Aman)",
+      sub: "Generate creator key & buat bundle terenkripsi",
+      color: colors.primary,
+      onPress: () => router.push("/creator" as any),
+    },
+    {
+      icon: "lock" as const, label: "Buka Bundle Terkunci",
+      sub: "Verifikasi tanda tangan + dekripsi bundle",
+      color: colors.teal,
+      onPress: () => router.push("/bundle/open" as any),
+    },
+    {
       icon: "image" as const, label: "Image Manager",
       sub: "Lihat & hapus gambar tersimpan",
       color: colors.teal,

@@ -8,7 +8,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, LogBox, Platform, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -20,6 +20,8 @@ import { scheduleDailyMotivation, getReminderSettings, scheduleStudyReminder } f
 import { isCancellationError } from "@/utils/safe-share";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { isAppActivated } from "@/utils/security/app-license";
+import ActivateScreen from "./activate";
 
 // Suppress share-cancellation noise in dev overlay
 LogBox.ignoreLogs([
@@ -233,6 +235,10 @@ function RootLayoutNav() {
     <Stack key={themeKey} screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="activate" options={{ headerShown: false, gestureEnabled: false }} />
+      <Stack.Screen name="creator/index" options={{ headerShown: false, animation: "slide_from_right" }} />
+      <Stack.Screen name="creator/create-bundle" options={{ headerShown: false, animation: "slide_from_right" }} />
+      <Stack.Screen name="bundle/open" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen
         name="flashcard/[lessonId]"
         options={{ headerShown: false, presentation: "modal" }}
@@ -317,6 +323,32 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // Section 1: global app lock. App is locked by default on first launch and
+  // remains locked until a valid activation key has been verified & stored.
+  // We re-check whenever fonts load so a successful activation lifts the gate.
+  const [licenseChecked, setLicenseChecked] = useState(false);
+  const [licensed, setLicensed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    isAppActivated()
+      .then((ok) => {
+        if (!cancelled) {
+          setLicensed(ok);
+          setLicenseChecked(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLicensed(false);
+          setLicenseChecked(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
@@ -327,7 +359,7 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return <AppLoadingScreen />;
+  if ((!fontsLoaded && !fontError) || !licenseChecked) return <AppLoadingScreen />;
 
   return (
     <SafeAreaProvider>
@@ -342,7 +374,12 @@ export default function RootLayout() {
         <LanguageProvider>
           <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
-              <RootLayoutNav />
+              {licensed ? (
+                <RootLayoutNav />
+              ) : (
+                // Hard gate — no Stack while locked, so no other route is reachable.
+                <ActivateScreen />
+              )}
               <ToastContainer />
             </GestureHandlerRootView>
           </QueryClientProvider>

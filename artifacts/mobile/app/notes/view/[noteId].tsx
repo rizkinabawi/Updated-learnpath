@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -19,7 +20,7 @@ import {
   Clock,
 } from "lucide-react-native";
 import { getNotes, getLessons, type Note } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, {
@@ -31,6 +32,9 @@ const formatDateTime = (iso: string) =>
   });
 
 export default function NoteFullView() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { noteId, lessonId } = useLocalSearchParams<{
     noteId: string;
     lessonId?: string;
@@ -101,7 +105,7 @@ export default function NoteFullView() {
   if (!current) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ color: Colors.textMuted }}>Catatan tidak ditemukan</Text>
+        <Text style={{ color: colors.textMuted }}>Catatan tidak ditemukan</Text>
         <TouchableOpacity onPress={() => router.back()} style={[styles.editBtn, { marginTop: 12 }]}>
           <Text style={styles.editBtnText}>Kembali</Text>
         </TouchableOpacity>
@@ -118,7 +122,7 @@ export default function NoteFullView() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={Colors.white} />
+          <X size={20} color={colors.white} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -129,7 +133,7 @@ export default function NoteFullView() {
           </Text>
         </View>
         <TouchableOpacity onPress={goEdit} style={styles.editBtn}>
-          <PencilLine size={16} color={Colors.white} />
+          <PencilLine size={16} color={colors.white} />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -139,7 +143,7 @@ export default function NoteFullView() {
         contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 100 }]}
       >
         <View style={styles.metaRow}>
-          <Clock size={11} color={Colors.textMuted} />
+          <Clock size={11} color={colors.textMuted} />
           <Text style={styles.metaDate}>
             Diperbarui {formatDateTime(current.updatedAt)}
           </Text>
@@ -174,8 +178,8 @@ export default function NoteFullView() {
           disabled={!hasPrev}
           activeOpacity={0.8}
         >
-          <ChevronLeft size={18} color={hasPrev ? Colors.dark : Colors.textMuted} />
-          <Text style={[styles.navBtnText, !hasPrev && { color: Colors.textMuted }]}>
+          <ChevronLeft size={18} color={hasPrev ? colors.dark : colors.textMuted} />
+          <Text style={[styles.navBtnText, !hasPrev && { color: colors.textMuted }]}>
             Sebelumnya
           </Text>
         </TouchableOpacity>
@@ -188,10 +192,10 @@ export default function NoteFullView() {
           disabled={!hasNext}
           activeOpacity={0.8}
         >
-          <Text style={[styles.navBtnText, !hasNext && { color: Colors.textMuted }]}>
+          <Text style={[styles.navBtnText, !hasNext && { color: colors.textMuted }]}>
             Selanjutnya
           </Text>
-          <ChevronRight size={18} color={hasNext ? Colors.dark : Colors.textMuted} />
+          <ChevronRight size={18} color={hasNext ? colors.dark : colors.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -202,7 +206,7 @@ export default function NoteFullView() {
           onPress={() => setZoomImage(null)}
         >
           <TouchableOpacity onPress={() => setZoomImage(null)} style={styles.zoomCloseBtn}>
-            <X size={22} color={Colors.white} />
+            <X size={22} color={colors.white} />
           </TouchableOpacity>
           {zoomImage ? (
             <Image source={{ uri: zoomImage }} style={styles.zoomImage} resizeMode="contain" />
@@ -213,10 +217,10 @@ export default function NoteFullView() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 16,
     paddingBottom: 16,
     flexDirection: "row",
@@ -232,38 +236,38 @@ const styles = StyleSheet.create({
     fontSize: 11, color: "rgba(255,255,255,0.7)",
     fontWeight: "700", textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 18, fontWeight: "900", color: Colors.white },
+  headerTitle: { fontSize: 18, fontWeight: "900", color: c.white },
   editBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 8,
   },
-  editBtnText: { fontSize: 12, fontWeight: "800", color: Colors.white },
+  editBtnText: { fontSize: 12, fontWeight: "800", color: c.white },
   body: { padding: 16, gap: 14 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metaDate: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
-  bodyText: { fontSize: 16, color: Colors.dark, lineHeight: 26, fontWeight: "500" },
-  bodyEmpty: { fontSize: 14, color: Colors.textMuted, fontStyle: "italic" },
+  metaDate: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+  bodyText: { fontSize: 16, color: c.dark, lineHeight: 26, fontWeight: "500" },
+  bodyEmpty: { fontSize: 14, color: c.textMuted, fontStyle: "italic" },
   attachSection: { gap: 10, marginTop: 8 },
   attachLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 0.8,
   },
   attachImage: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: "#f0f0f0" },
   navBar: {
     flexDirection: "row", alignItems: "center", gap: 10,
     paddingHorizontal: 12, paddingTop: 10,
-    backgroundColor: Colors.white, borderTopWidth: 1, borderTopColor: Colors.border,
+    backgroundColor: c.white, borderTopWidth: 1, borderTopColor: c.border,
   },
   navBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 4, backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    gap: 4, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
     borderRadius: 12, paddingVertical: 12,
   },
   navBtnDisabled: { opacity: 0.5 },
-  navBtnText: { fontSize: 13, fontWeight: "800", color: Colors.dark },
-  navCounter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: Colors.background },
-  navCounterText: { fontSize: 12, fontWeight: "800", color: Colors.textSecondary },
+  navBtnText: { fontSize: 13, fontWeight: "800", color: c.dark },
+  navCounter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: c.background },
+  navCounterText: { fontSize: 12, fontWeight: "800", color: c.textSecondary },
   zoomOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.95)", alignItems: "center", justifyContent: "center" },
   zoomImage: { width: "100%", height: "85%" },
   zoomCloseBtn: {

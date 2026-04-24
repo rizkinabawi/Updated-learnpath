@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getQuizzes, getFlashcards, getLessons, type Quiz, type Flashcard, type Lesson } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 const CHALLENGE_KEY = "daily_challenge_state";
@@ -33,6 +33,9 @@ function todayStr() {
 }
 
 export default function DailyChallengeScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const C = useColors();
@@ -149,7 +152,7 @@ export default function DailyChallengeScreen() {
   if (!quiz && !flashcard) {
     return (
       <View style={{ flex: 1, backgroundColor: C.background }}>
-        <LinearGradient colors={[Colors.primary, Colors.purple]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
+        <LinearGradient colors={[colors.primary, colors.purple]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Feather name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
@@ -171,7 +174,7 @@ export default function DailyChallengeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
-      <LinearGradient colors={[Colors.accent, Colors.amber]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
+      <LinearGradient colors={[colors.accent, colors.amber]} style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
@@ -184,17 +187,17 @@ export default function DailyChallengeScreen() {
 
       <View style={styles.body}>
         {state?.completed && (
-          <View style={[styles.doneBanner, { backgroundColor: state.wasCorrect ? Colors.successLight : Colors.dangerLight }]}>
-            <Feather name={state.wasCorrect ? "check-circle" : "x-circle"} size={16} color={state.wasCorrect ? Colors.success : Colors.danger} />
-            <Text style={[styles.doneTxt, { color: state.wasCorrect !== false ? Colors.success : Colors.danger }]}>
+          <View style={[styles.doneBanner, { backgroundColor: state.wasCorrect ? colors.successLight : colors.dangerLight }]}>
+            <Feather name={state.wasCorrect ? "check-circle" : "x-circle"} size={16} color={state.wasCorrect ? colors.success : colors.danger} />
+            <Text style={[styles.doneTxt, { color: state.wasCorrect !== false ? colors.success : colors.danger }]}>
               {state.wasCorrect !== false ? "Kamu sudah menjawab tantangan hari ini!" : "Sudah diselesaikan hari ini."}
             </Text>
           </View>
         )}
 
-        <View style={[styles.typeBadge, { backgroundColor: type === "quiz" ? Colors.primaryLight : Colors.amberLight }]}>
-          <Feather name={type === "quiz" ? "help-circle" : "credit-card"} size={14} color={type === "quiz" ? Colors.primary : Colors.amber} />
-          <Text style={[styles.typeTxt, { color: type === "quiz" ? Colors.primary : Colors.amber }]}>
+        <View style={[styles.typeBadge, { backgroundColor: type === "quiz" ? colors.primaryLight : colors.amberLight }]}>
+          <Feather name={type === "quiz" ? "help-circle" : "credit-card"} size={14} color={type === "quiz" ? colors.primary : colors.amber} />
+          <Text style={[styles.typeTxt, { color: type === "quiz" ? colors.primary : colors.amber }]}>
             {type === "quiz" ? "Soal Pilihan Ganda" : "Flashcard"}
           </Text>
         </View>
@@ -210,8 +213,8 @@ export default function DailyChallengeScreen() {
                 let border = C.border;
                 let textColor = C.text;
                 if (answered) {
-                  if (isCorrect) { bg = Colors.successLight; border = Colors.success; textColor = Colors.success; }
-                  else if (isSelected && !isCorrect) { bg = Colors.dangerLight; border = Colors.danger; textColor = Colors.danger; }
+                  if (isCorrect) { bg = colors.successLight; border = colors.success; textColor = colors.success; }
+                  else if (isSelected && !isCorrect) { bg = colors.dangerLight; border = colors.danger; textColor = colors.danger; }
                 }
                 return (
                   <TouchableOpacity
@@ -227,8 +230,8 @@ export default function DailyChallengeScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.optionText, { color: textColor }]}>{opt}</Text>
-                    {answered && isCorrect && <Feather name="check" size={16} color={Colors.success} />}
-                    {answered && isSelected && !isCorrect && <Feather name="x" size={16} color={Colors.danger} />}
+                    {answered && isCorrect && <Feather name="check" size={16} color={colors.success} />}
+                    {answered && isSelected && !isCorrect && <Feather name="x" size={16} color={colors.danger} />}
                   </TouchableOpacity>
                 );
               })}
@@ -251,7 +254,7 @@ export default function DailyChallengeScreen() {
         ) : null}
 
         <TouchableOpacity onPress={() => router.back()} style={styles.doneBtn} activeOpacity={0.85}>
-          <LinearGradient colors={[Colors.accent, Colors.amber]} style={styles.doneBtnGrad}>
+          <LinearGradient colors={[colors.accent, colors.amber]} style={styles.doneBtnGrad}>
             <Text style={styles.doneBtnText}>Selesai</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -260,7 +263,7 @@ export default function DailyChallengeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 20, alignItems: "center", position: "relative" },
   backBtn: {
     position: "absolute", left: 20,
@@ -298,7 +301,7 @@ const styles = StyleSheet.create({
     backfaceVisibility: "hidden",
   },
   cardBack: {
-    borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5, borderColor: c.border,
   },
   cardLabel: { fontSize: 11, fontWeight: "800", color: "rgba(255,255,255,0.6)", letterSpacing: 1 },
   cardQuestion: { fontSize: 18, fontWeight: "800", color: "#fff", textAlign: "center", lineHeight: 26 },
@@ -311,6 +314,6 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48 },
   emptyTitle: { fontSize: 18, fontWeight: "800" },
   emptySub: { fontSize: 13, textAlign: "center", lineHeight: 20 },
-  backHomeBtn: { backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
-  backHomeBtnText: { color: Colors.white, fontWeight: "700", fontSize: 14 },
+  backHomeBtn: { backgroundColor: c.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
+  backHomeBtnText: { color: c.white, fontWeight: "700", fontSize: 14 },
 });

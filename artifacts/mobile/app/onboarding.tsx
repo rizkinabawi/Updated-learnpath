@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { saveUser, getUser, generateId, type User } from "@/utils/storage";
 import { useRouter } from "expo-router";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "@/contexts/LanguageContext";
 import * as MediaLibrary from "expo-media-library";
@@ -32,8 +33,8 @@ const TUTORIAL_STEPS = [
   {
     key: "welcome",
     emoji: "👋",
-    bg: Colors.primaryLight,
-    accent: Colors.primary,
+    bg: colors.primaryLight,
+    accent: colors.primary,
     title: "Selamat Datang\ndi LearningPath!",
     sub: "Aplikasi belajar personal yang fleksibel. Ikuti tur singkat ini untuk memulai.",
     features: [],
@@ -41,8 +42,8 @@ const TUTORIAL_STEPS = [
   {
     key: "paths",
     emoji: "🗂️",
-    bg: Colors.amberLight,
-    accent: Colors.amber,
+    bg: colors.amberLight,
+    accent: colors.amber,
     title: "Kelola Materi\nBelajarmu",
     sub: "Buat Learning Path → tambah Module → bagi menjadi Lesson. Struktur rapih, belajar makin fokus.",
     features: [
@@ -54,8 +55,8 @@ const TUTORIAL_STEPS = [
   {
     key: "study",
     emoji: "🃏",
-    bg: Colors.successLight,
-    accent: Colors.success,
+    bg: colors.successLight,
+    accent: colors.success,
     title: "Flashcard & Quiz\nInteraktif",
     sub: "Perkuat hafalan dengan flashcard flip, uji pengetahuan dengan quiz pilihan ganda, dan review kesalahan.",
     features: [
@@ -67,8 +68,8 @@ const TUTORIAL_STEPS = [
   {
     key: "ai",
     emoji: "🤖",
-    bg: Colors.purpleLight,
-    accent: Colors.purple,
+    bg: colors.purpleLight,
+    accent: colors.purple,
     title: "AI Prompt\nGenerator",
     sub: "Generate soal flashcard & quiz otomatis! Salin prompt → tempel ke ChatGPT → import hasilnya langsung ke app.",
     features: [
@@ -80,6 +81,9 @@ const TUTORIAL_STEPS = [
 ];
 
 export default function Onboarding() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -209,7 +213,7 @@ export default function Onboarding() {
           {/* ── SETUP: Name (step 4) ───────────────────────────────── */}
           {step === 4 && (
             <>
-              <View style={[styles.illustrationWrap, { backgroundColor: Colors.amberLight }]}>
+              <View style={[styles.illustrationWrap, { backgroundColor: colors.amberLight }]}>
                 <Text style={styles.illustrationEmoji}>📝</Text>
               </View>
               <Text style={styles.title}>{t.onboarding.step_profile_title}</Text>
@@ -220,7 +224,7 @@ export default function Onboarding() {
                   value={name}
                   onChangeText={setName}
                   style={styles.input}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   autoFocus
                   returnKeyType="next"
                 />
@@ -231,7 +235,7 @@ export default function Onboarding() {
           {/* ── SETUP: Goal & Level (step 5) ──────────────────────── */}
           {step === 5 && (
             <>
-              <View style={[styles.illustrationWrap, { backgroundColor: Colors.tealLight }]}>
+              <View style={[styles.illustrationWrap, { backgroundColor: colors.tealLight }]}>
                 <Text style={styles.illustrationEmoji}>🎯</Text>
               </View>
               <Text style={styles.title}>{t.onboarding.step_ai_title}</Text>
@@ -242,14 +246,14 @@ export default function Onboarding() {
                   value={goal}
                   onChangeText={setGoal}
                   style={styles.input}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <TextInput
                   placeholder={t.onboarding.topic_ph}
                   value={topic}
                   onChangeText={setTopic}
                   style={styles.input}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <Text style={styles.levelLabel}>{t.onboarding.level_label}</Text>
                 <View style={styles.levelRow}>
@@ -296,10 +300,10 @@ export default function Onboarding() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
   },
   skipBtn: {
     alignSelf: "flex-end",
@@ -309,7 +313,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   scrollContent: {
     paddingHorizontal: 28,
@@ -330,14 +334,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "900",
-    color: Colors.dark,
+    color: c.dark,
     textAlign: "center",
     lineHeight: 36,
     marginBottom: 12,
   },
   sub: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     lineHeight: 22,
     fontWeight: "500",
@@ -353,7 +357,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -369,7 +373,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     lineHeight: 19,
   },
   inputsWrap: {
@@ -378,20 +382,20 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   input: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 15,
     fontSize: 15,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   levelLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginTop: 4,
@@ -402,22 +406,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderColor: c.border,
+    backgroundColor: c.white,
     alignItems: "center",
     gap: 4,
   },
   levelChipActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   levelEmoji: { fontSize: 20 },
-  levelText: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
-  levelTextActive: { color: Colors.primaryDark },
+  levelText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  levelTextActive: { color: c.primaryDark },
   ctaBtn: {
     width: "100%",
     height: 56,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
@@ -425,16 +429,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   ctaBtnDisabled: { opacity: 0.6 },
-  ctaText: { fontSize: 16, fontWeight: "900", color: Colors.white },
+  ctaText: { fontSize: 16, fontWeight: "900", color: c.white },
   dots: { flexDirection: "row", gap: 7 },
   dot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
   dotActive: {
     width: 22,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
 });

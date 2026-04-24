@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -10,7 +11,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { getApiKeys, PROVIDER_META, type AIKey, type AIProvider } from "@/utils/ai-keys";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 interface Props {
   visible: boolean;
@@ -20,6 +21,9 @@ interface Props {
 }
 
 export function AIProviderSheet({ visible, loading, onClose, onSelect }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const [keys, setKeys] = useState<AIKey[]>([]);
   const [fetching, setFetching] = useState(false);
@@ -42,36 +46,36 @@ export function AIProviderSheet({ visible, loading, onClose, onSelect }: Props) 
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={s.overlay}>
-        <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose} />
-        <View style={s.sheet}>
-          <View style={s.handle} />
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
 
-          <View style={s.header}>
-            <Text style={s.title}>Pilih AI Provider</Text>
-            <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-              <Feather name="x" size={18} color={Colors.dark} />
+          <View style={styles.header}>
+            <Text style={styles.title}>Pilih AI Provider</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <Feather name="x" size={18} color={colors.dark} />
             </TouchableOpacity>
           </View>
 
           {fetching ? (
-            <View style={s.center}>
-              <ActivityIndicator color={Colors.primary} />
+            <View style={styles.center}>
+              <ActivityIndicator color={colors.primary} />
             </View>
           ) : loading ? (
-            <View style={s.center}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={s.loadingText}>Mengirim ke AI…</Text>
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Mengirim ke AI…</Text>
             </View>
           ) : (
             <>
-              <Text style={s.hint}>
+              <Text style={styles.hint}>
                 {keys.length === 0
                   ? "Belum ada API key. Tambahkan dulu di Pengaturan AI Keys."
                   : "Pilih provider yang ingin digunakan untuk generate konten."}
               </Text>
 
-              <View style={s.providerList}>
+              <View style={styles.providerList}>
                 {providers.map((prov) => {
                   const meta = PROVIDER_META[prov];
                   const key = keys.find((k) => k.provider === prov) ?? null;
@@ -81,38 +85,38 @@ export function AIProviderSheet({ visible, loading, onClose, onSelect }: Props) 
                     <TouchableOpacity
                       key={prov}
                       style={[
-                        s.providerCard,
-                        { borderColor: hasKey ? meta.color + "50" : Colors.border },
-                        !hasKey && s.providerCardDisabled,
+                        styles.providerCard,
+                        { borderColor: hasKey ? meta.color + "50" : colors.border },
+                        !hasKey && styles.providerCardDisabled,
                       ]}
                       activeOpacity={hasKey ? 0.75 : 1}
                       onPress={() => {
                         if (hasKey && key) onSelect(prov, key);
                       }}
                     >
-                      <View style={[s.providerIcon, { backgroundColor: meta.bg }]}>
-                        <Text style={[s.providerEmoji]}>
+                      <View style={[styles.providerIcon, { backgroundColor: meta.bg }]}>
+                        <Text style={[styles.providerEmoji]}>
                           {prov === "openai" ? "⚡" : "✨"}
                         </Text>
                       </View>
-                      <View style={s.providerInfo}>
-                        <Text style={[s.providerLabel, !hasKey && s.textMuted]}>
+                      <View style={styles.providerInfo}>
+                        <Text style={[styles.providerLabel, !hasKey && styles.textMuted]}>
                           {meta.label}
                         </Text>
-                        <Text style={s.providerModel}>
+                        <Text style={styles.providerModel}>
                           {key?.model ?? meta.model}
                         </Text>
                         {hasKey ? (
-                          <View style={[s.keyBadge, { backgroundColor: meta.bg }]}>
+                          <View style={[styles.keyBadge, { backgroundColor: meta.bg }]}>
                             <Feather name="check" size={10} color={meta.color} />
-                            <Text style={[s.keyBadgeText, { color: meta.color }]}>
+                            <Text style={[styles.keyBadgeText, { color: meta.color }]}>
                               Key tersimpan
                             </Text>
                           </View>
                         ) : (
-                          <View style={s.noKeyBadge}>
-                            <Feather name="lock" size={10} color={Colors.textMuted} />
-                            <Text style={s.noKeyBadgeText}>Belum ada key</Text>
+                          <View style={styles.noKeyBadge}>
+                            <Feather name="lock" size={10} color={colors.textMuted} />
+                            <Text style={styles.noKeyBadgeText}>Belum ada key</Text>
                           </View>
                         )}
                       </View>
@@ -125,15 +129,15 @@ export function AIProviderSheet({ visible, loading, onClose, onSelect }: Props) 
               </View>
 
               <TouchableOpacity
-                style={s.manageBtn}
+                style={styles.manageBtn}
                 onPress={() => {
                   onClose();
                   router.push("/ai-keys" as any);
                 }}
                 activeOpacity={0.8}
               >
-                <Feather name="key" size={14} color={Colors.primary} />
-                <Text style={s.manageBtnText}>Kelola API Keys</Text>
+                <Feather name="key" size={14} color={colors.primary} />
+                <Text style={styles.manageBtnText}>Kelola API Keys</Text>
               </TouchableOpacity>
             </>
           )}
@@ -143,7 +147,7 @@ export function AIProviderSheet({ visible, loading, onClose, onSelect }: Props) 
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -154,7 +158,7 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   sheet: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -165,7 +169,7 @@ const s = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     alignSelf: "center",
     marginBottom: 8,
   },
@@ -178,19 +182,19 @@ const s = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "900",
-    color: Colors.dark,
+    color: c.dark,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
   },
   hint: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     marginBottom: 16,
     lineHeight: 19,
@@ -202,7 +206,7 @@ const s = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
   providerList: {
@@ -216,7 +220,7 @@ const s = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     borderWidth: 1.5,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -243,11 +247,11 @@ const s = StyleSheet.create({
   providerLabel: {
     fontSize: 15,
     fontWeight: "800",
-    color: Colors.dark,
+    color: c.dark,
   },
   providerModel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
   },
   keyBadge: {
@@ -273,15 +277,15 @@ const s = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
     alignSelf: "flex-start",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   noKeyBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   textMuted: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   manageBtn: {
     flexDirection: "row",
@@ -291,12 +295,12 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   manageBtnText: {
     fontSize: 13,
     fontWeight: "800",
-    color: Colors.primary,
+    color: c.primary,
   },
 });

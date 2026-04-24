@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Modal, ScrollView, ActivityIndicator, Platform, Image, KeyboardAvoidingView, Alert,
@@ -19,7 +20,7 @@ import {
   type AIKey, type AIProvider,
 } from "@/utils/ai-keys";
 import { callAI } from "@/utils/ai-providers";
-import Colors, { shadowSm } from "@/constants/colors";
+import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
 const IMAGE_DIR = (FileSystem.documentDirectory ?? "") + "flashcard-images/";
@@ -104,25 +105,25 @@ function PickerSheet<T extends { id: string }>({
   onSelect: (item: T) => void; onClose: () => void; onBack?: () => void;
 }) {
   return (
-    <View style={ps.overlay}>
-      <View style={ps.sheet}>
-        <View style={s.handle} />
-        <View style={ps.header}>
-          {onBack ? <TouchableOpacity style={ps.iconBtn} onPress={onBack}><Feather name="arrow-left" size={18} color={Colors.dark} /></TouchableOpacity> : <View style={{ width: 34 }} />}
-          <Text style={ps.title} numberOfLines={1}>{title}</Text>
-          <TouchableOpacity style={ps.iconBtn} onPress={onClose}><Feather name="x" size={18} color={Colors.dark} /></TouchableOpacity>
+    <View style={pickerStyles.overlay}>
+      <View style={pickerStyles.sheet}>
+        <View style={styles.handle} />
+        <View style={pickerStyles.header}>
+          {onBack ? <TouchableOpacity style={pickerStyles.iconBtn} onPress={onBack}><Feather name="arrow-left" size={18} color={colors.dark} /></TouchableOpacity> : <View style={{ width: 34 }} />}
+          <Text style={pickerStyles.title} numberOfLines={1}>{title}</Text>
+          <TouchableOpacity style={pickerStyles.iconBtn} onPress={onClose}><Feather name="x" size={18} color={colors.dark} /></TouchableOpacity>
         </View>
         {items.length === 0 ? (
-          <View style={ps.empty}><Feather name="inbox" size={32} color={Colors.textMuted} /><Text style={ps.emptyText}>Tidak ada data</Text></View>
+          <View style={pickerStyles.empty}><Feather name="inbox" size={32} color={colors.textMuted} /><Text style={pickerStyles.emptyText}>Tidak ada data</Text></View>
         ) : (
-          <ScrollView contentContainerStyle={ps.list}>
+          <ScrollView contentContainerStyle={pickerStyles.list}>
             {items.map((item) => (
-              <TouchableOpacity key={item.id} style={[ps.item, shadowSm]} onPress={() => onSelect(item)}>
+              <TouchableOpacity key={item.id} style={[pickerStyles.item, shadowSm]} onPress={() => onSelect(item)}>
                 <View style={{ flex: 1 }}>
-                  <Text style={ps.itemLabel}>{getLabel(item)}</Text>
-                  {getSub(item) ? <Text style={ps.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
+                  <Text style={pickerStyles.itemLabel}>{getLabel(item)}</Text>
+                  {getSub(item) ? <Text style={pickerStyles.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
                 </View>
-                <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+                <Feather name="chevron-right" size={16} color={colors.textMuted} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -134,6 +135,10 @@ function PickerSheet<T extends { id: string }>({
 
 // ─── Main Modal ──────────────────────────────────────────────────
 export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
+  const colors = useColors();
+  const pickerStyles = useMemo(() => makePickerStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [activeTab, setActiveTab] = useState<Tab>("manual");
 
   // Manual form
@@ -316,45 +321,45 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <View style={styles.overlay}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%" }}>
-          <View style={s.sheet}>
-            <View style={s.handle} />
-            <View style={s.header}>
-              <Text style={s.title}>Tambah Flashcard</Text>
-              <TouchableOpacity style={s.closeBtn} onPress={onClose}><Feather name="x" size={20} color={Colors.dark} /></TouchableOpacity>
+          <View style={styles.sheet}>
+            <View style={styles.handle} />
+            <View style={styles.header}>
+              <Text style={styles.title}>Tambah Flashcard</Text>
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}><Feather name="x" size={20} color={colors.dark} /></TouchableOpacity>
             </View>
 
             {/* ── Tabs ── */}
-            <View style={s.tabRow}>
+            <View style={styles.tabRow}>
               {TABS.map((tab) => (
-                <TouchableOpacity key={tab.key} style={[s.tab, activeTab === tab.key && s.tabActive]} onPress={() => setActiveTab(tab.key)} activeOpacity={0.8}>
-                  <Feather name={tab.icon as any} size={14} color={activeTab === tab.key ? Colors.primary : Colors.textMuted} />
-                  <Text style={[s.tabText, activeTab === tab.key && s.tabTextActive]}>{tab.label}</Text>
+                <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)} activeOpacity={0.8}>
+                  <Feather name={tab.icon as any} size={14} color={activeTab === tab.key ? colors.primary : colors.textMuted} />
+                  <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
 
               {/* ── Lesson Picker (shared across all tabs) ── */}
-              <Text style={s.label}>Assign ke Pelajaran <Text style={s.optional}>(opsional)</Text></Text>
-              <TouchableOpacity style={[s.pickerBtn, selLesson ? s.pickerBtnActive : null]} onPress={() => setPickerStep("course")}>
-                <Feather name="book-open" size={16} color={selLesson ? Colors.primary : Colors.textMuted} />
-                <Text style={[s.pickerBtnText, selLesson ? { color: Colors.primary } : null]} numberOfLines={1}>{lessonLabel}</Text>
-                <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+              <Text style={styles.label}>Assign ke Pelajaran <Text style={styles.optional}>(opsional)</Text></Text>
+              <TouchableOpacity style={[styles.pickerBtn, selLesson ? styles.pickerBtnActive : null]} onPress={() => setPickerStep("course")}>
+                <Feather name="book-open" size={16} color={selLesson ? colors.primary : colors.textMuted} />
+                <Text style={[styles.pickerBtnText, selLesson ? { color: colors.primary } : null]} numberOfLines={1}>{lessonLabel}</Text>
+                <Feather name="chevron-right" size={16} color={colors.textMuted} />
               </TouchableOpacity>
               {!selLesson && (
                 <>
-                  <View style={s.standaloneBadge}>
-                    <Feather name="folder" size={12} color={Colors.success} />
-                    <Text style={[s.standaloneBadgeText, { color: Colors.success }]}>Akan dibuat sebagai koleksi tersendiri</Text>
+                  <View style={styles.standaloneBadge}>
+                    <Feather name="folder" size={12} color={colors.success} />
+                    <Text style={[styles.standaloneBadgeText, { color: colors.success }]}>Akan dibuat sebagai koleksi tersendiri</Text>
                   </View>
-                  <Text style={[s.label, { marginTop: 6 }]}>Nama Koleksi <Text style={s.optional}>(opsional)</Text></Text>
+                  <Text style={[styles.label, { marginTop: 6 }]}>Nama Koleksi <Text style={styles.optional}>(opsional)</Text></Text>
                   <TextInput
-                    style={[s.input, { minHeight: 44 }]}
+                    style={[styles.input, { minHeight: 44 }]}
                     placeholder="Contoh: Kartu Bahasa Inggris, Biologi Sel…"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={collectionName}
                     onChangeText={setCollectionName}
                   />
@@ -364,25 +369,25 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ MANUAL TAB ══════════ */}
               {activeTab === "manual" && (
                 <>
-                  <Text style={[s.label, { marginTop: 14 }]}>Pertanyaan / Depan Kartu *</Text>
-                  <TextInput style={s.input} multiline placeholder="Tulis pertanyaan..." placeholderTextColor={Colors.textMuted} value={question} onChangeText={setQuestion} textAlignVertical="top" />
-                  <Text style={s.label}>Jawaban / Belakang Kartu *</Text>
-                  <TextInput style={[s.input, { minHeight: 80 }]} multiline placeholder="Tulis jawaban..." placeholderTextColor={Colors.textMuted} value={answer} onChangeText={setAnswer} textAlignVertical="top" />
-                  <Text style={s.label}>Tag (opsional)</Text>
-                  <TextInput style={[s.input, { minHeight: 44 }]} placeholder="contoh: biologi-sel" placeholderTextColor={Colors.textMuted} value={tag} onChangeText={setTag} />
-                  <TouchableOpacity style={s.imgBtn} onPress={pickImage}>
-                    <Feather name="image" size={16} color={Colors.primary} />
-                    <Text style={s.imgBtnText}>{imageUri ? "Ganti Gambar" : "Tambah Gambar (opsional)"}</Text>
+                  <Text style={[styles.label, { marginTop: 14 }]}>Pertanyaan / Depan Kartu *</Text>
+                  <TextInput style={styles.input} multiline placeholder="Tulis pertanyaan..." placeholderTextColor={colors.textMuted} value={question} onChangeText={setQuestion} textAlignVertical="top" />
+                  <Text style={styles.label}>Jawaban / Belakang Kartu *</Text>
+                  <TextInput style={[styles.input, { minHeight: 80 }]} multiline placeholder="Tulis jawaban..." placeholderTextColor={colors.textMuted} value={answer} onChangeText={setAnswer} textAlignVertical="top" />
+                  <Text style={styles.label}>Tag (opsional)</Text>
+                  <TextInput style={[styles.input, { minHeight: 44 }]} placeholder="contoh: biologi-sel" placeholderTextColor={colors.textMuted} value={tag} onChangeText={setTag} />
+                  <TouchableOpacity style={styles.imgBtn} onPress={pickImage}>
+                    <Feather name="image" size={16} color={colors.primary} />
+                    <Text style={styles.imgBtnText}>{imageUri ? "Ganti Gambar" : "Tambah Gambar (opsional)"}</Text>
                   </TouchableOpacity>
                   {imageUri ? (
-                    <View style={s.imgPreviewWrap}>
-                      <Image source={{ uri: imageUri }} style={s.imgPreview} resizeMode="cover" />
-                      <TouchableOpacity style={s.imgRemove} onPress={() => setImageUri(null)}><Feather name="x" size={14} color="#fff" /></TouchableOpacity>
+                    <View style={styles.imgPreviewWrap}>
+                      <Image source={{ uri: imageUri }} style={styles.imgPreview} resizeMode="cover" />
+                      <TouchableOpacity style={styles.imgRemove} onPress={() => setImageUri(null)}><Feather name="x" size={14} color="#fff" /></TouchableOpacity>
                     </View>
                   ) : null}
-                  <TouchableOpacity style={[s.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                  <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
                     {saving ? <ActivityIndicator color="#fff" size="small" /> : <Feather name="check" size={18} color="#fff" />}
-                    <Text style={s.saveBtnText}>{saving ? "Menyimpan..." : "Simpan Flashcard"}</Text>
+                    <Text style={styles.saveBtnText}>{saving ? "Menyimpan..." : "Simpan Flashcard"}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -390,73 +395,73 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ AI PROMPT TAB ══════════ */}
               {activeTab === "ai" && (
                 <>
-                  <View style={s.aiInfoBox}>
-                    <Feather name="cpu" size={16} color={Colors.primary} />
-                    <Text style={s.aiInfoText}>Buat prompt untuk AI (ChatGPT, Gemini, Claude, dll), lalu tempel hasilnya di tab <Text style={{ fontWeight: "800" }}>Import JSON</Text>.</Text>
+                  <View style={styles.aiInfoBox}>
+                    <Feather name="cpu" size={16} color={colors.primary} />
+                    <Text style={styles.aiInfoText}>Buat prompt untuk AI (ChatGPT, Gemini, Claude, dll), lalu tempel hasilnya di tab <Text style={{ fontWeight: "800" }}>Import JSON</Text>.</Text>
                   </View>
 
-                  <Text style={[s.label, { marginTop: 12 }]}>Topik / Materi *</Text>
-                  <TextInput style={s.input} placeholder="Contoh: Fotosintesis, Hukum Newton, React Hooks" placeholderTextColor={Colors.textMuted} value={promptTopic} onChangeText={setPromptTopic} />
+                  <Text style={[styles.label, { marginTop: 12 }]}>Topik / Materi *</Text>
+                  <TextInput style={styles.input} placeholder="Contoh: Fotosintesis, Hukum Newton, React Hooks" placeholderTextColor={colors.textMuted} value={promptTopic} onChangeText={setPromptTopic} />
 
-                  <Text style={s.label}>Jumlah Kartu</Text>
-                  <View style={s.countRow}>
+                  <Text style={styles.label}>Jumlah Kartu</Text>
+                  <View style={styles.countRow}>
                     {["5", "10", "15", "20", "30"].map((n) => (
-                      <TouchableOpacity key={n} style={[s.countChip, promptCount === n && s.countChipActive]} onPress={() => setPromptCount(n)}>
-                        <Text style={[s.countChipText, promptCount === n && s.countChipTextActive]}>{n}</Text>
+                      <TouchableOpacity key={n} style={[styles.countChip, promptCount === n && styles.countChipActive]} onPress={() => setPromptCount(n)}>
+                        <Text style={[styles.countChipText, promptCount === n && styles.countChipTextActive]}>{n}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <Text style={s.label}>Tingkat Kesulitan</Text>
-                  <View style={s.diffRow}>
+                  <Text style={styles.label}>Tingkat Kesulitan</Text>
+                  <View style={styles.diffRow}>
                     {DIFFICULTIES.map((d) => (
-                      <TouchableOpacity key={d.key} style={[s.diffChip, promptDifficulty === d.key && s.diffChipActive]} onPress={() => setPromptDifficulty(d.key)}>
-                        <Text style={[s.diffChipText, promptDifficulty === d.key && s.diffChipTextActive]}>{d.label}</Text>
+                      <TouchableOpacity key={d.key} style={[styles.diffChip, promptDifficulty === d.key && styles.diffChipActive]} onPress={() => setPromptDifficulty(d.key)}>
+                        <Text style={[styles.diffChipText, promptDifficulty === d.key && styles.diffChipTextActive]}>{d.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <Text style={s.label}>Bahasa Output</Text>
+                  <Text style={styles.label}>Bahasa Output</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
                     {LANGUAGES.map((lang) => (
-                      <TouchableOpacity key={lang} style={[s.langChip, promptLanguage === lang && s.langChipActive]} onPress={() => setPromptLanguage(lang)}>
-                        <Text style={[s.langChipText, promptLanguage === lang && s.langChipTextActive]}>{lang}</Text>
+                      <TouchableOpacity key={lang} style={[styles.langChip, promptLanguage === lang && styles.langChipActive]} onPress={() => setPromptLanguage(lang)}>
+                        <Text style={[styles.langChipText, promptLanguage === lang && styles.langChipTextActive]}>{lang}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
 
-                  <Text style={s.label}>Catatan Tambahan (opsional)</Text>
-                  <TextInput style={[s.input, { minHeight: 60 }]} multiline placeholder="Contoh: fokus pada reaksi kimia, gunakan contoh sehari-hari" placeholderTextColor={Colors.textMuted} value={promptCustomNote} onChangeText={setPromptCustomNote} textAlignVertical="top" />
+                  <Text style={styles.label}>Catatan Tambahan (opsional)</Text>
+                  <TextInput style={[styles.input, { minHeight: 60 }]} multiline placeholder="Contoh: fokus pada reaksi kimia, gunakan contoh sehari-hari" placeholderTextColor={colors.textMuted} value={promptCustomNote} onChangeText={setPromptCustomNote} textAlignVertical="top" />
 
                   {/* Action buttons row */}
-                  <View style={s.aiActionRow}>
+                  <View style={styles.aiActionRow}>
                     <TouchableOpacity
-                      style={[s.copyPromptBtn, promptCopied && { backgroundColor: Colors.success }]}
+                      style={[styles.copyPromptBtn, promptCopied && { backgroundColor: colors.success }]}
                       onPress={handleGeneratePrompt}
                       activeOpacity={0.85}
                       disabled={aiLoading}
                     >
                       <Feather name={promptCopied ? "check" : "copy"} size={14} color="#fff" />
-                      <Text style={s.copyPromptBtnText}>{promptCopied ? "Tersalin!" : "Salin Prompt"}</Text>
+                      <Text style={styles.copyPromptBtnText}>{promptCopied ? "Tersalin!" : "Salin Prompt"}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={s.askAiBtn}
+                      style={styles.askAiBtn}
                       onPress={() => setShowAISheet(true)}
                       activeOpacity={0.85}
                       disabled={aiLoading}
                     >
                       <LinearGradient
-                        colors={[Colors.success, Colors.primary]}
+                        colors={[colors.success, colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        style={s.askAiGrad}
+                        style={styles.askAiGrad}
                       >
                         {aiLoading ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <>
                             <Text style={{ fontSize: 13 }}>🤖</Text>
-                            <Text style={s.askAiBtnText}>Ask Your AI</Text>
+                            <Text style={styles.askAiBtnText}>Ask Your AI</Text>
                             <Text style={{ fontSize: 10, color: "#fff" }}>⚡</Text>
                           </>
                         )}
@@ -465,15 +470,15 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
                   </View>
 
                   {generatedPrompt.length > 0 && (
-                    <View style={s.promptPreview}>
-                      <Text style={s.promptPreviewText} numberOfLines={5}>{generatedPrompt}</Text>
+                    <View style={styles.promptPreview}>
+                      <Text style={styles.promptPreviewText} numberOfLines={5}>{generatedPrompt}</Text>
                     </View>
                   )}
 
                   {promptCopied && (
-                    <TouchableOpacity style={[s.secondaryBtn]} onPress={() => setActiveTab("import")}>
-                      <Feather name="download" size={16} color={Colors.primary} />
-                      <Text style={s.secondaryBtnText}>Lanjut ke Import JSON →</Text>
+                    <TouchableOpacity style={[styles.secondaryBtn]} onPress={() => setActiveTab("import")}>
+                      <Feather name="download" size={16} color={colors.primary} />
+                      <Text style={styles.secondaryBtnText}>Lanjut ke Import JSON →</Text>
                     </TouchableOpacity>
                   )}
                 </>
@@ -482,36 +487,36 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ IMPORT JSON TAB ══════════ */}
               {activeTab === "import" && (
                 <>
-                  <View style={s.aiInfoBox}>
-                    <Feather name="download" size={16} color={Colors.purple} />
-                    <Text style={[s.aiInfoText, { color: Colors.purple }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
+                  <View style={styles.aiInfoBox}>
+                    <Feather name="download" size={16} color={colors.purple} />
+                    <Text style={[styles.aiInfoText, { color: colors.purple }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
                   </View>
 
-                  <Text style={[s.label, { marginTop: 12 }]}>Format yang diterima:</Text>
-                  <View style={s.formatBox}>
-                    <Text style={s.formatCode}>{'[{"question":"...","answer":"...","tag":"..."}]'}</Text>
+                  <Text style={[styles.label, { marginTop: 12 }]}>Format yang diterima:</Text>
+                  <View style={styles.formatBox}>
+                    <Text style={styles.formatCode}>{'[{"question":"...","answer":"...","tag":"..."}]'}</Text>
                   </View>
-                  <Text style={s.formatHint}>Field alternatif: "front"/"back", "pertanyaan"/"jawaban"</Text>
+                  <Text style={styles.formatHint}>Field alternatif: "front"/"back", "pertanyaan"/"jawaban"</Text>
 
-                  <Text style={[s.label, { marginTop: 10 }]}>Tempel JSON di sini</Text>
+                  <Text style={[styles.label, { marginTop: 10 }]}>Tempel JSON di sini</Text>
                   <TextInput
-                    style={[s.input, { minHeight: 120, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 12 }]}
+                    style={[styles.input, { minHeight: 120, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 12 }]}
                     multiline placeholder={'[{"question":"...","answer":"...","tag":"..."}]'}
-                    placeholderTextColor={Colors.textMuted} value={importJson}
+                    placeholderTextColor={colors.textMuted} value={importJson}
                     onChangeText={setImportJson} textAlignVertical="top" autoCorrect={false} autoCapitalize="none"
                   />
 
-                  <View style={s.importBtnRow}>
-                    <TouchableOpacity style={[s.outlineBtn, { flex: 1 }]} onPress={handlePickFile}>
-                      <Feather name="folder" size={16} color={Colors.primary} />
-                      <Text style={s.outlineBtnText}>Pilih File</Text>
+                  <View style={styles.importBtnRow}>
+                    <TouchableOpacity style={[styles.outlineBtn, { flex: 1 }]} onPress={handlePickFile}>
+                      <Feather name="folder" size={16} color={colors.primary} />
+                      <Text style={styles.outlineBtnText}>Pilih File</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[s.saveBtn, { flex: 1, marginTop: 0, opacity: importing || !importJson.trim() ? 0.6 : 1 }]}
+                      style={[styles.saveBtn, { flex: 1, marginTop: 0, opacity: importing || !importJson.trim() ? 0.6 : 1 }]}
                       onPress={handleImportText} disabled={importing || !importJson.trim()}
                     >
                       {importing ? <ActivityIndicator color="#fff" size="small" /> : <Feather name="download" size={16} color="#fff" />}
-                      <Text style={s.saveBtnText}>{importing ? "Mengimport..." : "Import"}</Text>
+                      <Text style={styles.saveBtnText}>{importing ? "Mengimport..." : "Import"}</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -536,17 +541,17 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
 
         {/* Inline AI Provider Picker */}
         {showAISheet && (
-          <View style={s.aiOverlay}>
+          <View style={styles.aiOverlay}>
             <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => { if (!aiLoading) setShowAISheet(false); }} />
-            <View style={s.aiSheet}>
-              <View style={s.handle} />
-              <View style={s.header}>
-                <Text style={s.title}>Pilih AI Provider</Text>
-                <TouchableOpacity style={s.closeBtn} onPress={() => { if (!aiLoading) setShowAISheet(false); }}>
-                  <Feather name="x" size={18} color={Colors.dark} />
+            <View style={styles.aiSheet}>
+              <View style={styles.handle} />
+              <View style={styles.header}>
+                <Text style={styles.title}>Pilih AI Provider</Text>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => { if (!aiLoading) setShowAISheet(false); }}>
+                  <Feather name="x" size={18} color={colors.dark} />
                 </TouchableOpacity>
               </View>
-              <Text style={[s.label, { color: Colors.textMuted, fontWeight: "500", marginBottom: 12 }]}>
+              <Text style={[styles.label, { color: colors.textMuted, fontWeight: "500", marginBottom: 12 }]}>
                 {aiKeys.length === 0 ? "Belum ada API key. Tambahkan di menu AI Keys." : "Pilih provider untuk generate flashcard otomatis."}
               </Text>
               {(["openai", "gemini"] as AIProvider[]).map((prov) => {
@@ -555,16 +560,16 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
                 return (
                   <TouchableOpacity
                     key={prov}
-                    style={[s.aiProvCard, { borderColor: key ? meta.color + "50" : Colors.border, opacity: key ? 1 : 0.5 }]}
+                    style={[styles.aiProvCard, { borderColor: key ? meta.color + "50" : colors.border, opacity: key ? 1 : 0.5 }]}
                     activeOpacity={key ? 0.75 : 1}
                     onPress={() => { if (key) handleAskAI(prov, key); }}
                   >
-                    <View style={[s.aiProvIcon, { backgroundColor: meta.bg }]}>
+                    <View style={[styles.aiProvIcon, { backgroundColor: meta.bg }]}>
                       <Text style={{ fontSize: 20 }}>{prov === "openai" ? "⚡" : "✨"}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "800", color: Colors.dark }}>{meta.label}</Text>
-                      <Text style={{ fontSize: 11, color: Colors.textMuted, fontWeight: "500" }}>
+                      <Text style={{ fontSize: 14, fontWeight: "800", color: colors.dark }}>{meta.label}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: "500" }}>
                         {key ? key.model : "Belum ada key"}
                       </Text>
                     </View>
@@ -580,84 +585,84 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "92%", paddingBottom: 32 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
+  sheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "92%", paddingBottom: 32 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10 },
-  title: { fontSize: 18, fontWeight: "900", color: Colors.dark },
-  closeBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 18, fontWeight: "900", color: c.dark },
+  closeBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
   tabRow: { flexDirection: "row", marginHorizontal: 20, marginBottom: 8, gap: 8 },
-  tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 9, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background },
-  tabActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  tabText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
-  tabTextActive: { color: Colors.primary },
+  tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 9, borderRadius: 12, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background },
+  tabActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  tabText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
+  tabTextActive: { color: c.primary },
   body: { paddingHorizontal: 20, paddingBottom: 12, gap: 6 },
-  label: { fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 4, marginBottom: 6 },
-  optional: { fontSize: 11, fontWeight: "500", color: Colors.textMuted },
-  pickerBtn: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: Colors.background },
-  pickerBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  pickerBtnText: { flex: 1, fontSize: 13, fontWeight: "600", color: Colors.textMuted },
-  standaloneBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.background, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border, alignSelf: "flex-start" },
-  standaloneBadgeText: { fontSize: 11, fontWeight: "600", color: Colors.textMuted },
-  input: { borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: Colors.dark, minHeight: 56, backgroundColor: Colors.background, marginBottom: 4 },
-  imgBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1.5, borderColor: Colors.primaryLight, borderRadius: 12, backgroundColor: Colors.primaryLight, marginTop: 4, marginBottom: 4 },
-  imgBtnText: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  label: { fontSize: 13, fontWeight: "700", color: c.dark, marginTop: 4, marginBottom: 6 },
+  optional: { fontSize: 11, fontWeight: "500", color: c.textMuted },
+  pickerBtn: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1.5, borderColor: c.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: c.background },
+  pickerBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  pickerBtnText: { flex: 1, fontSize: 13, fontWeight: "600", color: c.textMuted },
+  standaloneBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.background, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: c.border, alignSelf: "flex-start" },
+  standaloneBadgeText: { fontSize: 11, fontWeight: "600", color: c.textMuted },
+  input: { borderWidth: 1.5, borderColor: c.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.dark, minHeight: 56, backgroundColor: c.background, marginBottom: 4 },
+  imgBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1.5, borderColor: c.primaryLight, borderRadius: 12, backgroundColor: c.primaryLight, marginTop: 4, marginBottom: 4 },
+  imgBtnText: { fontSize: 13, fontWeight: "700", color: c.primary },
   imgPreviewWrap: { position: "relative", alignSelf: "flex-start", marginBottom: 4 },
   imgPreview: { width: 100, height: 75, borderRadius: 10 },
   imgRemove: { position: "absolute", top: 4, right: 4, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 10, padding: 3 },
-  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 15, marginTop: 12 },
-  saveBtnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
-  secondaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14, paddingVertical: 12, marginTop: 8, backgroundColor: Colors.primaryLight },
-  secondaryBtnText: { fontSize: 14, fontWeight: "800", color: Colors.primary },
-  aiInfoBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.primaryLight, borderRadius: 14, padding: 12, marginTop: 6 },
-  aiInfoText: { flex: 1, fontSize: 13, fontWeight: "600", color: Colors.primary, lineHeight: 19 },
+  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: c.primary, borderRadius: 16, paddingVertical: 15, marginTop: 12 },
+  saveBtnText: { fontSize: 15, fontWeight: "900", color: c.white },
+  secondaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: c.primary, borderRadius: 14, paddingVertical: 12, marginTop: 8, backgroundColor: c.primaryLight },
+  secondaryBtnText: { fontSize: 14, fontWeight: "800", color: c.primary },
+  aiInfoBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: c.primaryLight, borderRadius: 14, padding: 12, marginTop: 6 },
+  aiInfoText: { flex: 1, fontSize: 13, fontWeight: "600", color: c.primary, lineHeight: 19 },
   countRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  countChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background },
-  countChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  countChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  countChipTextActive: { color: Colors.primary },
+  countChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background },
+  countChipActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  countChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  countChipTextActive: { color: c.primary },
   diffRow: { flexDirection: "row", gap: 8 },
-  diffChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background, alignItems: "center" },
-  diffChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  diffChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  diffChipTextActive: { color: Colors.primary },
-  langChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background },
-  langChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  langChipText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
-  langChipTextActive: { color: Colors.primary },
-  promptPreview: { backgroundColor: Colors.background, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: Colors.primary, marginTop: 4 },
-  promptPreviewText: { fontSize: 11, color: Colors.textSecondary, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 17 },
+  diffChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background, alignItems: "center" },
+  diffChipActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  diffChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  diffChipTextActive: { color: c.primary },
+  langChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background },
+  langChipActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  langChipText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
+  langChipTextActive: { color: c.primary },
+  promptPreview: { backgroundColor: c.background, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: c.primary, marginTop: 4 },
+  promptPreviewText: { fontSize: 11, color: c.textSecondary, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 17 },
   formatBox: { backgroundColor: "#F3F4F6", borderRadius: 10, padding: 10, marginBottom: 4 },
   formatCode: { fontSize: 11, color: "#374151", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
-  formatHint: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginBottom: 4 },
+  formatHint: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginBottom: 4 },
   importBtnRow: { flexDirection: "row", gap: 10, marginTop: 8 },
-  outlineBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 16, paddingVertical: 15, backgroundColor: Colors.primaryLight },
-  outlineBtnText: { fontSize: 14, fontWeight: "800", color: Colors.primary },
+  outlineBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: c.primary, borderRadius: 16, paddingVertical: 15, backgroundColor: c.primaryLight },
+  outlineBtnText: { fontSize: 14, fontWeight: "800", color: c.primary },
   // AI action row
   aiActionRow: { flexDirection: "row", gap: 10, marginTop: 10 },
-  copyPromptBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 13 },
+  copyPromptBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: c.primary, borderRadius: 14, paddingVertical: 13 },
   copyPromptBtnText: { fontSize: 13, fontWeight: "800", color: "#fff" },
   askAiBtn: { flex: 1, borderRadius: 14, overflow: "hidden" },
   askAiGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 13, borderRadius: 14 },
   askAiBtnText: { fontSize: 13, fontWeight: "800", color: "#fff" },
   // Inline AI provider overlay (inside modal, no nested Modal)
   aiOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", zIndex: 20 },
-  aiSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 32 },
-  aiProvCard: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1.5, borderRadius: 16, padding: 14, marginBottom: 10, backgroundColor: Colors.background },
+  aiSheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 32 },
+  aiProvCard: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1.5, borderRadius: 16, padding: 14, marginBottom: 10, backgroundColor: c.background },
   aiProvIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 });
 
-const ps = StyleSheet.create({
+const makePickerStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end", zIndex: 10 },
-  sheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "75%", paddingBottom: 24 },
+  sheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "75%", paddingBottom: 24 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  iconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
-  title: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: Colors.dark },
+  iconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
+  title: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: c.dark },
   list: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
-  item: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: Colors.border },
-  itemLabel: { fontSize: 14, fontWeight: "800", color: Colors.dark, marginBottom: 2 },
-  itemSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  item: { flexDirection: "row", alignItems: "center", backgroundColor: c.white, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: c.border },
+  itemLabel: { fontSize: 14, fontWeight: "800", color: c.dark, marginBottom: 2 },
+  itemSub: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   empty: { alignItems: "center", paddingVertical: 36, gap: 10 },
-  emptyText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
+  emptyText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
 });

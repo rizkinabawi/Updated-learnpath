@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -26,20 +27,20 @@ import {
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
 import { isCancellationError, safeShareFile } from "@/utils/safe-share";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
 import { IconPicker } from "@/components/IconPicker";
 
 const COURSE_GRADIENTS: [string, string][] = [
-  [Colors.primary, Colors.purple],
-  [Colors.accent, Colors.amber],
-  [Colors.teal, "#0EA5E9"],
-  [Colors.purple, "#A855F7"],
-  [Colors.success, Colors.emerald],
-  [Colors.amber, Colors.danger],
-  [Colors.teal, Colors.primary],
-  [Colors.accent, Colors.purple],
+  [colors.primary, colors.purple],
+  [colors.accent, colors.amber],
+  [colors.teal, "#0EA5E9"],
+  [colors.purple, "#A855F7"],
+  [colors.success, colors.emerald],
+  [colors.amber, colors.danger],
+  [colors.teal, colors.primary],
+  [colors.accent, colors.purple],
 ];
 
 const COURSE_EMOJIS = ["📘", "🎨", "🌐", "🧠", "⚗️", "🚀", "💡", "🎯"];
@@ -52,6 +53,9 @@ interface CourseStats {
 }
 
 export default function LearnPage() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -216,7 +220,7 @@ export default function LearnPage() {
     <View style={styles.container}>
       {/* HEADER */}
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 14 }]}
@@ -268,7 +272,7 @@ export default function LearnPage() {
           <View style={{ gap: 12 }}>
             <TouchableOpacity onPress={() => setShowNewPath(true)} activeOpacity={0.85}>
               <LinearGradient
-                colors={[Colors.primary, "#6C63FF"]}
+                colors={[colors.primary, "#6C63FF"]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={styles.emptyCard}
               >
@@ -285,12 +289,12 @@ export default function LearnPage() {
               activeOpacity={0.85}
               style={styles.importRoadmapCard}
             >
-              <Feather name="download" size={22} color={Colors.primary} />
+              <Feather name="download" size={22} color={colors.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.importRoadmapTitle}>Import dari Roadmap JSON</Text>
                 <Text style={styles.importRoadmapSub}>Generate dengan AI lalu import otomatis</Text>
               </View>
-              <Feather name="chevron-right" size={18} color={Colors.textMuted} />
+              <Feather name="chevron-right" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -383,7 +387,7 @@ export default function LearnPage() {
               activeOpacity={0.8}
               style={[styles.addMoreCard, isTablet && styles.courseCardTablet]}
             >
-              <Feather name="plus-circle" size={22} color={Colors.primary} />
+              <Feather name="plus-circle" size={22} color={colors.primary} />
               <Text style={styles.addMoreText}>{t.learn.add_more}</Text>
             </TouchableOpacity>
           </View>
@@ -408,24 +412,24 @@ export default function LearnPage() {
                   <Text style={styles.iconPickLabel}>Ikon Course</Text>
                   <Text style={styles.iconPickSub}>Tap untuk ganti ikon</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={Colors.textMuted} />
+                <Feather name="chevron-right" size={18} color={colors.textMuted} />
               </TouchableOpacity>
               <TextInput
                 placeholder="Nama kursus" value={pathName}
                 onChangeText={setPathName} style={styles.mInput}
-                placeholderTextColor={Colors.textMuted} autoFocus
+                placeholderTextColor={colors.textMuted} autoFocus
               />
               <TextInput
                 placeholder="Deskripsi (opsional)" value={pathDesc}
                 onChangeText={setPathDesc} style={styles.mInput}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
               <View style={styles.mBtns}>
                 <TouchableOpacity onPress={() => { setShowNewPath(false); setPathName(""); setPathDesc(""); }} style={styles.mBtnCancel}>
                   <Text style={styles.mBtnCancelText}>Batal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={createPath} style={styles.mBtnOk}>
-                  <LinearGradient colors={[Colors.primary, Colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
+                  <LinearGradient colors={[colors.primary, colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
                     <Text style={styles.mBtnOkText}>{t.learn.create_btn}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -455,8 +459,8 @@ function StatPill({ icon, value, label }: { icon: React.ComponentProps<typeof Fe
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
 
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
   hdot1: { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,0.06)", top: -60, right: -50 },
@@ -485,12 +489,12 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: "500", textAlign: "center" },
   importRoadmapCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
-    backgroundColor: Colors.white, borderRadius: 18,
-    borderWidth: 1.5, borderColor: Colors.primaryLight,
+    backgroundColor: c.white, borderRadius: 18,
+    borderWidth: 1.5, borderColor: c.primaryLight,
     paddingVertical: 16, paddingHorizontal: 18,
   },
-  importRoadmapTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  importRoadmapSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500", marginTop: 2 },
+  importRoadmapTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  importRoadmapSub: { fontSize: 12, color: c.textMuted, fontWeight: "500", marginTop: 2 },
 
   courseCard: { borderRadius: 22, overflow: "hidden", marginBottom: 4 },
   courseCardTablet: { width: "48.5%", marginBottom: 0 },
@@ -540,40 +544,40 @@ const styles = StyleSheet.create({
   addMoreCard: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 10, paddingVertical: 18, borderRadius: 18,
-    borderWidth: 2, borderColor: Colors.primary, borderStyle: "dashed",
-    backgroundColor: Colors.primaryLight,
+    borderWidth: 2, borderColor: c.primary, borderStyle: "dashed",
+    backgroundColor: c.primaryLight,
     marginBottom: 4,
   },
-  addMoreText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
+  addMoreText: { fontSize: 14, fontWeight: "700", color: c.primary },
 
   mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
-  mBox: { backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
+  mBox: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
   iconPickRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: Colors.background, borderRadius: 14, padding: 12,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.background, borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: c.border,
   },
   iconPickPreview: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center", justifyContent: "center",
   },
-  iconPickLabel: { fontSize: 13, fontWeight: "700", color: Colors.text },
-  iconPickSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  mTitle: { fontSize: 20, fontWeight: "900", color: Colors.dark },
+  iconPickLabel: { fontSize: 13, fontWeight: "700", color: c.text },
+  iconPickSub: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  mTitle: { fontSize: 20, fontWeight: "900", color: c.dark },
   mInput: {
-    backgroundColor: Colors.background, borderRadius: 14,
+    backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 14, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 14, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
   },
   mBtns: { flexDirection: "row", gap: 10 },
   mBtnCancel: {
     flex: 1, paddingVertical: 14, borderRadius: 999,
-    alignItems: "center", backgroundColor: Colors.background,
-    borderWidth: 1, borderColor: Colors.border,
+    alignItems: "center", backgroundColor: c.background,
+    borderWidth: 1, borderColor: c.border,
   },
-  mBtnCancelText: { fontSize: 14, fontWeight: "700", color: Colors.textSecondary },
+  mBtnCancelText: { fontSize: 14, fontWeight: "700", color: c.textSecondary },
   mBtnOk: { flex: 1, borderRadius: 999, overflow: "hidden" },
   mBtnOkGrad: { paddingVertical: 14, alignItems: "center" },
   mBtnOkText: { fontSize: 14, fontWeight: "900", color: "#fff" },

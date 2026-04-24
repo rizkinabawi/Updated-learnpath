@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -26,7 +27,7 @@ import { useRouter } from "expo-router";
 import { classifyAllItems, type DifficultyStats } from "@/utils/difficulty-classifier";
 import { generateReportHTML } from "@/utils/report-generator";
 import { ProgressBar } from "@/components/ProgressBar";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -41,21 +42,24 @@ interface PathStat {
 }
 
 const DIFF_CONFIG = {
-  mudah:  { color: Colors.teal, bg: Colors.tealLight, icon: "trending-up"  as const, emoji: "✅" },
-  sedang: { color: Colors.amber,  bg: Colors.amberLight,   icon: "minus-circle"  as const, emoji: "⚡" },
-  susah:  { color: Colors.accent,  bg: Colors.accentLight,  icon: "alert-triangle" as const, emoji: "🔥" },
+  mudah:  { color: colors.teal, bg: colors.tealLight, icon: "trending-up"  as const, emoji: "✅" },
+  sedang: { color: colors.amber,  bg: colors.amberLight,   icon: "minus-circle"  as const, emoji: "⚡" },
+  susah:  { color: colors.accent,  bg: colors.accentLight,  icon: "alert-triangle" as const, emoji: "🔥" },
 };
 
 const SHARE_GRADS: [string, string][] = [
-  [Colors.primary, Colors.purple],
-  [Colors.accent, Colors.amber],
-  [Colors.teal, "#0EA5E9"],
-  [Colors.purple, "#A855F7"],
-  [Colors.success, Colors.emerald],
-  [Colors.warning, Colors.danger],
+  [colors.primary, colors.purple],
+  [colors.accent, colors.amber],
+  [colors.teal, "#0EA5E9"],
+  [colors.purple, "#A855F7"],
+  [colors.success, colors.emerald],
+  [colors.warning, colors.danger],
 ];
 
 export default function ProgressTab() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -194,7 +198,7 @@ export default function ProgressTab() {
     <View style={styles.container}>
       {/* ===== GRADIENT HEADER ===== */}
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.headerGrad, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 12 }]}
       >
@@ -209,7 +213,7 @@ export default function ProgressTab() {
           </View>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity onPress={handleShareImage} style={styles.pdfBtn} activeOpacity={0.8}>
-              <LinearGradient colors={[Colors.teal, "#0EA5E9"]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
+              <LinearGradient colors={[colors.teal, "#0EA5E9"]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
                 {shareLoading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <><Feather name="image" size={14} color="#fff" /><Text style={styles.pdfBtnText}>{t.progress.share_btn}</Text></>
@@ -217,7 +221,7 @@ export default function ProgressTab() {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleExportPDF} style={styles.pdfBtn} activeOpacity={0.8}>
-              <LinearGradient colors={[Colors.primary, Colors.purple]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
+              <LinearGradient colors={[colors.primary, colors.purple]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
                 {pdfLoading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <><Feather name="download" size={14} color="#fff" /><Text style={styles.pdfBtnText}>PDF</Text></>
@@ -238,16 +242,16 @@ export default function ProgressTab() {
               </View>
             </View>
             {/* Arc decoration */}
-            <View style={[styles.ringArc, { borderColor: accuracy >= 70 ? Colors.teal : accuracy >= 40 ? Colors.amber : Colors.accent }]} />
+            <View style={[styles.ringArc, { borderColor: accuracy >= 70 ? colors.teal : accuracy >= 40 ? colors.amber : colors.accent }]} />
           </View>
 
           {/* 4 stat chips */}
           <View style={styles.chipsGrid}>
             {[
-              { icon: "message-circle" as const, val: stats?.totalAnswers ?? 0, lbl: t.progress.total_answers, grad: [Colors.primary, Colors.purple] as [string,string] },
-              { icon: "check-circle"   as const, val: stats?.correctAnswers ?? 0, lbl: t.progress.correct, grad: [Colors.teal,"#0EA5E9"] as [string,string] },
-              { icon: "x-circle"       as const, val: wrong,                     lbl: t.progress.wrong, grad: [Colors.accent, Colors.danger] as [string,string] },
-              { icon: "activity"       as const, val: stats?.streak ?? 0,        lbl: t.progress.streak, grad: [Colors.amber, Colors.accent] as [string,string] },
+              { icon: "message-circle" as const, val: stats?.totalAnswers ?? 0, lbl: t.progress.total_answers, grad: [colors.primary, colors.purple] as [string,string] },
+              { icon: "check-circle"   as const, val: stats?.correctAnswers ?? 0, lbl: t.progress.correct, grad: [colors.teal,"#0EA5E9"] as [string,string] },
+              { icon: "x-circle"       as const, val: wrong,                     lbl: t.progress.wrong, grad: [colors.accent, colors.danger] as [string,string] },
+              { icon: "activity"       as const, val: stats?.streak ?? 0,        lbl: t.progress.streak, grad: [colors.amber, colors.accent] as [string,string] },
             ].map((c, i) => (
               <View key={i} style={styles.chip}>
                 <LinearGradient colors={c.grad} style={styles.chipIcon}>
@@ -292,7 +296,7 @@ export default function ProgressTab() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardHeadLeft}>
-                <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.cardHeadIcon}>
+                <LinearGradient colors={[colors.primary, colors.purple]} style={styles.cardHeadIcon}>
                   <Feather name="bar-chart-2" size={13} color="#fff" />
                 </LinearGradient>
                 <Text style={styles.cardTitle}>{t.progress.section_accuracy7}</Text>
@@ -302,7 +306,7 @@ export default function ProgressTab() {
             <View style={styles.barChartWrap}>
               {weeklyBars.map((b, i) => {
                 const h = Math.max(4, (b.pct / maxPct) * 80);
-                const col = b.pct >= 70 ? Colors.teal : b.pct >= 40 ? Colors.amber : b.pct === 0 ? "#E2E8F0" : Colors.accent;
+                const col = b.pct >= 70 ? colors.teal : b.pct >= 40 ? colors.amber : b.pct === 0 ? "#E2E8F0" : colors.accent;
                 return (
                   <View key={i} style={styles.barCol}>
                     <Text style={[styles.barValText, { color: col }]}>{b.pct > 0 ? `${b.pct}` : ""}</Text>
@@ -320,19 +324,19 @@ export default function ProgressTab() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardHeadLeft}>
-                <LinearGradient colors={[Colors.teal,"#0EA5E9"]} style={styles.cardHeadIcon}>
+                <LinearGradient colors={[colors.teal,"#0EA5E9"]} style={styles.cardHeadIcon}>
                   <Feather name="target" size={13} color="#fff" />
                 </LinearGradient>
                 <Text style={styles.cardTitle}>{t.progress.section_accuracy_overall}</Text>
               </View>
-              <Text style={[styles.cardHint, { fontSize: 18, fontWeight: "900", color: Colors.dark }]}>{accuracy}%</Text>
+              <Text style={[styles.cardHint, { fontSize: 18, fontWeight: "900", color: colors.dark }]}>{accuracy}%</Text>
             </View>
             <View style={{ marginTop: 4 }}>
               <ProgressBar
                 value={accuracy}
-                color={accuracy >= 70 ? Colors.teal : accuracy >= 40 ? Colors.amber : Colors.accent}
+                color={accuracy >= 70 ? colors.teal : accuracy >= 40 ? colors.amber : colors.accent}
                 height={10}
-                backgroundColor={Colors.border}
+                backgroundColor={colors.border}
               />
             </View>
             <Text style={styles.progressSub}>{stats?.correctAnswers ?? 0} {t.progress.correct.toLowerCase()} · {wrong} {t.progress.wrong.toLowerCase()} · {stats?.totalAnswers ?? 0} {t.progress.total_answers.toLowerCase()}</Text>
@@ -343,7 +347,7 @@ export default function ProgressTab() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardHeadLeft}>
-                  <LinearGradient colors={[Colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
+                  <LinearGradient colors={[colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
                     <Feather name="grid" size={13} color="#fff" />
                   </LinearGradient>
                   <Text style={styles.cardTitle}>{t.progress.section_weekly}</Text>
@@ -357,7 +361,7 @@ export default function ProgressTab() {
                       key={i}
                       style={[
                         styles.heatCell,
-                        { width: cellSize, height: cellSize, backgroundColor: p.isCorrect ? Colors.teal : Colors.accent },
+                        { width: cellSize, height: cellSize, backgroundColor: p.isCorrect ? colors.teal : colors.accent },
                       ]}
                     />
                   );
@@ -365,11 +369,11 @@ export default function ProgressTab() {
               </View>
               <View style={styles.heatLegend}>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: Colors.teal }]} />
+                  <View style={[styles.legendDot, { backgroundColor: colors.teal }]} />
                   <Text style={styles.legendText}>{t.progress.correct}</Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
+                  <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
                   <Text style={styles.legendText}>{t.progress.wrong}</Text>
                 </View>
                 <Text style={styles.legendText}>{recent.length} aktivitas</Text>
@@ -393,7 +397,7 @@ export default function ProgressTab() {
               <View style={styles.card}>
                 <View style={styles.cardHead}>
                   <View style={styles.cardHeadLeft}>
-                    <LinearGradient colors={[Colors.success, Colors.emerald]} style={styles.cardHeadIcon}>
+                    <LinearGradient colors={[colors.success, colors.emerald]} style={styles.cardHeadIcon}>
                       <Feather name="calendar" size={13} color="#fff" />
                     </LinearGradient>
                     <Text style={styles.cardTitle}>Kalender Streak</Text>
@@ -402,27 +406,27 @@ export default function ProgressTab() {
                 </View>
                 <View style={{ flexDirection: "row", gap: 4, flexWrap: "wrap" }}>
                   {["M","S","S","R","K","J","S"].map((d, i) => (
-                    <Text key={i} style={{ width: cellSize, textAlign: "center", fontSize: 9, fontWeight: "800", color: Colors.textMuted, marginBottom: 4 }}>{d}</Text>
+                    <Text key={i} style={{ width: cellSize, textAlign: "center", fontSize: 9, fontWeight: "800", color: colors.textMuted, marginBottom: 4 }}>{d}</Text>
                   ))}
                   {days.map((d) => (
                     <View key={d.key} style={{
                       width: cellSize, height: cellSize, borderRadius: 8, marginBottom: 4,
-                      backgroundColor: d.hasActivity ? (d.isToday ? Colors.primary : Colors.teal) : Colors.border,
+                      backgroundColor: d.hasActivity ? (d.isToday ? colors.primary : colors.teal) : colors.border,
                       alignItems: "center", justifyContent: "center",
-                      borderWidth: d.isToday ? 2 : 0, borderColor: Colors.primary,
+                      borderWidth: d.isToday ? 2 : 0, borderColor: colors.primary,
                     }}>
-                      <Text style={{ fontSize: 9, fontWeight: "700", color: d.hasActivity ? "#fff" : Colors.textMuted }}>{d.dayNum}</Text>
+                      <Text style={{ fontSize: 9, fontWeight: "700", color: d.hasActivity ? "#fff" : colors.textMuted }}>{d.dayNum}</Text>
                     </View>
                   ))}
                 </View>
                 <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: Colors.teal }} />
-                    <Text style={{ fontSize: 11, color: Colors.textMuted }}>Ada aktivitas</Text>
+                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.teal }} />
+                    <Text style={{ fontSize: 11, color: colors.textMuted }}>Ada aktivitas</Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: Colors.border }} />
-                    <Text style={{ fontSize: 11, color: Colors.textMuted }}>Tidak ada</Text>
+                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.border }} />
+                    <Text style={{ fontSize: 11, color: colors.textMuted }}>Tidak ada</Text>
                   </View>
                 </View>
               </View>
@@ -431,14 +435,14 @@ export default function ProgressTab() {
 
           {/* Session History Link */}
           <TouchableOpacity activeOpacity={0.85} onPress={() => router.push("/session-history")} style={[styles.card, { flexDirection: "row", alignItems: "center", padding: 16, gap: 14 }]}>
-            <LinearGradient colors={[Colors.teal, "#0EA5E9"]} style={{ width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" }}>
+            <LinearGradient colors={[colors.teal, "#0EA5E9"]} style={{ width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" }}>
               <Feather name="list" size={18} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: "800", color: Colors.dark }}>Riwayat Sesi Belajar</Text>
-              <Text style={{ fontSize: 12, color: Colors.textMuted }}>{sessionLogs.length} sesi tercatat · Tap untuk detail</Text>
+              <Text style={{ fontSize: 14, fontWeight: "800", color: colors.dark }}>Riwayat Sesi Belajar</Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted }}>{sessionLogs.length} sesi tercatat · Tap untuk detail</Text>
             </View>
-            <Feather name="chevron-right" size={15} color={Colors.border} />
+            <Feather name="chevron-right" size={15} color={colors.border} />
           </TouchableOpacity>
 
           {/* ─── Per-Topic Stats ─── */}
@@ -446,7 +450,7 @@ export default function ProgressTab() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardHeadLeft}>
-                  <LinearGradient colors={[Colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
+                  <LinearGradient colors={[colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
                     <Feather name="layers" size={13} color="#fff" />
                   </LinearGradient>
                   <Text style={styles.cardTitle}>Statistik Per Topik</Text>
@@ -455,15 +459,15 @@ export default function ProgressTab() {
               <View style={{ gap: 10 }}>
                 {pathStats.map((ps, i) => {
                   const pct = ps.total > 0 ? Math.round((ps.correct / ps.total) * 100) : 0;
-                  const barColor = pct >= 70 ? Colors.teal : pct >= 40 ? Colors.amber : Colors.accent;
+                  const barColor = pct >= 70 ? colors.teal : pct >= 40 ? colors.amber : colors.accent;
                   return (
                     <View key={ps.path.id}>
                       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.dark, flex: 1 }} numberOfLines={1}>{ps.path.name}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.dark, flex: 1 }} numberOfLines={1}>{ps.path.name}</Text>
                         <Text style={{ fontSize: 13, fontWeight: "800", color: barColor, marginLeft: 8 }}>{pct}%</Text>
                       </View>
-                      <ProgressBar value={pct} color={barColor} height={7} backgroundColor={Colors.border} />
-                      <Text style={{ fontSize: 11, color: Colors.textMuted, marginTop: 3 }}>{ps.correct} benar · {ps.wrong} salah · {ps.total} total</Text>
+                      <ProgressBar value={pct} color={barColor} height={7} backgroundColor={colors.border} />
+                      <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 3 }}>{ps.correct} benar · {ps.wrong} salah · {ps.total} total</Text>
                     </View>
                   );
                 })}
@@ -476,7 +480,7 @@ export default function ProgressTab() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardHeadLeft}>
-                  <LinearGradient colors={[Colors.amber, Colors.accent]} style={styles.cardHeadIcon}>
+                  <LinearGradient colors={[colors.amber, colors.accent]} style={styles.cardHeadIcon}>
                     <Feather name="list" size={13} color="#fff" />
                   </LinearGradient>
                   <Text style={styles.cardTitle}>{t.progress.section_log}</Text>
@@ -484,8 +488,8 @@ export default function ProgressTab() {
               </View>
               {recent.slice(0, 10).map((p, i) => (
                 <View key={i} style={[styles.logRow, i < Math.min(10, recent.length) - 1 && styles.logRowBorder]}>
-                  <View style={[styles.logDot, { backgroundColor: p.isCorrect ? Colors.teal : Colors.accent }]} />
-                  <Feather name={p.flashcardId ? "credit-card" : "help-circle"} size={13} color={Colors.textMuted} />
+                  <View style={[styles.logDot, { backgroundColor: p.isCorrect ? colors.teal : colors.accent }]} />
+                  <Feather name={p.flashcardId ? "credit-card" : "help-circle"} size={13} color={colors.textMuted} />
                   <Text style={styles.logDate}>{new Date(p.timestamp).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</Text>
                   <Text style={[styles.logResult, { color: p.isCorrect ? "#059669" : "#DC2626" }]}>
                     {p.isCorrect ? t.progress.correct_mark : t.progress.wrong_mark}
@@ -536,7 +540,7 @@ export default function ProgressTab() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardHeadLeft}>
-                <LinearGradient colors={[Colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
+                <LinearGradient colors={[colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
                   <Feather name="layers" size={13} color="#fff" />
                 </LinearGradient>
                 <Text style={styles.cardTitle}>Klasifikasi Otomatis</Text>
@@ -572,7 +576,7 @@ export default function ProgressTab() {
                 <View style={styles.cardHead}>
                   <View style={styles.cardHeadLeft}>
                     <LinearGradient
-                      colors={activeDiff === "mudah" ? [Colors.teal,"#0EA5E9"] : activeDiff === "sedang" ? [Colors.amber, Colors.accent] : [Colors.accent, Colors.danger]}
+                      colors={activeDiff === "mudah" ? [colors.teal,"#0EA5E9"] : activeDiff === "sedang" ? [colors.amber, colors.accent] : [colors.accent, colors.danger]}
                       style={styles.cardHeadIcon}
                     >
                       <Feather name={cfg.icon} size={13} color="#fff" />
@@ -652,9 +656,9 @@ export default function ProgressTab() {
               <Text style={styles.shareAccLbl}>{t.progress.accuracy.toUpperCase()}</Text>
             </View>
             <View style={styles.shareStatGrid}>
-              <View style={[styles.shareStatBox, { backgroundColor: Colors.teal + "22" }]}>
-                <Feather name="check-circle" size={16} color={Colors.teal} />
-                <Text style={[styles.shareStatVal, { color: Colors.teal }]}>{stats?.correctAnswers ?? 0}</Text>
+              <View style={[styles.shareStatBox, { backgroundColor: colors.teal + "22" }]}>
+                <Feather name="check-circle" size={16} color={colors.teal} />
+                <Text style={[styles.shareStatVal, { color: colors.teal }]}>{stats?.correctAnswers ?? 0}</Text>
                 <Text style={styles.shareStatLbl}>{t.progress.correct}</Text>
               </View>
               <View style={[styles.shareStatBox, { backgroundColor: "#FF6B6B22" }]}>
@@ -688,7 +692,7 @@ export default function ProgressTab() {
                       <Text style={{ fontSize: 12 }}>{ps.path.name.charAt(0).toUpperCase()}</Text>
                     </LinearGradient>
                     <Text style={styles.shareCourseName} numberOfLines={1}>{ps.path.name}</Text>
-                    <Text style={[styles.shareCourseAcc, { color: pct >= 70 ? Colors.teal : pct >= 40 ? "#FF9500" : "#FF6B6B" }]}>
+                    <Text style={[styles.shareCourseAcc, { color: pct >= 70 ? colors.teal : pct >= 40 ? "#FF9500" : "#FF6B6B" }]}>
                       {pct}%
                     </Text>
                   </View>
@@ -710,8 +714,8 @@ export default function ProgressTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   headerGrad: { paddingHorizontal: 20, paddingBottom: 0, overflow: "hidden" },
   hDot1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(74,158,255,0.1)", top: -50, right: -50 },
   hDot2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(56,189,248,0.07)", bottom: -20, left: 20 },
@@ -735,35 +739,35 @@ const styles = StyleSheet.create({
   chipLbl: { fontSize: 9, color: "rgba(255,255,255,0.45)", fontWeight: "700", textTransform: "uppercase" },
   tabStrip: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
   tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 12 },
-  tabItemActive: { borderBottomWidth: 2.5, borderBottomColor: Colors.primary },
+  tabItemActive: { borderBottomWidth: 2.5, borderBottomColor: c.primary },
   tabItemText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.4)" },
   tabItemTextActive: { color: "#fff" },
   scrollContent: { padding: 20, paddingBottom: 40, gap: 12 },
-  card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 12 },
+  card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: c.border, gap: 12 },
   cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardHeadLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   cardHeadIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  cardTitle: { fontSize: 13, fontWeight: "800", color: Colors.dark },
-  cardHint: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  cardTitle: { fontSize: 13, fontWeight: "800", color: c.dark },
+  cardHint: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   barChartWrap: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 110, paddingTop: 16 },
   barCol: { flex: 1, alignItems: "center", gap: 4 },
   barValText: { fontSize: 9, fontWeight: "800", height: 12 },
   barTrack: { width: "70%", height: 80, justifyContent: "flex-end" },
   barFill: { width: "100%", borderRadius: 4 },
-  barDayText: { fontSize: 9, color: Colors.textMuted, fontWeight: "700" },
-  progressSub: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  barDayText: { fontSize: 9, color: c.textMuted, fontWeight: "700" },
+  progressSub: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   heatmapWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   heatCell: { borderRadius: 5 },
   heatLegend: { flexDirection: "row", alignItems: "center", gap: 14 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendDot: { width: 10, height: 10, borderRadius: 3 },
-  legendText: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  legendText: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   logRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9 },
-  logRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  logRowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
   logDot: { width: 7, height: 7, borderRadius: 4 },
-  logDate: { fontSize: 11, color: Colors.textMuted, fontWeight: "700", width: 50 },
+  logDate: { fontSize: 11, color: c.textMuted, fontWeight: "700", width: 50 },
   logResult: { fontSize: 12, fontWeight: "800", width: 60 },
-  logAnswer: { flex: 1, fontSize: 11, color: Colors.textSecondary, fontWeight: "500" },
+  logAnswer: { flex: 1, fontSize: 11, color: c.textSecondary, fontWeight: "500" },
   emptyGrad: { borderRadius: 20, padding: 32, alignItems: "center", gap: 10, overflow: "hidden" },
   emptyTitle: { fontSize: 18, fontWeight: "900", color: "#fff" },
   emptySub: { fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: "500", textAlign: "center", lineHeight: 20 },
@@ -771,20 +775,20 @@ const styles = StyleSheet.create({
   pdfBigIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   pdfBigTitle: { fontSize: 15, fontWeight: "900", color: "#fff" },
   pdfBigSub: { fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: "500", marginTop: 2 },
-  classifyDesc: { fontSize: 12, color: Colors.textSecondary, fontWeight: "500", lineHeight: 18 },
+  classifyDesc: { fontSize: 12, color: c.textSecondary, fontWeight: "500", lineHeight: 18 },
   diffSummaryRow: { flexDirection: "row", gap: 10 },
   diffSummaryChip: { flex: 1, alignItems: "center", borderRadius: 14, paddingVertical: 12, gap: 4 },
   diffSummaryVal: { fontSize: 22, fontWeight: "900" },
   diffSummaryLbl: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
   diffEmpty: { alignItems: "center", paddingVertical: 24, gap: 8 },
   diffEmptyText: { fontSize: 15, fontWeight: "800" },
-  diffEmptySub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500", textAlign: "center" },
+  diffEmptySub: { fontSize: 12, color: c.textMuted, fontWeight: "500", textAlign: "center" },
   classifyRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11 },
-  classifyRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  classifyRowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
   classifyTypeBadge: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  classifyQ: { fontSize: 13, fontWeight: "700", color: Colors.dark, lineHeight: 19 },
+  classifyQ: { fontSize: 13, fontWeight: "700", color: c.dark, lineHeight: 19 },
   classifyMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
-  classifyMetaText: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  classifyMetaText: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   classifyAcc: { fontSize: 11, fontWeight: "800" },
   accuracyPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   accuracyPillText: { fontSize: 12, fontWeight: "900" },

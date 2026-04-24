@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -33,7 +34,7 @@ import {
   saveModule,
   saveStandaloneCollection,
 } from "@/utils/storage";
-import Colors, { shadow, shadowSm } from "@/constants/colors";
+import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { parseAnkiPackage, ParseProgress } from "@/utils/anki-parser";
 
 interface ParsedDeck {
@@ -117,6 +118,9 @@ function parseTxt(text: string): ParsedDeck {
 }
 
 export default function AnkiImportScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [busy, setBusy] = useState(false);
   const [decks, setDecks] = useState<ParsedDeck[]>([]);
   const [collectionName, setCollectionName] = useState("");
@@ -398,16 +402,16 @@ export default function AnkiImportScreen() {
 
   const statusColor =
     status?.type === "ok"
-      ? Colors.success
+      ? colors.success
       : status?.type === "err"
-      ? Colors.danger
-      : Colors.primary;
+      ? colors.danger
+      : colors.primary;
   const statusBg =
     status?.type === "ok"
-      ? Colors.successLight
+      ? colors.successLight
       : status?.type === "err"
-      ? Colors.dangerLight
-      : Colors.primaryLight;
+      ? colors.dangerLight
+      : colors.primaryLight;
   const statusIcon =
     status?.type === "ok" ? "check-circle" : status?.type === "err" ? "alert-circle" : "info";
 
@@ -416,8 +420,8 @@ export default function AnkiImportScreen() {
       <Stack.Screen
         options={{
           title: "Import Anki",
-          headerStyle: { backgroundColor: Colors.background },
-          headerTitleStyle: { color: Colors.text, fontWeight: "700" },
+          headerStyle: { backgroundColor: colors.background },
+          headerTitleStyle: { color: colors.text, fontWeight: "700" },
           headerShadowVisible: false,
         }}
       />
@@ -429,7 +433,7 @@ export default function AnkiImportScreen() {
         <View>
           {/* Hero */}
           <LinearGradient
-            colors={[Colors.primary, Colors.purple]}
+            colors={[colors.primary, colors.purple]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.hero, shadow]}
@@ -480,9 +484,9 @@ export default function AnkiImportScreen() {
               />
               <View style={styles.dropIconBox}>
                 {busy ? (
-                  <ActivityIndicator color={Colors.primary} size="large" />
+                  <ActivityIndicator color={colors.primary} size="large" />
                 ) : (
-                  <Feather name="upload-cloud" size={34} color={Colors.primary} />
+                  <Feather name="upload-cloud" size={34} color={colors.primary} />
                 )}
               </View>
               <Text style={styles.dropTitle}>
@@ -505,14 +509,14 @@ export default function AnkiImportScreen() {
                       styles.fileBadge,
                       {
                         backgroundColor:
-                          pickedFile.kind === "apkg" ? Colors.purpleLight : Colors.tealLight,
+                          pickedFile.kind === "apkg" ? colors.purpleLight : colors.tealLight,
                       },
                     ]}
                   >
                     <Feather
                       name={pickedFile.kind === "apkg" ? "package" : "file-text"}
                       size={14}
-                      color={pickedFile.kind === "apkg" ? Colors.purple : Colors.teal}
+                      color={pickedFile.kind === "apkg" ? colors.purple : colors.teal}
                     />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -522,7 +526,7 @@ export default function AnkiImportScreen() {
                     <Text style={styles.fileMeta}>{formatBytes(pickedFile.size)}</Text>
                   </View>
                   <TouchableOpacity onPress={reset} hitSlop={10}>
-                    <Feather name="x" size={18} color={Colors.textMuted} />
+                    <Feather name="x" size={18} color={colors.textMuted} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -544,15 +548,15 @@ export default function AnkiImportScreen() {
                   icon="layers"
                   value={String(decks.length)}
                   label="Deck"
-                  color={Colors.primary}
-                  bg={Colors.primaryLight}
+                  color={colors.primary}
+                  bg={colors.primaryLight}
                 />
                 <StatPill
                   icon="credit-card"
                   value={String(totalCards)}
                   label="Kartu"
-                  color={Colors.emerald}
-                  bg={Colors.emeraldLight}
+                  color={colors.emerald}
+                  bg={colors.emeraldLight}
                 />
                 <StatPill
                   icon="tag"
@@ -560,8 +564,8 @@ export default function AnkiImportScreen() {
                     new Set(decks.flatMap((d) => d.cards.map((c) => c.tags ?? ""))).size,
                   )}
                   label="Tag"
-                  color={Colors.amber}
-                  bg={Colors.amberLight}
+                  color={colors.amber}
+                  bg={colors.amberLight}
                 />
               </View>
 
@@ -580,7 +584,7 @@ export default function AnkiImportScreen() {
                   <Feather
                     name="folder"
                     size={16}
-                    color={mode === "collection" ? "#fff" : Colors.textMuted}
+                    color={mode === "collection" ? "#fff" : colors.textMuted}
                   />
                   <View style={{ flex: 1 }}>
                     <Text
@@ -612,7 +616,7 @@ export default function AnkiImportScreen() {
                   <Feather
                     name="layers"
                     size={16}
-                    color={mode === "module" ? "#fff" : Colors.textMuted}
+                    color={mode === "module" ? "#fff" : colors.textMuted}
                   />
                   <View style={{ flex: 1 }}>
                     <Text
@@ -639,13 +643,13 @@ export default function AnkiImportScreen() {
                 <>
                   <Text style={[styles.label, { marginTop: 16 }]}>Nama Koleksi</Text>
                   <View style={styles.inputWrap}>
-                    <Feather name="bookmark" size={16} color={Colors.textMuted} />
+                    <Feather name="bookmark" size={16} color={colors.textMuted} />
                     <TextInput
                       value={collectionName}
                       onChangeText={setCollectionName}
                       style={styles.input}
                       placeholder="Beri nama koleksi…"
-                      placeholderTextColor={Colors.textMuted}
+                      placeholderTextColor={colors.textMuted}
                     />
                   </View>
                 </>
@@ -666,7 +670,7 @@ export default function AnkiImportScreen() {
                           name="bookmark"
                           size={12}
                           color={
-                            selectedPathId === p.id ? "#fff" : Colors.textMuted
+                            selectedPathId === p.id ? "#fff" : colors.textMuted
                           }
                         />
                         <Text
@@ -691,7 +695,7 @@ export default function AnkiImportScreen() {
                         name="plus"
                         size={12}
                         color={
-                          selectedPathId === "__new__" ? "#fff" : Colors.textMuted
+                          selectedPathId === "__new__" ? "#fff" : colors.textMuted
                         }
                       />
                       <Text
@@ -707,26 +711,26 @@ export default function AnkiImportScreen() {
 
                   {selectedPathId === "__new__" && (
                     <View style={[styles.inputWrap, { marginTop: 8 }]}>
-                      <Feather name="plus-circle" size={16} color={Colors.textMuted} />
+                      <Feather name="plus-circle" size={16} color={colors.textMuted} />
                       <TextInput
                         value={newPathName}
                         onChangeText={setNewPathName}
                         style={styles.input}
                         placeholder="Nama path baru…"
-                        placeholderTextColor={Colors.textMuted}
+                        placeholderTextColor={colors.textMuted}
                       />
                     </View>
                   )}
 
                   <Text style={[styles.label, { marginTop: 14 }]}>Nama Modul</Text>
                   <View style={styles.inputWrap}>
-                    <Feather name="layers" size={16} color={Colors.textMuted} />
+                    <Feather name="layers" size={16} color={colors.textMuted} />
                     <TextInput
                       value={moduleName}
                       onChangeText={setModuleName}
                       style={styles.input}
                       placeholder="Beri nama modul…"
-                      placeholderTextColor={Colors.textMuted}
+                      placeholderTextColor={colors.textMuted}
                     />
                   </View>
                   <Text style={styles.helperText}>
@@ -749,10 +753,10 @@ export default function AnkiImportScreen() {
                         <View
                           style={[
                             styles.deckIndex,
-                            { backgroundColor: Colors.primaryLight },
+                            { backgroundColor: colors.primaryLight },
                           ]}
                         >
-                          <Text style={[styles.deckIndexText, { color: Colors.primary }]}>
+                          <Text style={[styles.deckIndexText, { color: colors.primary }]}>
                             {i + 1}
                           </Text>
                         </View>
@@ -766,7 +770,7 @@ export default function AnkiImportScreen() {
                       <Feather
                         name={isOpen ? "chevron-up" : "chevron-down"}
                         size={18}
-                        color={Colors.textMuted}
+                        color={colors.textMuted}
                       />
                     </TouchableOpacity>
 
@@ -807,7 +811,7 @@ export default function AnkiImportScreen() {
                   colors={
                     busy
                       ? ["#94A3B8", "#94A3B8"]
-                      : [Colors.emerald, "#059669"]
+                      : [colors.emerald, "#059669"]
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -831,29 +835,29 @@ export default function AnkiImportScreen() {
           {/* Tips */}
           <View style={[styles.card, shadowSm]}>
             <View style={styles.tipsHeader}>
-              <View style={[styles.iconBox, { backgroundColor: Colors.amberLight }]}>
-                <Feather name="zap" size={16} color={Colors.amber} />
+              <View style={[styles.iconBox, { backgroundColor: colors.amberLight }]}>
+                <Feather name="zap" size={16} color={colors.amber} />
               </View>
               <Text style={styles.sectionTitle}>Tips & Format</Text>
             </View>
             <TipRow
               icon="package"
-              color={Colors.purple}
-              bg={Colors.purpleLight}
+              color={colors.purple}
+              bg={colors.purpleLight}
               title=".apkg / .colpkg"
               body="File ekspor standar Anki desktop. Berisi koleksi kartu dan deck."
             />
             <TipRow
               icon="file-text"
-              color={Colors.teal}
-              bg={Colors.tealLight}
+              color={colors.teal}
+              bg={colors.tealLight}
               title=".txt / .tsv / .csv"
               body="Format teks per baris: front[TAB]back[TAB]tags"
             />
             <TipRow
               icon="shield"
-              color={Colors.emerald}
-              bg={Colors.emeraldLight}
+              color={colors.emerald}
+              bg={colors.emeraldLight}
               title="HTML otomatis dibersihkan"
               body="Tag HTML dan referensi audio dihapus saat impor."
             />
@@ -912,8 +916,8 @@ function TipRow({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   content: { padding: 16, paddingBottom: 80 },
 
   hero: {
@@ -961,41 +965,41 @@ const styles = StyleSheet.create({
   chipText: { color: "#fff", fontSize: 11, fontWeight: "600" },
 
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 18,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
   },
 
   dropZone: {
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     overflow: "hidden",
   },
   dropZonePressed: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
+    backgroundColor: c.primaryLight,
+    borderColor: c.primary,
   },
   dropPulse: {
     position: "absolute",
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   dropIconBox: {
     width: 70,
     height: 70,
     borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -1003,11 +1007,11 @@ const styles = StyleSheet.create({
   dropTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: Colors.text,
+    color: c.text,
   },
   dropSubtitle: {
     fontSize: 12.5,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
     textAlign: "center",
   },
@@ -1016,14 +1020,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 14,
     width: "100%",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   fileBadge: {
     width: 32,
@@ -1032,8 +1036,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  fileName: { fontSize: 13, fontWeight: "600", color: Colors.text },
-  fileMeta: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  fileName: { fontSize: 13, fontWeight: "600", color: c.text },
+  fileMeta: { fontSize: 11, color: c.textMuted, marginTop: 1 },
 
   statusBox: {
     flexDirection: "row",
@@ -1058,12 +1062,12 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 16, fontWeight: "800" },
   statLabel: { fontSize: 11, fontWeight: "600", opacity: 0.8 },
 
-  divider: { height: 1, backgroundColor: Colors.borderLight, marginVertical: 16 },
+  divider: { height: 1, backgroundColor: c.borderLight, marginVertical: 16 },
 
   label: {
     fontSize: 12.5,
     fontWeight: "700",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -1073,25 +1077,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   input: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 14,
-    color: Colors.text,
+    color: c.text,
   },
 
   deckBlock: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 12,
     marginTop: 8,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
   },
   deckHeader: {
     flexDirection: "row",
@@ -1113,24 +1117,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   deckIndexText: { fontSize: 12, fontWeight: "800" },
-  deckName: { fontSize: 14, fontWeight: "700", color: Colors.text },
-  deckMeta: { fontSize: 11.5, color: Colors.textSecondary, marginTop: 2 },
+  deckName: { fontSize: 14, fontWeight: "700", color: c.text },
+  deckMeta: { fontSize: 11.5, color: c.textSecondary, marginTop: 2 },
 
   cardsList: { paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
   cardPreview: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     padding: 10,
     gap: 6,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
   },
   qaRow: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
   qaLabel: {
     fontSize: 10,
     fontWeight: "800",
-    color: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    color: c.primary,
+    backgroundColor: c.primaryLight,
     width: 18,
     height: 18,
     borderRadius: 4,
@@ -1138,14 +1142,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   qaLabelA: {
-    color: Colors.emerald,
-    backgroundColor: Colors.emeraldLight,
+    color: c.emerald,
+    backgroundColor: c.emeraldLight,
   },
-  cardFront: { fontSize: 12.5, color: Colors.text, fontWeight: "600", flex: 1, lineHeight: 17 },
-  cardBack: { fontSize: 12.5, color: Colors.textSecondary, flex: 1, lineHeight: 17 },
+  cardFront: { fontSize: 12.5, color: c.text, fontWeight: "600", flex: 1, lineHeight: 17 },
+  cardBack: { fontSize: 12.5, color: c.textSecondary, flex: 1, lineHeight: 17 },
   more: {
     fontSize: 11.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: "center",
     paddingVertical: 6,
     fontStyle: "italic",
@@ -1178,7 +1182,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: Colors.text },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: c.text },
 
   tipRow: {
     flexDirection: "row",
@@ -1194,8 +1198,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 2,
   },
-  tipTitle: { fontSize: 13, fontWeight: "700", color: Colors.text },
-  tipBody: { fontSize: 12.5, color: Colors.textSecondary, marginTop: 2, lineHeight: 17 },
+  tipTitle: { fontSize: 13, fontWeight: "700", color: c.text },
+  tipBody: { fontSize: 12.5, color: c.textSecondary, marginTop: 2, lineHeight: 17 },
 
   modeRow: { gap: 8, marginTop: 8 },
   modeBtn: {
@@ -1206,16 +1210,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
   },
   modeBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
-  modeTitle: { fontSize: 13.5, fontWeight: "700", color: Colors.text },
+  modeTitle: { fontSize: 13.5, fontWeight: "700", color: c.text },
   modeTitleActive: { color: "#fff" },
-  modeDesc: { fontSize: 11.5, color: Colors.textMuted, marginTop: 1 },
+  modeDesc: { fontSize: 11.5, color: c.textMuted, marginTop: 1 },
   modeDescActive: { color: "rgba(255,255,255,0.85)" },
 
   pathChips: {
@@ -1232,20 +1236,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
     maxWidth: 200,
   },
   pathChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
-  pathChipText: { fontSize: 12, color: Colors.textSecondary, fontWeight: "600" },
+  pathChipText: { fontSize: 12, color: c.textSecondary, fontWeight: "600" },
   pathChipTextActive: { color: "#fff" },
 
   helperText: {
     fontSize: 11.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 6,
     fontStyle: "italic",
   },

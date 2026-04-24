@@ -1,4 +1,5 @@
-import React from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useMemo } from "react";
 import {
   Pressable,
   Text,
@@ -7,7 +8,7 @@ import {
   PressableProps,
   ViewStyle,
 } from "react-native";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 type Variant = "default" | "outline" | "ghost" | "danger" | "accent";
 type Size = "default" | "sm" | "lg" | "icon" | "pill";
@@ -31,18 +32,21 @@ export const Button = ({
   disabled,
   ...props
 }: ButtonProps) => {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const bg = {
-    default: Colors.primary,
-    outline: Colors.white,
+    default: colors.primary,
+    outline: colors.white,
     ghost: "transparent",
-    danger: Colors.danger,
-    accent: Colors.accent,
+    danger: colors.danger,
+    accent: colors.accent,
   }[variant];
 
   const textColor = {
     default: "#fff",
-    outline: Colors.text,
-    ghost: Colors.textSecondary,
+    outline: colors.text,
+    ghost: colors.textSecondary,
     danger: "#fff",
     accent: "#fff",
   }[variant];
@@ -62,7 +66,7 @@ export const Button = ({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "default" || variant === "accent" ? "#fff" : Colors.text} />
+        <ActivityIndicator color={variant === "default" || variant === "accent" ? "#fff" : colors.text} />
       ) : label ? (
         <Text style={[styles.label, { color: textColor }]}>{label}</Text>
       ) : (
@@ -72,7 +76,7 @@ export const Button = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   base: {
     flexDirection: "row",
     alignItems: "center",
@@ -82,7 +86,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
   disabled: { opacity: 0.5 },
-  outlineBorder: { borderWidth: 1.5, borderColor: Colors.border },
+  outlineBorder: { borderWidth: 1.5, borderColor: c.border },
   label: { fontWeight: "800", fontSize: 15, textAlign: "center" },
   size_default: { height: 52 },
   size_sm: { height: 38, paddingHorizontal: 14 },

@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useCallback, useState } from "react";
 import {
   View,
@@ -15,7 +16,7 @@ import {
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import {
   ExternalScreen,
   addExternalScreen,
@@ -25,6 +26,9 @@ import {
 } from "@/utils/externalScreens";
 
 export default function ExternalScreensPage() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<ExternalScreen[]>([]);
@@ -100,7 +104,7 @@ export default function ExternalScreensPage() {
     <View style={styles.card}>
       <TouchableOpacity style={styles.cardMain} onPress={() => openScreen(item)} activeOpacity={0.7}>
         <View style={styles.iconBox}>
-          <Feather name="globe" size={20} color={Colors.primary} />
+          <Feather name="globe" size={20} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardTitle} numberOfLines={1}>
@@ -110,14 +114,14 @@ export default function ExternalScreensPage() {
             {item.url}
           </Text>
         </View>
-        <Feather name="chevron-right" size={18} color={Colors.textMuted} />
+        <Feather name="chevron-right" size={18} color={colors.textMuted} />
       </TouchableOpacity>
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(item)}>
-          <Feather name="edit-2" size={14} color={Colors.textMuted} />
+          <Feather name="edit-2" size={14} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item)}>
-          <Feather name="trash-2" size={14} color={Colors.danger} />
+          <Feather name="trash-2" size={14} color={colors.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -130,7 +134,7 @@ export default function ExternalScreensPage() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={20} color={Colors.text} />
+          <Feather name="arrow-left" size={20} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Halaman Eksternal</Text>
@@ -149,7 +153,7 @@ export default function ExternalScreensPage() {
       ) : items.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIcon}>
-            <Feather name="globe" size={32} color={Colors.primary} />
+            <Feather name="globe" size={32} color={colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Belum ada halaman</Text>
           <Text style={styles.emptyText}>
@@ -201,7 +205,7 @@ export default function ExternalScreensPage() {
                 value={titleInput}
                 onChangeText={setTitleInput}
                 placeholder="Contoh: Dokumentasi React"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 style={styles.input}
               />
 
@@ -210,7 +214,7 @@ export default function ExternalScreensPage() {
                 value={urlInput}
                 onChangeText={setUrlInput}
                 placeholder="https://reactnative.dev"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 style={styles.input}
                 autoCapitalize="none"
                 keyboardType="url"
@@ -240,8 +244,8 @@ export default function ExternalScreensPage() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg ?? "#F6F7FB" },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.bg ?? "#F6F7FB" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -249,35 +253,35 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderBottomColor: c.border,
+    backgroundColor: c.white,
   },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: Colors.bg ?? "#F6F7FB",
+    backgroundColor: c.bg ?? "#F6F7FB",
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: Colors.text },
-  headerSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: c.text },
+  headerSub: { fontSize: 11, color: c.textMuted, marginTop: 2 },
   addBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 16,
     padding: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowColor: Colors.shadow,
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -288,18 +292,18 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: Colors.text },
-  cardUrl: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  cardTitle: { fontSize: 14, fontWeight: "700", color: c.text },
+  cardUrl: { fontSize: 11, color: c.textMuted, marginTop: 2 },
   actions: { flexDirection: "row", gap: 4 },
   actionBtn: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.bg ?? "#F6F7FB",
+    backgroundColor: c.bg ?? "#F6F7FB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -308,15 +312,15 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
-  emptyTitle: { fontSize: 18, fontWeight: "700", color: Colors.text, marginBottom: 6 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: c.text, marginBottom: 6 },
   emptyText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: "center",
     lineHeight: 19,
     maxWidth: 280,
@@ -326,7 +330,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginTop: 18,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 14,
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,31,61,0.4)" },
   modalSheet: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -346,22 +350,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     alignSelf: "center",
     marginBottom: 12,
   },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: Colors.text },
-  modalSub: { fontSize: 12, color: Colors.textMuted, marginTop: 4, marginBottom: 16 },
-  label: { fontSize: 12, fontWeight: "700", color: Colors.text, marginBottom: 6, marginTop: 8 },
+  modalTitle: { fontSize: 18, fontWeight: "800", color: c.text },
+  modalSub: { fontSize: 12, color: c.textMuted, marginTop: 4, marginBottom: 16 },
+  label: { fontSize: 12, fontWeight: "700", color: c.text, marginBottom: 6, marginTop: 8 },
   input: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: Colors.text,
-    backgroundColor: Colors.bg ?? "#F6F7FB",
+    color: c.text,
+    backgroundColor: c.bg ?? "#F6F7FB",
   },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 20 },
   modalBtn: {
@@ -373,8 +377,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  modalBtnGhost: { backgroundColor: Colors.bg ?? "#F6F7FB" },
-  modalBtnGhostText: { color: Colors.text, fontWeight: "700" },
-  modalBtnPrimary: { backgroundColor: Colors.primary },
+  modalBtnGhost: { backgroundColor: c.bg ?? "#F6F7FB" },
+  modalBtnGhostText: { color: c.text, fontWeight: "700" },
+  modalBtnPrimary: { backgroundColor: c.primary },
   modalBtnPrimaryText: { color: "#fff", fontWeight: "700" },
 });

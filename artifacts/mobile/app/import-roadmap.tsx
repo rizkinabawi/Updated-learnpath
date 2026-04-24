@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -28,7 +29,7 @@ import {
   type LearningPath, type Module, type Lesson,
   type FlashcardPack, type QuizPack, type StudyMaterial,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
 import { callAI } from "@/utils/ai-providers";
@@ -220,6 +221,9 @@ const LANGS: Record<string, string> = {
 const MODULE_COUNTS = ["2", "3", "4", "5", "6"];
 
 export default function ImportRoadmapScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -530,7 +534,7 @@ export default function ImportRoadmapScreen() {
           <Text style={styles.headerSub}>Buat struktur kursus otomatis dari JSON</Text>
         </View>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={20} color={Colors.dark} />
+          <X size={20} color={colors.dark} />
         </TouchableOpacity>
       </View>
 
@@ -551,8 +555,8 @@ export default function ImportRoadmapScreen() {
             </View>
           </View>
           {showPrompt
-            ? <ChevronUp size={18} color={Colors.textMuted} />
-            : <ChevronDown size={18} color={Colors.textMuted} />}
+            ? <ChevronUp size={18} color={colors.textMuted} />
+            : <ChevronDown size={18} color={colors.textMuted} />}
         </TouchableOpacity>
 
         {showPrompt && (
@@ -579,7 +583,7 @@ export default function ImportRoadmapScreen() {
               onChangeText={setPromptSubject}
               placeholder="Contoh: Python untuk Pemula, UI/UX Design..."
               style={styles.aiInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
 
             {/* Module count */}
@@ -637,7 +641,7 @@ export default function ImportRoadmapScreen() {
               onChangeText={setPromptNote}
               placeholder="Misal: fokus ke backend, sertakan contoh kode..."
               style={[styles.aiInput, { minHeight: 60, textAlignVertical: "top" }]}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
             />
 
@@ -660,7 +664,7 @@ export default function ImportRoadmapScreen() {
                   disabled={aiLoading}
                 >
                   <LinearGradient
-                    colors={[Colors.success, Colors.primary]}
+                    colors={[colors.success, colors.primary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.askAiGrad}
@@ -691,8 +695,8 @@ export default function ImportRoadmapScreen() {
         >
           <Text style={styles.sectionTitle}>Tempel JSON Roadmap</Text>
           {showImport
-            ? <ChevronUp size={18} color={Colors.textMuted} />
-            : <ChevronDown size={18} color={Colors.textMuted} />}
+            ? <ChevronUp size={18} color={colors.textMuted} />
+            : <ChevronDown size={18} color={colors.textMuted} />}
         </TouchableOpacity>
 
         {showImport && (
@@ -702,7 +706,7 @@ export default function ImportRoadmapScreen() {
               onChangeText={(t) => { setJsonText(t); setParseError(null); setPreview(null); }}
               placeholder={'{\n  "course_name": "...",\n  "modules": [...]\n}'}
               style={styles.jsonInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               autoCorrect={false}
               autoCapitalize="none"
@@ -711,14 +715,14 @@ export default function ImportRoadmapScreen() {
 
             {/* File picker */}
             <TouchableOpacity style={styles.fileBtn} onPress={handlePickFile}>
-              <Download size={16} color={Colors.primary} />
+              <Download size={16} color={colors.primary} />
               <Text style={styles.fileBtnText}>Atau Impor dari File JSON</Text>
             </TouchableOpacity>
 
             {/* Error */}
             {parseError && (
               <View style={styles.errorBox}>
-                <AlertCircle size={16} color={Colors.danger} />
+                <AlertCircle size={16} color={colors.danger} />
                 <Text style={styles.errorText}>{parseError}</Text>
               </View>
             )}
@@ -740,7 +744,7 @@ export default function ImportRoadmapScreen() {
         <View style={styles.previewCard}>
           {/* Summary bar */}
           <View style={styles.previewHeader}>
-            <CheckCircle2 size={20} color={Colors.success} />
+            <CheckCircle2 size={20} color={colors.success} />
             <Text style={styles.previewTitle}>Siap dibuat!</Text>
           </View>
 
@@ -825,33 +829,33 @@ export default function ImportRoadmapScreen() {
 
 function lessonTypeColor(type: string): string {
   switch (type) {
-    case "video": return Colors.accent;
-    case "quiz": return Colors.warning;
-    case "flashcard": return Colors.purple;
-    case "project": return Colors.success;
-    default: return Colors.primary;
+    case "video": return colors.accent;
+    case "quiz": return colors.warning;
+    case "flashcard": return colors.purple;
+    case "project": return colors.success;
+    default: return colors.primary;
   }
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: 20 },
 
   header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: Colors.dark },
-  headerSub: { fontSize: 13, color: Colors.textMuted, fontWeight: "500", marginTop: 2 },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
+  headerSub: { fontSize: 13, color: c.textMuted, fontWeight: "500", marginTop: 2 },
   closeBtn: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: Colors.white, alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.white, alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: c.border,
   },
 
   // AI card
   aiCard: {
-    backgroundColor: Colors.white, borderRadius: 18,
-    borderWidth: 1.5, borderColor: Colors.primaryLight,
+    backgroundColor: c.white, borderRadius: 18,
+    borderWidth: 1.5, borderColor: c.primaryLight,
     marginBottom: 12, overflow: "hidden",
   },
   aiCardHeader: {
@@ -861,138 +865,138 @@ const styles = StyleSheet.create({
   aiCardLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   aiIcon: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.primary, alignItems: "center", justifyContent: "center",
   },
-  aiCardTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  aiCardSub: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginTop: 1 },
+  aiCardTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  aiCardSub: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   aiCardBody: {
     paddingHorizontal: 14, paddingBottom: 16,
-    borderTopWidth: 1, borderTopColor: Colors.border,
+    borderTopWidth: 1, borderTopColor: c.border,
     paddingTop: 14, gap: 6,
   },
   stepRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   stepBadge: {
     width: 22, height: 22, borderRadius: 7,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center", justifyContent: "center",
   },
-  stepNum: { fontSize: 11, fontWeight: "900", color: Colors.primary },
-  stepLabel: { fontSize: 13, color: Colors.textSecondary, fontWeight: "600", flex: 1 },
+  stepNum: { fontSize: 11, fontWeight: "900", color: c.primary },
+  stepLabel: { fontSize: 13, color: c.textSecondary, fontWeight: "600", flex: 1 },
   fieldLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1,
   },
   aiInput: {
-    backgroundColor: Colors.background, borderRadius: 12,
+    backgroundColor: c.background, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 14, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
   },
   chipRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   chip: {
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10,
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
   },
-  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  chipText: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
-  chipTextActive: { color: Colors.white },
+  chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  chipText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  chipTextActive: { color: c.white },
   generateBtn: {
-    marginTop: 8, backgroundColor: Colors.primary, borderRadius: 14,
+    marginTop: 8, backgroundColor: c.primary, borderRadius: 14,
     paddingVertical: 13, flexDirection: "row", alignItems: "center",
     justifyContent: "center", gap: 8,
   },
-  generateBtnText: { fontSize: 14, fontWeight: "800", color: Colors.white },
+  generateBtnText: { fontSize: 14, fontWeight: "800", color: c.white },
   promptPreview: {
-    backgroundColor: Colors.background, borderRadius: 12,
-    padding: 12, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.background, borderRadius: 12,
+    padding: 12, borderWidth: 1, borderColor: c.border,
   },
-  promptPreviewLabel: { fontSize: 10, fontWeight: "800", color: Colors.textMuted, marginBottom: 4, textTransform: "uppercase" },
-  promptPreviewText: { fontSize: 11, color: Colors.textSecondary, lineHeight: 16 },
+  promptPreviewLabel: { fontSize: 10, fontWeight: "800", color: c.textMuted, marginBottom: 4, textTransform: "uppercase" },
+  promptPreviewText: { fontSize: 11, color: c.textSecondary, lineHeight: 16 },
 
   // Section
   section: {
-    backgroundColor: Colors.white, borderRadius: 18,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.white, borderRadius: 18,
+    borderWidth: 1, borderColor: c.border,
     marginBottom: 12, padding: 14,
   },
   sectionHeader: {
     flexDirection: "row", alignItems: "center",
     justifyContent: "space-between", marginBottom: 10,
   },
-  sectionTitle: { fontSize: 15, fontWeight: "800", color: Colors.dark },
+  sectionTitle: { fontSize: 15, fontWeight: "800", color: c.dark },
   jsonInput: {
-    backgroundColor: Colors.background, borderRadius: 12,
+    backgroundColor: c.background, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 12, fontWeight: "500", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 12, fontWeight: "500", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
     minHeight: 160, textAlignVertical: "top",
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
   },
   fileBtn: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.primary,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.primary,
     borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, borderStyle: "dashed",
   },
-  fileBtnText: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  fileBtnText: { fontSize: 13, fontWeight: "700", color: c.primary },
   errorBox: {
     flexDirection: "row", alignItems: "flex-start", gap: 8,
-    backgroundColor: Colors.dangerLight, borderRadius: 10,
-    padding: 12, borderWidth: 1, borderColor: Colors.danger,
+    backgroundColor: c.dangerLight, borderRadius: 10,
+    padding: 12, borderWidth: 1, borderColor: c.danger,
   },
-  errorText: { fontSize: 12, color: Colors.danger, fontWeight: "600", flex: 1 },
+  errorText: { fontSize: 12, color: c.danger, fontWeight: "600", flex: 1 },
   parseBtn: {
-    backgroundColor: Colors.primary, borderRadius: 14,
+    backgroundColor: c.primary, borderRadius: 14,
     paddingVertical: 13, flexDirection: "row",
     alignItems: "center", justifyContent: "center", gap: 8,
   },
-  parseBtnText: { fontSize: 14, fontWeight: "800", color: Colors.white },
+  parseBtnText: { fontSize: 14, fontWeight: "800", color: c.white },
 
   // Preview
   previewCard: {
-    backgroundColor: Colors.white, borderRadius: 18,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.white, borderRadius: 18,
+    borderWidth: 1, borderColor: c.border,
     padding: 16, marginBottom: 12, gap: 10,
   },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  previewTitle: { fontSize: 16, fontWeight: "900", color: Colors.dark },
+  previewTitle: { fontSize: 16, fontWeight: "900", color: c.dark },
   statRow: { flexDirection: "row", gap: 8 },
   statBox: {
-    flex: 1, backgroundColor: Colors.primaryLight,
+    flex: 1, backgroundColor: c.primaryLight,
     borderRadius: 12, paddingVertical: 10, alignItems: "center",
   },
-  statNum: { fontSize: 20, fontWeight: "900", color: Colors.primary },
-  statLabel: { fontSize: 10, fontWeight: "700", color: Colors.primary, textTransform: "uppercase" },
-  previewCourseName: { fontSize: 17, fontWeight: "900", color: Colors.dark },
-  previewCourseDesc: { fontSize: 13, color: Colors.textSecondary, fontWeight: "500" },
+  statNum: { fontSize: 20, fontWeight: "900", color: c.primary },
+  statLabel: { fontSize: 10, fontWeight: "700", color: c.primary, textTransform: "uppercase" },
+  previewCourseName: { fontSize: 17, fontWeight: "900", color: c.dark },
+  previewCourseDesc: { fontSize: 13, color: c.textSecondary, fontWeight: "500" },
   tagsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   tagChip: {
-    backgroundColor: Colors.primaryLight, borderRadius: 8,
+    backgroundColor: c.primaryLight, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  tagText: { fontSize: 11, fontWeight: "700", color: Colors.primary },
+  tagText: { fontSize: 11, fontWeight: "700", color: c.primary },
   modBlock: {
-    borderLeftWidth: 2, borderLeftColor: Colors.primaryLight,
+    borderLeftWidth: 2, borderLeftColor: c.primaryLight,
     paddingLeft: 12, gap: 4,
   },
-  modName: { fontSize: 13, fontWeight: "800", color: Colors.dark, marginBottom: 2 },
+  modName: { fontSize: 13, fontWeight: "800", color: c.dark, marginBottom: 2 },
   lesRow: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.background, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+    backgroundColor: c.background, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
   },
   typeDot: { width: 8, height: 8, borderRadius: 4 },
-  lesName: { flex: 1, fontSize: 12, fontWeight: "600", color: Colors.textSecondary },
+  lesName: { flex: 1, fontSize: 12, fontWeight: "600", color: c.textSecondary },
   lesType: {
-    fontSize: 10, fontWeight: "700", color: Colors.textMuted,
+    fontSize: 10, fontWeight: "700", color: c.textMuted,
     textTransform: "uppercase", letterSpacing: 0.5,
   },
-  lesMatCount: { fontSize: 10, fontWeight: "700", color: Colors.primary },
+  lesMatCount: { fontSize: 10, fontWeight: "700", color: c.primary },
   saveBtn: {
-    backgroundColor: Colors.primary, borderRadius: 16,
+    backgroundColor: c.primary, borderRadius: 16,
     paddingVertical: 14, alignItems: "center", marginTop: 4,
   },
-  saveBtnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
+  saveBtnText: { fontSize: 15, fontWeight: "900", color: c.white },
   cancelPreviewBtn: { alignItems: "center", paddingVertical: 8 },
-  cancelPreviewText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
+  cancelPreviewText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
 
   askAiBtn: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
   askAiGrad: {

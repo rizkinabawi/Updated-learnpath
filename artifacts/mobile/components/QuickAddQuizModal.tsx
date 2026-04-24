@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Modal, ScrollView, ActivityIndicator, Platform, KeyboardAvoidingView, Alert,
@@ -18,7 +19,7 @@ import {
   type AIKey, type AIProvider,
 } from "@/utils/ai-keys";
 import { callAI } from "@/utils/ai-providers";
-import Colors, { shadowSm } from "@/constants/colors";
+import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
 // ─── AI Prompt utils ────────────────────────────────────────────
@@ -121,25 +122,25 @@ function PickerSheet<T extends { id: string }>({
   onSelect: (item: T) => void; onClose: () => void; onBack?: () => void;
 }) {
   return (
-    <View style={ps.overlay}>
-      <View style={ps.sheet}>
-        <View style={s.handle} />
-        <View style={ps.header}>
-          {onBack ? <TouchableOpacity style={ps.iconBtn} onPress={onBack}><Feather name="arrow-left" size={18} color={Colors.dark} /></TouchableOpacity> : <View style={{ width: 34 }} />}
-          <Text style={ps.title} numberOfLines={1}>{title}</Text>
-          <TouchableOpacity style={ps.iconBtn} onPress={onClose}><Feather name="x" size={18} color={Colors.dark} /></TouchableOpacity>
+    <View style={pickerStyles.overlay}>
+      <View style={pickerStyles.sheet}>
+        <View style={styles.handle} />
+        <View style={pickerStyles.header}>
+          {onBack ? <TouchableOpacity style={pickerStyles.iconBtn} onPress={onBack}><Feather name="arrow-left" size={18} color={colors.dark} /></TouchableOpacity> : <View style={{ width: 34 }} />}
+          <Text style={pickerStyles.title} numberOfLines={1}>{title}</Text>
+          <TouchableOpacity style={pickerStyles.iconBtn} onPress={onClose}><Feather name="x" size={18} color={colors.dark} /></TouchableOpacity>
         </View>
         {items.length === 0 ? (
-          <View style={ps.empty}><Feather name="inbox" size={32} color={Colors.textMuted} /><Text style={ps.emptyText}>Tidak ada data</Text></View>
+          <View style={pickerStyles.empty}><Feather name="inbox" size={32} color={colors.textMuted} /><Text style={pickerStyles.emptyText}>Tidak ada data</Text></View>
         ) : (
-          <ScrollView contentContainerStyle={ps.list}>
+          <ScrollView contentContainerStyle={pickerStyles.list}>
             {items.map((item) => (
-              <TouchableOpacity key={item.id} style={[ps.item, shadowSm]} onPress={() => onSelect(item)}>
+              <TouchableOpacity key={item.id} style={[pickerStyles.item, shadowSm]} onPress={() => onSelect(item)}>
                 <View style={{ flex: 1 }}>
-                  <Text style={ps.itemLabel}>{getLabel(item)}</Text>
-                  {getSub(item) ? <Text style={ps.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
+                  <Text style={pickerStyles.itemLabel}>{getLabel(item)}</Text>
+                  {getSub(item) ? <Text style={pickerStyles.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
                 </View>
-                <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+                <Feather name="chevron-right" size={16} color={colors.textMuted} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -151,6 +152,10 @@ function PickerSheet<T extends { id: string }>({
 
 // ─── Main Modal ──────────────────────────────────────────────────
 export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
+  const colors = useColors();
+  const pickerStyles = useMemo(() => makePickerStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [activeTab, setActiveTab] = useState<Tab>("manual");
 
   // Manual form
@@ -333,50 +338,50 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   ];
   const DIFFICULTIES = [{ key: "easy", label: "Mudah" }, { key: "medium", label: "Sedang" }, { key: "hard", label: "Sulit" }];
   const LANGUAGES = Object.keys(LANG_LABELS);
-  const QUIZ_COLOR = Colors.danger;
-  const QUIZ_LIGHT = Colors.dangerLight;
+  const QUIZ_COLOR = colors.danger;
+  const QUIZ_LIGHT = colors.dangerLight;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <View style={styles.overlay}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%" }}>
-          <View style={s.sheet}>
-            <View style={s.handle} />
-            <View style={s.header}>
-              <Text style={s.title}>Tambah Soal Quiz</Text>
-              <TouchableOpacity style={s.closeBtn} onPress={onClose}><Feather name="x" size={20} color={Colors.dark} /></TouchableOpacity>
+          <View style={styles.sheet}>
+            <View style={styles.handle} />
+            <View style={styles.header}>
+              <Text style={styles.title}>Tambah Soal Quiz</Text>
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}><Feather name="x" size={20} color={colors.dark} /></TouchableOpacity>
             </View>
 
             {/* ── Tabs ── */}
-            <View style={s.tabRow}>
+            <View style={styles.tabRow}>
               {TABS.map((tab) => (
-                <TouchableOpacity key={tab.key} style={[s.tab, activeTab === tab.key && { ...s.tabActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setActiveTab(tab.key)} activeOpacity={0.8}>
-                  <Feather name={tab.icon as any} size={14} color={activeTab === tab.key ? QUIZ_COLOR : Colors.textMuted} />
-                  <Text style={[s.tabText, activeTab === tab.key && { color: QUIZ_COLOR }]}>{tab.label}</Text>
+                <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && { ...styles.tabActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setActiveTab(tab.key)} activeOpacity={0.8}>
+                  <Feather name={tab.icon as any} size={14} color={activeTab === tab.key ? QUIZ_COLOR : colors.textMuted} />
+                  <Text style={[styles.tabText, activeTab === tab.key && { color: QUIZ_COLOR }]}>{tab.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
 
               {/* ── Lesson Picker (shared) ── */}
-              <Text style={s.label}>Assign ke Pelajaran <Text style={s.optional}>(opsional)</Text></Text>
-              <TouchableOpacity style={[s.pickerBtn, selLesson ? { ...s.pickerBtnActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT } : null]} onPress={() => setPickerStep("course")}>
-                <Feather name="book-open" size={16} color={selLesson ? QUIZ_COLOR : Colors.textMuted} />
-                <Text style={[s.pickerBtnText, selLesson ? { color: QUIZ_COLOR } : null]} numberOfLines={1}>{lessonLabel}</Text>
-                <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+              <Text style={styles.label}>Assign ke Pelajaran <Text style={styles.optional}>(opsional)</Text></Text>
+              <TouchableOpacity style={[styles.pickerBtn, selLesson ? { ...styles.pickerBtnActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT } : null]} onPress={() => setPickerStep("course")}>
+                <Feather name="book-open" size={16} color={selLesson ? QUIZ_COLOR : colors.textMuted} />
+                <Text style={[styles.pickerBtnText, selLesson ? { color: QUIZ_COLOR } : null]} numberOfLines={1}>{lessonLabel}</Text>
+                <Feather name="chevron-right" size={16} color={colors.textMuted} />
               </TouchableOpacity>
               {!selLesson && (
                 <>
-                  <View style={s.standaloneBadge}>
+                  <View style={styles.standaloneBadge}>
                     <Feather name="folder" size={12} color={QUIZ_COLOR} />
-                    <Text style={[s.standaloneBadgeText, { color: QUIZ_COLOR }]}>Akan dibuat sebagai koleksi tersendiri</Text>
+                    <Text style={[styles.standaloneBadgeText, { color: QUIZ_COLOR }]}>Akan dibuat sebagai koleksi tersendiri</Text>
                   </View>
-                  <Text style={[s.label, { marginTop: 6 }]}>Nama Koleksi <Text style={s.optional}>(opsional)</Text></Text>
+                  <Text style={[styles.label, { marginTop: 6 }]}>Nama Koleksi <Text style={styles.optional}>(opsional)</Text></Text>
                   <TextInput
-                    style={[s.input, { minHeight: 44 }]}
+                    style={[styles.input, { minHeight: 44 }]}
                     placeholder="Contoh: Soal Matematika, Ujian Kimia…"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={collectionName}
                     onChangeText={setCollectionName}
                   />
@@ -386,28 +391,28 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ MANUAL TAB ══════════ */}
               {activeTab === "manual" && (
                 <>
-                  <Text style={[s.label, { marginTop: 14 }]}>Tipe Soal</Text>
-                  <View style={s.typeRow}>
+                  <Text style={[styles.label, { marginTop: 14 }]}>Tipe Soal</Text>
+                  <View style={styles.typeRow}>
                     {(["multiple-choice", "true-false"] as QuizType[]).map((t) => (
-                      <TouchableOpacity key={t} style={[s.typeBtn, quizType === t && { ...s.typeBtnActive, backgroundColor: QUIZ_COLOR, borderColor: QUIZ_COLOR }]} onPress={() => { setQuizType(t); setAnswerIndex(null); setTfAnswer(null); }}>
-                        <Feather name={t === "multiple-choice" ? "list" : "toggle-right"} size={15} color={quizType === t ? "#fff" : Colors.textMuted} />
-                        <Text style={[s.typeBtnText, quizType === t && s.typeBtnTextActive]}>{t === "multiple-choice" ? "Pilihan Ganda" : "Benar / Salah"}</Text>
+                      <TouchableOpacity key={t} style={[styles.typeBtn, quizType === t && { ...styles.typeBtnActive, backgroundColor: QUIZ_COLOR, borderColor: QUIZ_COLOR }]} onPress={() => { setQuizType(t); setAnswerIndex(null); setTfAnswer(null); }}>
+                        <Feather name={t === "multiple-choice" ? "list" : "toggle-right"} size={15} color={quizType === t ? "#fff" : colors.textMuted} />
+                        <Text style={[styles.typeBtnText, quizType === t && styles.typeBtnTextActive]}>{t === "multiple-choice" ? "Pilihan Ganda" : "Benar / Salah"}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <Text style={s.label}>Pertanyaan *</Text>
-                  <TextInput style={[s.input, { minHeight: 72 }]} multiline placeholder="Tulis pertanyaan..." placeholderTextColor={Colors.textMuted} value={question} onChangeText={setQuestion} textAlignVertical="top" />
+                  <Text style={styles.label}>Pertanyaan *</Text>
+                  <TextInput style={[styles.input, { minHeight: 72 }]} multiline placeholder="Tulis pertanyaan..." placeholderTextColor={colors.textMuted} value={question} onChangeText={setQuestion} textAlignVertical="top" />
 
                   {quizType === "multiple-choice" && (
                     <>
-                      <Text style={s.label}>Pilihan Jawaban <Text style={s.optional}>(tap radio = jawaban benar)</Text></Text>
+                      <Text style={styles.label}>Pilihan Jawaban <Text style={styles.optional}>(tap radio = jawaban benar)</Text></Text>
                       {options.map((opt, i) => (
-                        <View key={i} style={s.optRow}>
-                          <TouchableOpacity style={[s.radio, answerIndex === i && { ...s.radioActive, backgroundColor: Colors.success, borderColor: Colors.success }]} onPress={() => setAnswerIndex(i)}>
-                            {answerIndex === i ? <Feather name="check" size={12} color="#fff" /> : <Text style={s.radioLetter}>{LETTERS[i]}</Text>}
+                        <View key={i} style={styles.optRow}>
+                          <TouchableOpacity style={[styles.radio, answerIndex === i && { ...styles.radioActive, backgroundColor: colors.success, borderColor: colors.success }]} onPress={() => setAnswerIndex(i)}>
+                            {answerIndex === i ? <Feather name="check" size={12} color="#fff" /> : <Text style={styles.radioLetter}>{LETTERS[i]}</Text>}
                           </TouchableOpacity>
-                          <TextInput style={[s.optInput, answerIndex === i && s.optInputActive]} placeholder={`Pilihan ${LETTERS[i]}`} placeholderTextColor={Colors.textMuted} value={opt} onChangeText={(v) => updateOption(i, v)} />
+                          <TextInput style={[styles.optInput, answerIndex === i && styles.optInputActive]} placeholder={`Pilihan ${LETTERS[i]}`} placeholderTextColor={colors.textMuted} value={opt} onChangeText={(v) => updateOption(i, v)} />
                         </View>
                       ))}
                     </>
@@ -415,24 +420,24 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
 
                   {quizType === "true-false" && (
                     <>
-                      <Text style={s.label}>Jawaban yang Benar</Text>
-                      <View style={s.tfRow}>
+                      <Text style={styles.label}>Jawaban yang Benar</Text>
+                      <View style={styles.tfRow}>
                         {(["Benar", "Salah"] as const).map((v) => (
-                          <TouchableOpacity key={v} style={[s.tfBtn, tfAnswer === v && (v === "Benar" ? s.tfTrue : s.tfFalse)]} onPress={() => setTfAnswer(v)}>
-                            <Feather name={v === "Benar" ? "check-circle" : "x-circle"} size={18} color={tfAnswer === v ? "#fff" : Colors.textMuted} />
-                            <Text style={[s.tfBtnText, tfAnswer === v && { color: "#fff" }]}>{v}</Text>
+                          <TouchableOpacity key={v} style={[styles.tfBtn, tfAnswer === v && (v === "Benar" ? styles.tfTrue : styles.tfFalse)]} onPress={() => setTfAnswer(v)}>
+                            <Feather name={v === "Benar" ? "check-circle" : "x-circle"} size={18} color={tfAnswer === v ? "#fff" : colors.textMuted} />
+                            <Text style={[styles.tfBtnText, tfAnswer === v && { color: "#fff" }]}>{v}</Text>
                           </TouchableOpacity>
                         ))}
                       </View>
                     </>
                   )}
 
-                  <Text style={s.label}>Penjelasan (opsional)</Text>
-                  <TextInput style={[s.input, { minHeight: 60 }]} multiline placeholder="Penjelasan jawaban..." placeholderTextColor={Colors.textMuted} value={explanation} onChangeText={setExplanation} textAlignVertical="top" />
+                  <Text style={styles.label}>Penjelasan (opsional)</Text>
+                  <TextInput style={[styles.input, { minHeight: 60 }]} multiline placeholder="Penjelasan jawaban..." placeholderTextColor={colors.textMuted} value={explanation} onChangeText={setExplanation} textAlignVertical="top" />
 
-                  <TouchableOpacity style={[s.saveBtn, { backgroundColor: QUIZ_COLOR }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                  <TouchableOpacity style={[styles.saveBtn, { backgroundColor: QUIZ_COLOR }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
                     {saving ? <ActivityIndicator color="#fff" size="small" /> : <Feather name="check" size={18} color="#fff" />}
-                    <Text style={s.saveBtnText}>{saving ? "Menyimpan..." : "Simpan Soal"}</Text>
+                    <Text style={styles.saveBtnText}>{saving ? "Menyimpan..." : "Simpan Soal"}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -440,73 +445,73 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ AI PROMPT TAB ══════════ */}
               {activeTab === "ai" && (
                 <>
-                  <View style={[s.aiInfoBox, { backgroundColor: QUIZ_LIGHT }]}>
+                  <View style={[styles.aiInfoBox, { backgroundColor: QUIZ_LIGHT }]}>
                     <Feather name="cpu" size={16} color={QUIZ_COLOR} />
-                    <Text style={[s.aiInfoText, { color: QUIZ_COLOR }]}>Buat prompt untuk AI (ChatGPT, Gemini, Claude, dll), lalu tempel hasilnya di tab <Text style={{ fontWeight: "800" }}>Import JSON</Text>.</Text>
+                    <Text style={[styles.aiInfoText, { color: QUIZ_COLOR }]}>Buat prompt untuk AI (ChatGPT, Gemini, Claude, dll), lalu tempel hasilnya di tab <Text style={{ fontWeight: "800" }}>Import JSON</Text>.</Text>
                   </View>
 
-                  <Text style={[s.label, { marginTop: 12 }]}>Topik / Materi *</Text>
-                  <TextInput style={s.input} placeholder="Contoh: Fotosintesis, Hukum Newton, React Hooks" placeholderTextColor={Colors.textMuted} value={promptTopic} onChangeText={setPromptTopic} />
+                  <Text style={[styles.label, { marginTop: 12 }]}>Topik / Materi *</Text>
+                  <TextInput style={styles.input} placeholder="Contoh: Fotosintesis, Hukum Newton, React Hooks" placeholderTextColor={colors.textMuted} value={promptTopic} onChangeText={setPromptTopic} />
 
-                  <Text style={s.label}>Jumlah Soal</Text>
-                  <View style={s.countRow}>
+                  <Text style={styles.label}>Jumlah Soal</Text>
+                  <View style={styles.countRow}>
                     {["5", "10", "15", "20", "30"].map((n) => (
-                      <TouchableOpacity key={n} style={[s.countChip, promptCount === n && { ...s.countChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptCount(n)}>
-                        <Text style={[s.countChipText, promptCount === n && { color: QUIZ_COLOR }]}>{n}</Text>
+                      <TouchableOpacity key={n} style={[styles.countChip, promptCount === n && { ...styles.countChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptCount(n)}>
+                        <Text style={[styles.countChipText, promptCount === n && { color: QUIZ_COLOR }]}>{n}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <Text style={s.label}>Tingkat Kesulitan</Text>
-                  <View style={s.diffRow}>
+                  <Text style={styles.label}>Tingkat Kesulitan</Text>
+                  <View style={styles.diffRow}>
                     {DIFFICULTIES.map((d) => (
-                      <TouchableOpacity key={d.key} style={[s.diffChip, promptDifficulty === d.key && { ...s.diffChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptDifficulty(d.key)}>
-                        <Text style={[s.diffChipText, promptDifficulty === d.key && { color: QUIZ_COLOR }]}>{d.label}</Text>
+                      <TouchableOpacity key={d.key} style={[styles.diffChip, promptDifficulty === d.key && { ...styles.diffChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptDifficulty(d.key)}>
+                        <Text style={[styles.diffChipText, promptDifficulty === d.key && { color: QUIZ_COLOR }]}>{d.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <Text style={s.label}>Bahasa Output</Text>
+                  <Text style={styles.label}>Bahasa Output</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
                     {LANGUAGES.map((lang) => (
-                      <TouchableOpacity key={lang} style={[s.langChip, promptLanguage === lang && { ...s.langChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptLanguage(lang)}>
-                        <Text style={[s.langChipText, promptLanguage === lang && { color: QUIZ_COLOR }]}>{lang}</Text>
+                      <TouchableOpacity key={lang} style={[styles.langChip, promptLanguage === lang && { ...styles.langChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptLanguage(lang)}>
+                        <Text style={[styles.langChipText, promptLanguage === lang && { color: QUIZ_COLOR }]}>{lang}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
 
-                  <Text style={s.label}>Catatan Tambahan (opsional)</Text>
-                  <TextInput style={[s.input, { minHeight: 60 }]} multiline placeholder="Contoh: buat soal analisis kasus, gunakan contoh Indonesia" placeholderTextColor={Colors.textMuted} value={promptCustomNote} onChangeText={setPromptCustomNote} textAlignVertical="top" />
+                  <Text style={styles.label}>Catatan Tambahan (opsional)</Text>
+                  <TextInput style={[styles.input, { minHeight: 60 }]} multiline placeholder="Contoh: buat soal analisis kasus, gunakan contoh Indonesia" placeholderTextColor={colors.textMuted} value={promptCustomNote} onChangeText={setPromptCustomNote} textAlignVertical="top" />
 
                   {/* Action buttons row */}
-                  <View style={s.aiActionRow}>
+                  <View style={styles.aiActionRow}>
                     <TouchableOpacity
-                      style={[s.copyPromptBtn, { backgroundColor: promptCopied ? Colors.success : QUIZ_COLOR }]}
+                      style={[styles.copyPromptBtn, { backgroundColor: promptCopied ? colors.success : QUIZ_COLOR }]}
                       onPress={handleGeneratePrompt}
                       activeOpacity={0.85}
                       disabled={aiLoading}
                     >
                       <Feather name={promptCopied ? "check" : "copy"} size={14} color="#fff" />
-                      <Text style={s.copyPromptBtnText}>{promptCopied ? "Tersalin!" : "Salin Prompt"}</Text>
+                      <Text style={styles.copyPromptBtnText}>{promptCopied ? "Tersalin!" : "Salin Prompt"}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={s.askAiBtn}
+                      style={styles.askAiBtn}
                       onPress={() => setShowAISheet(true)}
                       activeOpacity={0.85}
                       disabled={aiLoading}
                     >
                       <LinearGradient
-                        colors={[Colors.success, Colors.primary]}
+                        colors={[colors.success, colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        style={s.askAiGrad}
+                        style={styles.askAiGrad}
                       >
                         {aiLoading ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <>
                             <Text style={{ fontSize: 13 }}>🤖</Text>
-                            <Text style={s.askAiBtnText}>Ask Your AI</Text>
+                            <Text style={styles.askAiBtnText}>Ask Your AI</Text>
                             <Text style={{ fontSize: 10, color: "#fff" }}>⚡</Text>
                           </>
                         )}
@@ -515,15 +520,15 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
                   </View>
 
                   {generatedPrompt.length > 0 && (
-                    <View style={[s.promptPreview, { borderLeftColor: QUIZ_COLOR }]}>
-                      <Text style={s.promptPreviewText} numberOfLines={5}>{generatedPrompt}</Text>
+                    <View style={[styles.promptPreview, { borderLeftColor: QUIZ_COLOR }]}>
+                      <Text style={styles.promptPreviewText} numberOfLines={5}>{generatedPrompt}</Text>
                     </View>
                   )}
 
                   {promptCopied && (
-                    <TouchableOpacity style={[s.secondaryBtn, { borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setActiveTab("import")}>
+                    <TouchableOpacity style={[styles.secondaryBtn, { borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setActiveTab("import")}>
                       <Feather name="download" size={16} color={QUIZ_COLOR} />
-                      <Text style={[s.secondaryBtnText, { color: QUIZ_COLOR }]}>Lanjut ke Import JSON →</Text>
+                      <Text style={[styles.secondaryBtnText, { color: QUIZ_COLOR }]}>Lanjut ke Import JSON →</Text>
                     </TouchableOpacity>
                   )}
                 </>
@@ -532,36 +537,36 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ IMPORT JSON TAB ══════════ */}
               {activeTab === "import" && (
                 <>
-                  <View style={[s.aiInfoBox, { backgroundColor: "#F5F3FF" }]}>
-                    <Feather name="download" size={16} color={Colors.purple} />
-                    <Text style={[s.aiInfoText, { color: "#7C3AED" }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
+                  <View style={[styles.aiInfoBox, { backgroundColor: "#F5F3FF" }]}>
+                    <Feather name="download" size={16} color={colors.purple} />
+                    <Text style={[styles.aiInfoText, { color: "#7C3AED" }]}>Tempel JSON hasil dari AI atau pilih file .json dari perangkatmu.</Text>
                   </View>
 
-                  <Text style={[s.label, { marginTop: 12 }]}>Format yang diterima:</Text>
-                  <View style={s.formatBox}>
-                    <Text style={s.formatCode}>{'[{"question":"...","options":["A","B","C","D"],"correct_answer":"A","explanation":"..."}]'}</Text>
+                  <Text style={[styles.label, { marginTop: 12 }]}>Format yang diterima:</Text>
+                  <View style={styles.formatBox}>
+                    <Text style={styles.formatCode}>{'[{"question":"...","options":["A","B","C","D"],"correct_answer":"A","explanation":"..."}]'}</Text>
                   </View>
-                  <Text style={s.formatHint}>Field "correct_answer" harus sama persis dengan salah satu teks di "options"</Text>
+                  <Text style={styles.formatHint}>Field "correct_answer" harus sama persis dengan salah satu teks di "options"</Text>
 
-                  <Text style={[s.label, { marginTop: 10 }]}>Tempel JSON di sini</Text>
+                  <Text style={[styles.label, { marginTop: 10 }]}>Tempel JSON di sini</Text>
                   <TextInput
-                    style={[s.input, { minHeight: 120, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 12 }]}
+                    style={[styles.input, { minHeight: 120, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 12 }]}
                     multiline placeholder={'[{"question":"...","options":["...","...","...","..."],"correct_answer":"...","explanation":"..."}]'}
-                    placeholderTextColor={Colors.textMuted} value={importJson}
+                    placeholderTextColor={colors.textMuted} value={importJson}
                     onChangeText={setImportJson} textAlignVertical="top" autoCorrect={false} autoCapitalize="none"
                   />
 
-                  <View style={s.importBtnRow}>
-                    <TouchableOpacity style={[s.outlineBtn, { flex: 1, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={handlePickFile}>
+                  <View style={styles.importBtnRow}>
+                    <TouchableOpacity style={[styles.outlineBtn, { flex: 1, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={handlePickFile}>
                       <Feather name="folder" size={16} color={QUIZ_COLOR} />
-                      <Text style={[s.outlineBtnText, { color: QUIZ_COLOR }]}>Pilih File</Text>
+                      <Text style={[styles.outlineBtnText, { color: QUIZ_COLOR }]}>Pilih File</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[s.saveBtn, { flex: 1, marginTop: 0, backgroundColor: QUIZ_COLOR, opacity: importing || !importJson.trim() ? 0.6 : 1 }]}
+                      style={[styles.saveBtn, { flex: 1, marginTop: 0, backgroundColor: QUIZ_COLOR, opacity: importing || !importJson.trim() ? 0.6 : 1 }]}
                       onPress={handleImportText} disabled={importing || !importJson.trim()}
                     >
                       {importing ? <ActivityIndicator color="#fff" size="small" /> : <Feather name="download" size={16} color="#fff" />}
-                      <Text style={s.saveBtnText}>{importing ? "Mengimport..." : "Import"}</Text>
+                      <Text style={styles.saveBtnText}>{importing ? "Mengimport..." : "Import"}</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -586,17 +591,17 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
 
         {/* Inline AI Provider Picker */}
         {showAISheet && (
-          <View style={s.aiOverlay}>
+          <View style={styles.aiOverlay}>
             <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => { if (!aiLoading) setShowAISheet(false); }} />
-            <View style={s.aiSheet}>
-              <View style={s.handle} />
-              <View style={s.header}>
-                <Text style={s.title}>Pilih AI Provider</Text>
-                <TouchableOpacity style={s.closeBtn} onPress={() => { if (!aiLoading) setShowAISheet(false); }}>
-                  <Feather name="x" size={18} color={Colors.dark} />
+            <View style={styles.aiSheet}>
+              <View style={styles.handle} />
+              <View style={styles.header}>
+                <Text style={styles.title}>Pilih AI Provider</Text>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => { if (!aiLoading) setShowAISheet(false); }}>
+                  <Feather name="x" size={18} color={colors.dark} />
                 </TouchableOpacity>
               </View>
-              <Text style={[s.label, { color: Colors.textMuted, fontWeight: "500", marginBottom: 12 }]}>
+              <Text style={[styles.label, { color: colors.textMuted, fontWeight: "500", marginBottom: 12 }]}>
                 {aiKeys.length === 0 ? "Belum ada API key. Tambahkan di menu AI Keys." : "Pilih provider untuk generate soal otomatis."}
               </Text>
               {(["openai", "gemini"] as AIProvider[]).map((prov) => {
@@ -605,16 +610,16 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
                 return (
                   <TouchableOpacity
                     key={prov}
-                    style={[s.aiProvCard, { borderColor: key ? meta.color + "50" : Colors.border, opacity: key ? 1 : 0.5 }]}
+                    style={[styles.aiProvCard, { borderColor: key ? meta.color + "50" : colors.border, opacity: key ? 1 : 0.5 }]}
                     activeOpacity={key ? 0.75 : 1}
                     onPress={() => { if (key) handleAskAI(prov, key); }}
                   >
-                    <View style={[s.aiProvIcon, { backgroundColor: meta.bg }]}>
+                    <View style={[styles.aiProvIcon, { backgroundColor: meta.bg }]}>
                       <Text style={{ fontSize: 20 }}>{prov === "openai" ? "⚡" : "✨"}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "800", color: Colors.dark }}>{meta.label}</Text>
-                      <Text style={{ fontSize: 11, color: Colors.textMuted, fontWeight: "500" }}>
+                      <Text style={{ fontSize: 14, fontWeight: "800", color: colors.dark }}>{meta.label}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: "500" }}>
                         {key ? key.model : "Belum ada key"}
                       </Text>
                     </View>
@@ -630,67 +635,67 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "92%", paddingBottom: 32 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
+  sheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "92%", paddingBottom: 32 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10 },
-  title: { fontSize: 18, fontWeight: "900", color: Colors.dark },
-  closeBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 18, fontWeight: "900", color: c.dark },
+  closeBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
   tabRow: { flexDirection: "row", marginHorizontal: 20, marginBottom: 8, gap: 8 },
-  tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 9, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background },
-  tabActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  tabText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
+  tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 9, borderRadius: 12, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background },
+  tabActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  tabText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
   body: { paddingHorizontal: 20, paddingBottom: 12, gap: 6 },
-  label: { fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 4, marginBottom: 6 },
-  optional: { fontSize: 11, fontWeight: "500", color: Colors.textMuted },
-  pickerBtn: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: Colors.background },
-  pickerBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  pickerBtnText: { flex: 1, fontSize: 13, fontWeight: "600", color: Colors.textMuted },
-  standaloneBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.background, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border, alignSelf: "flex-start" },
-  standaloneBadgeText: { fontSize: 11, fontWeight: "600", color: Colors.textMuted },
-  input: { borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: Colors.dark, minHeight: 56, backgroundColor: Colors.background, marginBottom: 4 },
+  label: { fontSize: 13, fontWeight: "700", color: c.dark, marginTop: 4, marginBottom: 6 },
+  optional: { fontSize: 11, fontWeight: "500", color: c.textMuted },
+  pickerBtn: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1.5, borderColor: c.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: c.background },
+  pickerBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  pickerBtnText: { flex: 1, fontSize: 13, fontWeight: "600", color: c.textMuted },
+  standaloneBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.background, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: c.border, alignSelf: "flex-start" },
+  standaloneBadgeText: { fontSize: 11, fontWeight: "600", color: c.textMuted },
+  input: { borderWidth: 1.5, borderColor: c.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.dark, minHeight: 56, backgroundColor: c.background, marginBottom: 4 },
   typeRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
-  typeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingVertical: 10, backgroundColor: Colors.background },
-  typeBtnActive: { backgroundColor: Colors.danger, borderColor: Colors.danger },
-  typeBtnText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  typeBtnTextActive: { color: Colors.white },
+  typeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1.5, borderColor: c.border, borderRadius: 12, paddingVertical: 10, backgroundColor: c.background },
+  typeBtnActive: { backgroundColor: c.danger, borderColor: c.danger },
+  typeBtnText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  typeBtnTextActive: { color: c.white },
   optRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
-  radio: { width: 30, height: 30, borderRadius: 10, borderWidth: 2, borderColor: Colors.border, alignItems: "center", justifyContent: "center", backgroundColor: Colors.background, flexShrink: 0 },
-  radioActive: { backgroundColor: Colors.success, borderColor: Colors.success },
-  radioLetter: { fontSize: 12, fontWeight: "800", color: Colors.textMuted },
-  optInput: { flex: 1, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: Colors.dark, backgroundColor: Colors.background },
-  optInputActive: { borderColor: Colors.success, backgroundColor: Colors.successLight },
+  radio: { width: 30, height: 30, borderRadius: 10, borderWidth: 2, borderColor: c.border, alignItems: "center", justifyContent: "center", backgroundColor: c.background, flexShrink: 0 },
+  radioActive: { backgroundColor: c.success, borderColor: c.success },
+  radioLetter: { fontSize: 12, fontWeight: "800", color: c.textMuted },
+  optInput: { flex: 1, borderWidth: 1.5, borderColor: c.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: c.dark, backgroundColor: c.background },
+  optInputActive: { borderColor: c.success, backgroundColor: c.successLight },
   tfRow: { flexDirection: "row", gap: 10, marginBottom: 4 },
-  tfBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14, paddingVertical: 14, backgroundColor: Colors.background },
-  tfTrue: { backgroundColor: Colors.success, borderColor: Colors.success },
-  tfFalse: { backgroundColor: Colors.danger, borderColor: Colors.danger },
-  tfBtnText: { fontSize: 15, fontWeight: "800", color: Colors.textMuted },
-  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 15, marginTop: 12 },
-  saveBtnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
-  secondaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14, paddingVertical: 12, marginTop: 8, backgroundColor: Colors.primaryLight },
-  secondaryBtnText: { fontSize: 14, fontWeight: "800", color: Colors.primary },
-  aiInfoBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.primaryLight, borderRadius: 14, padding: 12, marginTop: 6 },
-  aiInfoText: { flex: 1, fontSize: 13, fontWeight: "600", color: Colors.primary, lineHeight: 19 },
+  tfBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: c.border, borderRadius: 14, paddingVertical: 14, backgroundColor: c.background },
+  tfTrue: { backgroundColor: c.success, borderColor: c.success },
+  tfFalse: { backgroundColor: c.danger, borderColor: c.danger },
+  tfBtnText: { fontSize: 15, fontWeight: "800", color: c.textMuted },
+  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: c.primary, borderRadius: 16, paddingVertical: 15, marginTop: 12 },
+  saveBtnText: { fontSize: 15, fontWeight: "900", color: c.white },
+  secondaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: c.primary, borderRadius: 14, paddingVertical: 12, marginTop: 8, backgroundColor: c.primaryLight },
+  secondaryBtnText: { fontSize: 14, fontWeight: "800", color: c.primary },
+  aiInfoBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: c.primaryLight, borderRadius: 14, padding: 12, marginTop: 6 },
+  aiInfoText: { flex: 1, fontSize: 13, fontWeight: "600", color: c.primary, lineHeight: 19 },
   countRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  countChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background },
-  countChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  countChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
+  countChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background },
+  countChipActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  countChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
   diffRow: { flexDirection: "row", gap: 8 },
-  diffChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background, alignItems: "center" },
-  diffChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  diffChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  langChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.background },
-  langChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  langChipText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
-  promptPreview: { backgroundColor: Colors.background, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: Colors.primary, marginTop: 4 },
-  promptPreviewText: { fontSize: 11, color: Colors.textSecondary, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 17 },
+  diffChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background, alignItems: "center" },
+  diffChipActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  diffChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  langChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.background },
+  langChipActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  langChipText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
+  promptPreview: { backgroundColor: c.background, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: c.primary, marginTop: 4 },
+  promptPreviewText: { fontSize: 11, color: c.textSecondary, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 17 },
   formatBox: { backgroundColor: "#F3F4F6", borderRadius: 10, padding: 10, marginBottom: 4 },
   formatCode: { fontSize: 11, color: "#374151", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
-  formatHint: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginBottom: 4 },
+  formatHint: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginBottom: 4 },
   importBtnRow: { flexDirection: "row", gap: 10, marginTop: 8 },
-  outlineBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 16, paddingVertical: 15, backgroundColor: Colors.primaryLight },
-  outlineBtnText: { fontSize: 14, fontWeight: "800", color: Colors.primary },
+  outlineBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: c.primary, borderRadius: 16, paddingVertical: 15, backgroundColor: c.primaryLight },
+  outlineBtnText: { fontSize: 14, fontWeight: "800", color: c.primary },
   // AI action row
   aiActionRow: { flexDirection: "row", gap: 10, marginTop: 10 },
   copyPromptBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, paddingVertical: 13 },
@@ -700,21 +705,21 @@ const s = StyleSheet.create({
   askAiBtnText: { fontSize: 13, fontWeight: "800", color: "#fff" },
   // Inline AI provider overlay
   aiOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", zIndex: 20 },
-  aiSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 32 },
-  aiProvCard: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1.5, borderRadius: 16, padding: 14, marginBottom: 10, backgroundColor: Colors.background },
+  aiSheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 32 },
+  aiProvCard: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1.5, borderRadius: 16, padding: 14, marginBottom: 10, backgroundColor: c.background },
   aiProvIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 });
 
-const ps = StyleSheet.create({
+const makePickerStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end", zIndex: 10 },
-  sheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "75%", paddingBottom: 24 },
+  sheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "75%", paddingBottom: 24 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  iconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
-  title: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: Colors.dark },
+  iconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
+  title: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: c.dark },
   list: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
-  item: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: Colors.border },
-  itemLabel: { fontSize: 14, fontWeight: "800", color: Colors.dark, marginBottom: 2 },
-  itemSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  item: { flexDirection: "row", alignItems: "center", backgroundColor: c.white, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: c.border },
+  itemLabel: { fontSize: 14, fontWeight: "800", color: c.dark, marginBottom: 2 },
+  itemSub: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   empty: { alignItems: "center", paddingVertical: 36, gap: 10 },
-  emptyText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
+  emptyText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
 });

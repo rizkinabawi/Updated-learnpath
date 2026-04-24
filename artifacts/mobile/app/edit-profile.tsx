@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Platform, Alert, Image,
@@ -10,7 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import { getUser, saveUser, type User } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
 const AVATAR_DIR = ((FileSystem as any).documentDirectory ?? "") + "avatars/";
@@ -22,12 +23,15 @@ const ensureAvatarDir = async () => {
 };
 
 const LEVELS = [
-  { key: "beginner" as const, label: "Pemula", emoji: "🌱", color: Colors.teal },
-  { key: "intermediate" as const, label: "Menengah", emoji: "⚡", color: Colors.amber },
-  { key: "advanced" as const, label: "Mahir", emoji: "🔥", color: Colors.danger },
+  { key: "beginner" as const, label: "Pemula", emoji: "🌱", color: colors.teal },
+  { key: "intermediate" as const, label: "Menengah", emoji: "⚡", color: colors.amber },
+  { key: "advanced" as const, label: "Mahir", emoji: "🔥", color: colors.danger },
 ];
 
 export default function EditProfile() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -108,7 +112,7 @@ export default function EditProfile() {
   const initial = (name || "L").charAt(0).toUpperCase();
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -116,7 +120,7 @@ export default function EditProfile() {
       >
         {/* Header */}
         <LinearGradient
-          colors={[Colors.primary, Colors.purple]}
+          colors={[colors.primary, colors.purple]}
           style={[styles.header, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 }]}
         >
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -129,7 +133,7 @@ export default function EditProfile() {
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
             ) : (
-              <LinearGradient colors={[Colors.purple, Colors.primary]} style={styles.avatarFallback}>
+              <LinearGradient colors={[colors.purple, colors.primary]} style={styles.avatarFallback}>
                 <Text style={styles.avatarInitial}>{initial}</Text>
               </LinearGradient>
             )}
@@ -145,13 +149,13 @@ export default function EditProfile() {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Nama</Text>
             <View style={styles.inputWrap}>
-              <Feather name="user" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <Feather name="user" size={16} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput
                 value={name}
                 onChangeText={setName}
                 placeholder="Nama kamu"
                 style={styles.input}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
               />
             </View>
@@ -161,13 +165,13 @@ export default function EditProfile() {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Topik Belajar</Text>
             <View style={styles.inputWrap}>
-              <Feather name="book-open" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <Feather name="book-open" size={16} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput
                 value={topic}
                 onChangeText={setTopic}
                 placeholder="Contoh: React Native, Matematika"
                 style={styles.input}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
           </View>
@@ -176,13 +180,13 @@ export default function EditProfile() {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Target Belajar</Text>
             <View style={[styles.inputWrap, { alignItems: "flex-start" }]}>
-              <Feather name="target" size={16} color={Colors.textMuted} style={[styles.inputIcon, { marginTop: 14 }]} />
+              <Feather name="target" size={16} color={colors.textMuted} style={[styles.inputIcon, { marginTop: 14 }]} />
               <TextInput
                 value={goal}
                 onChangeText={setGoal}
                 placeholder="Apa yang ingin kamu capai?"
                 style={[styles.input, { minHeight: 90, textAlignVertical: "top", paddingTop: 12 }]}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
             </View>
@@ -221,7 +225,7 @@ export default function EditProfile() {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.saveBtnGrad}>
+            <LinearGradient colors={[colors.primary, colors.purple]} style={styles.saveBtnGrad}>
               <Feather name="check" size={18} color="#fff" />
               <Text style={styles.saveBtnText}>{saving ? "Menyimpan..." : "Simpan Perubahan"}</Text>
             </LinearGradient>
@@ -232,7 +236,7 @@ export default function EditProfile() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: {
     alignItems: "center",
     paddingHorizontal: 20,
@@ -295,7 +299,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 9,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -311,17 +315,17 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     paddingHorizontal: 14,
     gap: 10,
   },
@@ -330,7 +334,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     paddingVertical: 13,
   },
   levelRow: { flexDirection: "row", gap: 10 },
@@ -338,15 +342,15 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderColor: c.border,
+    backgroundColor: c.white,
     alignItems: "center",
     paddingVertical: 14,
     gap: 6,
     position: "relative",
   },
   levelEmoji: { fontSize: 22 },
-  levelLabel: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
+  levelLabel: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
   levelCheck: {
     position: "absolute",
     top: 6,

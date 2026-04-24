@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -12,10 +13,13 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { ExternalScreen, getExternalScreen } from "@/utils/externalScreens";
 
 export default function ExternalViewPage() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -38,7 +42,7 @@ export default function ExternalViewPage() {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={Colors.primary} />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -47,7 +51,7 @@ export default function ExternalViewPage() {
     return (
       <View style={[styles.loading, { paddingTop: insets.top }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Feather name="alert-circle" size={36} color={Colors.textMuted} />
+        <Feather name="alert-circle" size={36} color={colors.textMuted} />
         <Text style={styles.errorText}>Halaman tidak ditemukan</Text>
         <TouchableOpacity style={styles.backCta} onPress={() => router.back()}>
           <Text style={styles.backCtaText}>Kembali</Text>
@@ -70,7 +74,7 @@ export default function ExternalViewPage() {
           canGoBack={false}
         />
         <View style={styles.webFallback}>
-          <Feather name="external-link" size={36} color={Colors.primary} />
+          <Feather name="external-link" size={36} color={colors.primary} />
           <Text style={styles.webFallbackTitle}>Buka di tab baru</Text>
           <Text style={styles.webFallbackText}>
             Preview website di mode web terbatas. Buka di tab baru untuk pengalaman penuh.
@@ -110,7 +114,7 @@ export default function ExternalViewPage() {
         startInLoadingState
         renderLoading={() => (
           <View style={styles.webLoading}>
-            <ActivityIndicator color={Colors.primary} />
+            <ActivityIndicator color={colors.primary} />
           </View>
         )}
       />
@@ -138,29 +142,29 @@ function Header({
   return (
     <View style={styles.header}>
       <TouchableOpacity style={styles.iconBtn} onPress={canGoBack && onWebBack ? onWebBack : onBack}>
-        <Feather name="arrow-left" size={20} color={Colors.text} />
+        <Feather name="arrow-left" size={20} color={colors.text} />
       </TouchableOpacity>
       <View style={{ flex: 1 }}>
         <Text style={styles.title} numberOfLines={1}>{title}</Text>
         <Text style={styles.url} numberOfLines={1}>{url}</Text>
       </View>
       <TouchableOpacity style={styles.iconBtn} onPress={onReload}>
-        <Feather name="refresh-cw" size={18} color={Colors.text} />
+        <Feather name="refresh-cw" size={18} color={colors.text} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
-        <Feather name="x" size={20} color={Colors.text} />
+        <Feather name="x" size={20} color={colors.text} />
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.white },
-  loading: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: Colors.white },
-  errorText: { marginTop: 12, color: Colors.text, fontWeight: "600" },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.white },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: c.white },
+  errorText: { marginTop: 12, color: c.text, fontWeight: "600" },
   backCta: {
     marginTop: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
@@ -173,21 +177,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderBottomColor: c.border,
+    backgroundColor: c.white,
   },
   iconBtn: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: Colors.bg ?? "#F6F7FB",
+    backgroundColor: c.bg ?? "#F6F7FB",
     alignItems: "center", justifyContent: "center",
   },
-  title: { fontSize: 14, fontWeight: "700", color: Colors.text },
-  url: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  progressBar: { height: 2, backgroundColor: Colors.primary },
-  webLoading: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: Colors.white },
+  title: { fontSize: 14, fontWeight: "700", color: c.text },
+  url: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  progressBar: { height: 2, backgroundColor: c.primary },
+  webLoading: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: c.white },
   webFallback: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 12 },
-  webFallbackTitle: { fontSize: 16, fontWeight: "700", color: Colors.text },
-  webFallbackText: { fontSize: 13, color: Colors.textMuted, textAlign: "center", maxWidth: 320, lineHeight: 19 },
-  openBtn: { marginTop: 8, backgroundColor: Colors.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12 },
+  webFallbackTitle: { fontSize: 16, fontWeight: "700", color: c.text },
+  webFallbackText: { fontSize: 13, color: c.textMuted, textAlign: "center", maxWidth: 320, lineHeight: 19 },
+  openBtn: { marginTop: 8, backgroundColor: c.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12 },
   openBtnText: { color: "#fff", fontWeight: "700" },
 });

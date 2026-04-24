@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Platform, Alert, TextInput, Modal,
@@ -13,7 +14,7 @@ import {
   getLessons, getFlashcards, getQuizzes,
   type FlashcardPack, type QuizPack, type Lesson,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
 type PackType = "flashcard" | "quiz";
@@ -29,6 +30,9 @@ interface EnrichedPack {
 }
 
 export default function PackManager() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -126,15 +130,15 @@ export default function PackManager() {
   const qCount = packs.filter((p) => p.type === "quiz").length;
 
   const TYPE_META = {
-    flashcard: { label: "Flashcard", icon: "layers" as const, color: Colors.purple, bg: Colors.purpleLight },
-    quiz: { label: "Quiz", icon: "help-circle" as const, color: Colors.danger, bg: Colors.dangerLight },
+    flashcard: { label: "Flashcard", icon: "layers" as const, color: colors.purple, bg: colors.purpleLight },
+    quiz: { label: "Quiz", icon: "help-circle" as const, color: colors.danger, bg: colors.dangerLight },
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <LinearGradient
-        colors={[Colors.purple, Colors.primary]}
+        colors={[colors.purple, colors.primary]}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 }]}
       >
         <View style={styles.headerRow}>
@@ -151,8 +155,8 @@ export default function PackManager() {
         <View style={styles.statsRow}>
           {[
             { val: packs.length, lbl: "Total Pack", color: "#fff" },
-            { val: fcCount, lbl: "Flashcard", color: Colors.purpleLight },
-            { val: qCount, lbl: "Quiz", color: Colors.dangerLight },
+            { val: fcCount, lbl: "Flashcard", color: colors.purpleLight },
+            { val: qCount, lbl: "Quiz", color: colors.dangerLight },
           ].map((s, i) => (
             <View key={i} style={[styles.statChip, i > 0 && { borderLeftWidth: 1, borderLeftColor: "rgba(255,255,255,0.2)" }]}>
               <Text style={[styles.statVal, { color: s.color }]}>{s.val}</Text>
@@ -181,13 +185,13 @@ export default function PackManager() {
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: Colors.textMuted }}>Memuat pack...</Text>
+          <Text style={{ color: colors.textMuted }}>Memuat pack...</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 }}>
-          <Feather name="inbox" size={48} color={Colors.border} />
-          <Text style={{ color: Colors.textMuted, fontSize: 15, fontWeight: "700", textAlign: "center" }}>Belum ada pack</Text>
-          <Text style={{ color: Colors.textMuted, fontSize: 13, textAlign: "center" }}>
+          <Feather name="inbox" size={48} color={colors.border} />
+          <Text style={{ color: colors.textMuted, fontSize: 15, fontWeight: "700", textAlign: "center" }}>Belum ada pack</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: "center" }}>
             Buat pack saat menambahkan soal quiz atau flashcard dari JSON
           </Text>
         </View>
@@ -214,10 +218,10 @@ export default function PackManager() {
                 </View>
                 <View style={styles.packActions}>
                   <TouchableOpacity style={styles.actionBtn} onPress={() => openRename(pack)}>
-                    <Feather name="edit-2" size={14} color={Colors.primary} />
+                    <Feather name="edit-2" size={14} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => handleDelete(pack)}>
-                    <Feather name="trash-2" size={14} color={Colors.danger} />
+                    <Feather name="trash-2" size={14} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -237,7 +241,7 @@ export default function PackManager() {
               value={renameText}
               onChangeText={setRenameText}
               style={styles.modalInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               placeholder="Nama pack baru"
               autoFocus
               selectTextOnFocus
@@ -255,7 +259,7 @@ export default function PackManager() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   backBtn: {
@@ -274,53 +278,53 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
   },
-  filterChipActive: { backgroundColor: Colors.white },
+  filterChipActive: { backgroundColor: c.white },
   filterText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.8)" },
-  filterTextActive: { color: Colors.primary },
+  filterTextActive: { color: c.primary },
   packCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
-    backgroundColor: Colors.white, borderRadius: 18, padding: 14,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.white, borderRadius: 18, padding: 14,
+    borderWidth: 1, borderColor: c.border,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   packIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  packName: { fontSize: 15, fontWeight: "800", color: Colors.dark },
-  packLesson: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  packName: { fontSize: 15, fontWeight: "800", color: c.dark },
+  packLesson: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   packMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   packTypeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   packTypeBadgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
-  packCount: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+  packCount: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
   packActions: { flexDirection: "column", gap: 6 },
   actionBtn: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: Colors.primaryLight, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center",
   },
-  actionBtnDanger: { backgroundColor: Colors.dangerLight },
+  actionBtnDanger: { backgroundColor: c.dangerLight },
   modalOverlay: {
     flex: 1, backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center", alignItems: "center", paddingHorizontal: 24,
   },
   modalCard: {
-    backgroundColor: Colors.white, borderRadius: 20, padding: 24,
+    backgroundColor: c.white, borderRadius: 20, padding: 24,
     width: "100%", gap: 12,
     shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18, shadowRadius: 24, elevation: 12,
   },
-  modalTitle: { fontSize: 18, fontWeight: "900", color: Colors.dark },
-  modalSub: { fontSize: 13, color: Colors.textMuted, fontWeight: "500" },
+  modalTitle: { fontSize: 18, fontWeight: "900", color: c.dark },
+  modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500" },
   modalInput: {
-    backgroundColor: Colors.background, borderRadius: 14,
+    backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, fontWeight: "700", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 15, fontWeight: "700", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
     marginTop: 4,
   },
   modalSave: {
-    backgroundColor: Colors.primary, borderRadius: 14,
+    backgroundColor: c.primary, borderRadius: 14,
     paddingVertical: 13, alignItems: "center",
   },
-  modalSaveText: { fontSize: 15, fontWeight: "900", color: Colors.white },
+  modalSaveText: { fontSize: 15, fontWeight: "900", color: c.white },
   modalCancel: { alignItems: "center", paddingVertical: 6 },
-  modalCancelText: { fontSize: 14, fontWeight: "700", color: Colors.textMuted },
+  modalCancelText: { fontSize: 14, fontWeight: "700", color: c.textMuted },
 });

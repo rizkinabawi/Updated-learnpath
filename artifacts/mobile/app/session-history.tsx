@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { getSessionLogs, type SessionLog } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 function fmtDuration(sec: number) {
@@ -44,6 +44,9 @@ function groupByDate(logs: SessionLog[]): { date: string; items: SessionLog[] }[
 }
 
 export default function SessionHistory() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const C = useColors();
@@ -63,7 +66,7 @@ export default function SessionHistory() {
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -110,8 +113,8 @@ export default function SessionHistory() {
                 const isFC = log.type === "flashcard";
                 return (
                   <View key={log.id} style={[styles.logCard, { backgroundColor: C.surface }]}>
-                    <View style={[styles.logIcon, { backgroundColor: isFC ? Colors.primaryLight : Colors.amberLight }]}>
-                      <Feather name={isFC ? "credit-card" : "help-circle"} size={16} color={isFC ? Colors.primary : Colors.amber} />
+                    <View style={[styles.logIcon, { backgroundColor: isFC ? colors.primaryLight : colors.amberLight }]}>
+                      <Feather name={isFC ? "credit-card" : "help-circle"} size={16} color={isFC ? colors.primary : colors.amber} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.logLesson, { color: C.text }]} numberOfLines={1}>
@@ -122,7 +125,7 @@ export default function SessionHistory() {
                       </Text>
                     </View>
                     <View style={styles.logRight}>
-                      <Text style={[styles.logAcc, { color: acc >= 70 ? Colors.success : acc >= 40 ? Colors.amber : Colors.danger }]}>
+                      <Text style={[styles.logAcc, { color: acc >= 70 ? colors.success : acc >= 40 ? colors.amber : colors.danger }]}>
                         {acc}%
                       </Text>
                       <Text style={[styles.logScore, { color: C.textMuted }]}>
@@ -140,7 +143,7 @@ export default function SessionHistory() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 24,

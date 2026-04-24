@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -49,7 +50,7 @@ import {
   type Quiz,
   type QuizPack,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
@@ -181,6 +182,9 @@ ATURAN WAJIB — wajib diikuti untuk setiap soal:
 };
 
 export default function CreateQuizScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -679,7 +683,7 @@ export default function CreateQuizScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t.create_qz.add_quiz_btn}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={20} color={Colors.dark} />
+          <X size={20} color={colors.dark} />
         </TouchableOpacity>
       </View>
       <Text style={styles.count}>{existing.length} soal di pelajaran ini</Text>
@@ -741,7 +745,7 @@ export default function CreateQuizScreen() {
               onChangeText={setNewPackName}
               placeholder="Nama pack (contoh: Bab 1, Latihan UTS)"
               style={styles.modalInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
             <TouchableOpacity style={styles.modalCreateBtn} onPress={handleCreatePackAndImport}>
@@ -763,7 +767,7 @@ export default function CreateQuizScreen() {
         >
           <View style={styles.aiCardLeft}>
             <View style={styles.aiIcon}>
-              <Bot size={18} color={Colors.white} />
+              <Bot size={18} color={colors.white} />
             </View>
             <View>
               <Text style={styles.aiCardTitle}>{t.create_qz.section_import}</Text>
@@ -771,9 +775,9 @@ export default function CreateQuizScreen() {
             </View>
           </View>
           {showPrompt ? (
-            <ChevronUp size={18} color={Colors.primary} />
+            <ChevronUp size={18} color={colors.primary} />
           ) : (
-            <ChevronDown size={18} color={Colors.primary} />
+            <ChevronDown size={18} color={colors.primary} />
           )}
         </TouchableOpacity>
 
@@ -793,7 +797,7 @@ export default function CreateQuizScreen() {
               onChangeText={setPromptTopic}
               placeholder="Contoh: React Hooks, Fotosintesis, Perkalian"
               style={styles.aiInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
 
             <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Jumlah Soal</Text>
@@ -822,7 +826,7 @@ export default function CreateQuizScreen() {
                 onChangeText={setPromptCount}
                 keyboardType="numeric"
                 style={styles.countInput}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 placeholder="Lainnya"
                 maxLength={3}
               />
@@ -882,7 +886,7 @@ export default function CreateQuizScreen() {
               onChangeText={setPromptCustomNote}
               placeholder="Contoh: Fokus pada konsep X, buat soal kontekstual, dll."
               style={[styles.aiInput, { minHeight: 60, textAlignVertical: "top" }]}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
             />
@@ -895,9 +899,9 @@ export default function CreateQuizScreen() {
                 activeOpacity={0.85}
               >
                 {promptCopied ? (
-                  <Check size={14} color={Colors.white} />
+                  <Check size={14} color={colors.white} />
                 ) : (
-                  <Copy size={14} color={Colors.white} />
+                  <Copy size={14} color={colors.white} />
                 )}
                 <Text style={styles.copyPromptBtnText}>
                   {promptCopied ? "Tersalin!" : "Salin Prompt"}
@@ -937,7 +941,7 @@ export default function CreateQuizScreen() {
                 </View>
                 <Text style={styles.stepLabel}>
                   Tempel prompt ke{" "}
-                  <Text style={{ fontWeight: "800", color: Colors.dark }}>
+                  <Text style={{ fontWeight: "800", color: colors.dark }}>
                     ChatGPT / Gemini / AI lainnya
                   </Text>
                 </Text>
@@ -948,7 +952,7 @@ export default function CreateQuizScreen() {
                 </View>
                 <Text style={styles.stepLabel}>
                   Salin hasil JSON dari AI → tempel di bagian{" "}
-                  <Text style={{ fontWeight: "800", color: Colors.primary }}>
+                  <Text style={{ fontWeight: "800", color: colors.primary }}>
                     "Import JSON dari AI"
                   </Text>{" "}
                   di bawah
@@ -976,13 +980,13 @@ export default function CreateQuizScreen() {
         onPress={() => setShowImport(!showImport)}
       >
         <View style={styles.importToggleLeft}>
-          <Download size={15} color={Colors.primary} />
+          <Download size={15} color={colors.primary} />
           <Text style={styles.importToggleText}>Import JSON dari AI</Text>
         </View>
         {showImport ? (
-          <ChevronUp size={16} color={Colors.primary} />
+          <ChevronUp size={16} color={colors.primary} />
         ) : (
-          <ChevronDown size={16} color={Colors.primary} />
+          <ChevronDown size={16} color={colors.primary} />
         )}
       </TouchableOpacity>
 
@@ -990,7 +994,7 @@ export default function CreateQuizScreen() {
         <View style={styles.importBox}>
           {/* Upload file button */}
           <TouchableOpacity onPress={handlePickJsonFile} style={styles.filePickBtn} activeOpacity={0.8}>
-            <Download size={16} color={Colors.primary} />
+            <Download size={16} color={colors.primary} />
             <Text style={styles.filePickText}>Upload File JSON (.json / .txt)</Text>
           </TouchableOpacity>
           <View style={styles.importOr}>
@@ -1007,7 +1011,7 @@ export default function CreateQuizScreen() {
             onChangeText={setImportJson}
             style={[styles.input, { height: 140, textAlignVertical: "top" }]}
             placeholder={`[\n  {\n    "question": "...",\n    "options": ["A","B","C","D"],\n    "correct_answer": "A"\n  }\n]`}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
             autoCapitalize="none"
             autoCorrect={false}
@@ -1036,7 +1040,7 @@ export default function CreateQuizScreen() {
             value={question}
             onChangeText={setQuestion}
             style={[styles.input, { height: 80, textAlignVertical: "top" }]}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
           />
         </View>
@@ -1056,7 +1060,7 @@ export default function CreateQuizScreen() {
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <ImagePlus size={28} color={Colors.textMuted} />
+                <ImagePlus size={28} color={colors.textMuted} />
                 <Text style={styles.imagePlaceholderText}>
                   Tap untuk upload gambar soal
                 </Text>
@@ -1078,7 +1082,7 @@ export default function CreateQuizScreen() {
               style={styles.audioPickBtn}
               activeOpacity={0.75}
             >
-              <Music size={18} color={Colors.primary} />
+              <Music size={18} color={colors.primary} />
               <Text style={styles.audioPickText} numberOfLines={1}>
                 {audioUri ? "Ganti audio" : "Pilih file audio"}
               </Text>
@@ -1097,7 +1101,7 @@ export default function CreateQuizScreen() {
                   style={styles.audioRemoveBtn}
                   activeOpacity={0.75}
                 >
-                  <X size={18} color={Colors.danger} />
+                  <X size={18} color={colors.danger} />
                 </TouchableOpacity>
               </>
             )}
@@ -1132,7 +1136,7 @@ export default function CreateQuizScreen() {
               <Text
                 style={[
                   styles.optionBadgeText,
-                  correctOption === idx && { color: Colors.white },
+                  correctOption === idx && { color: colors.white },
                 ]}
               >
                 {String.fromCharCode(65 + idx)}
@@ -1147,7 +1151,7 @@ export default function CreateQuizScreen() {
                 setOptions(updated);
               }}
               style={styles.optionInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
           </TouchableOpacity>
         ))}
@@ -1192,7 +1196,7 @@ export default function CreateQuizScreen() {
                 {q.options
                   .filter((o) => o?.trim())
                   .map((o, oi) => (
-                    <Text key={oi} style={[styles.questionAnswer, { color: Colors.textMuted, fontWeight: "500" }]}>
+                    <Text key={oi} style={[styles.questionAnswer, { color: colors.textMuted, fontWeight: "500" }]}>
                       {String.fromCharCode(65 + oi)}. {o}
                     </Text>
                   ))}
@@ -1202,7 +1206,7 @@ export default function CreateQuizScreen() {
                   onPress={() => openEdit(q)}
                   style={styles.editBtn}
                 >
-                  <PencilLine size={14} color={Colors.primary} />
+                  <PencilLine size={14} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
@@ -1217,7 +1221,7 @@ export default function CreateQuizScreen() {
                   }}
                   style={styles.deleteBtn}
                 >
-                  <Trash2 size={14} color={Colors.danger} />
+                  <Trash2 size={14} color={colors.danger} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1239,7 +1243,7 @@ export default function CreateQuizScreen() {
               <View style={styles.editModalHeader}>
                 <Text style={styles.editModalTitle}>Edit Soal</Text>
                 <TouchableOpacity onPress={() => setEditingQuiz(null)} style={styles.closeBtn}>
-                  <X size={18} color={Colors.dark} />
+                  <X size={18} color={colors.dark} />
                 </TouchableOpacity>
               </View>
 
@@ -1250,7 +1254,7 @@ export default function CreateQuizScreen() {
                 onChangeText={setEditQuestion}
                 placeholder="Tulis pertanyaan di sini..."
                 style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
 
@@ -1261,7 +1265,7 @@ export default function CreateQuizScreen() {
                   <Image source={{ uri: editImageUri }} style={styles.imagePreview} resizeMode="cover" />
                 ) : (
                   <View style={styles.imagePlaceholder}>
-                    <ImagePlus size={24} color={Colors.textMuted} />
+                    <ImagePlus size={24} color={colors.textMuted} />
                     <Text style={styles.imagePlaceholderText}>Tap untuk tambah foto</Text>
                   </View>
                 )}
@@ -1280,7 +1284,7 @@ export default function CreateQuizScreen() {
                   style={styles.audioPickBtn}
                   activeOpacity={0.75}
                 >
-                  <Music size={18} color={Colors.primary} />
+                  <Music size={18} color={colors.primary} />
                   <Text style={styles.audioPickText} numberOfLines={1}>
                     {editAudioUri ? "Ganti audio" : "Pilih file audio"}
                   </Text>
@@ -1299,7 +1303,7 @@ export default function CreateQuizScreen() {
                       style={styles.audioRemoveBtn}
                       activeOpacity={0.75}
                     >
-                      <X size={18} color={Colors.danger} />
+                      <X size={18} color={colors.danger} />
                     </TouchableOpacity>
                   </>
                 )}
@@ -1323,7 +1327,7 @@ export default function CreateQuizScreen() {
                       onPress={() => setEditCorrectOption(idx)}
                     >
                       {isCorrect ? (
-                        <Check size={14} color={Colors.white} />
+                        <Check size={14} color={colors.white} />
                       ) : (
                         <Text style={styles.optionBadgeText}>{label}</Text>
                       )}
@@ -1337,7 +1341,7 @@ export default function CreateQuizScreen() {
                       }}
                       placeholder={`Pilihan ${label}`}
                       style={styles.optionInput}
-                      placeholderTextColor={Colors.textMuted}
+                      placeholderTextColor={colors.textMuted}
                     />
                   </View>
                 );
@@ -1366,8 +1370,8 @@ export default function CreateQuizScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: 20 },
   header: {
     flexDirection: "row",
@@ -1375,30 +1379,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 4,
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: Colors.dark },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
   closeBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   count: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
     marginBottom: 16,
   },
 
   // AI Card
   aiCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: Colors.primaryLight,
+    borderColor: c.primaryLight,
     marginBottom: 12,
     overflow: "hidden",
   },
@@ -1413,14 +1417,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  aiCardTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
+  aiCardTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
   aiCardSub: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     marginTop: 1,
   },
@@ -1428,7 +1432,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     paddingTop: 14,
     gap: 6,
   },
@@ -1437,30 +1441,30 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 7,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
-  stepNum: { fontSize: 11, fontWeight: "900", color: Colors.primary },
-  stepLabel: { fontSize: 13, color: Colors.textSecondary, fontWeight: "600", flex: 1 },
+  stepNum: { fontSize: 11, fontWeight: "900", color: c.primary },
+  stepLabel: { fontSize: 13, color: c.textSecondary, fontWeight: "600", flex: 1 },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginTop: 4,
   },
   aiInput: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     marginTop: 4,
   },
   countRow: {
@@ -1474,30 +1478,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   countBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   countBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
-  countBtnTextActive: { color: Colors.white },
+  countBtnTextActive: { color: c.white },
   countInput: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     width: 72,
   },
   diffRow: { flexDirection: "row", gap: 6, marginTop: 4 },
@@ -1505,14 +1509,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
-  diffBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  diffBtnText: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
-  diffBtnTextActive: { color: Colors.white },
+  diffBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  diffBtnText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  diffBtnTextActive: { color: c.white },
   promptActionRow: {
     flexDirection: "row", gap: 8, marginTop: 12,
   },
@@ -1521,49 +1525,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 13,
     marginTop: 12,
   },
   copyPromptBtnSmall: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, backgroundColor: Colors.primary,
+    gap: 6, backgroundColor: c.primary,
     borderRadius: 12, paddingVertical: 13,
   },
-  copyPromptBtnDone: { backgroundColor: Colors.success },
+  copyPromptBtnDone: { backgroundColor: c.success },
   copyPromptBtnText: {
     fontSize: 13,
     fontWeight: "800",
-    color: Colors.white,
+    color: c.white,
   },
   stepsGuide: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 12,
     padding: 12,
     marginTop: 10,
     gap: 0,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   promptPreview: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 10,
     padding: 10,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   promptPreviewLabel: {
     fontSize: 10,
     fontWeight: "800",
-    color: Colors.primary,
+    color: c.primary,
     textTransform: "uppercase",
     marginBottom: 4,
   },
   promptPreviewText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
     lineHeight: 16,
   },
@@ -1575,43 +1579,43 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 13,
     paddingHorizontal: 14,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   importToggleLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   importToggleText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
   },
   importBox: {
     gap: 8,
     marginBottom: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   importHint: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "600",
   },
   importFormat: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     fontStyle: "italic",
   },
-  filePickBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderStyle: "dashed" },
-  filePickText: { fontSize: 13, fontWeight: "600", color: Colors.primary, flex: 1 },
+  filePickBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderStyle: "dashed" },
+  filePickText: { fontSize: 13, fontWeight: "600", color: c.primary, flex: 1 },
   importOr: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 2 },
-  importOrLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  importOrText: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  importOrLine: { flex: 1, height: 1, backgroundColor: c.border },
+  importOrText: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
 
   // Divider
   divider: {
@@ -1620,11 +1624,11 @@ const styles = StyleSheet.create({
     gap: 10,
     marginVertical: 12,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
   dividerText: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -1634,28 +1638,28 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   fieldHint: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     marginBottom: 4,
   },
   input: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   imagePicker: {
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: "dashed",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   imagePreview: { width: "100%", height: 180, borderRadius: 14 },
   imagePlaceholder: {
@@ -1666,11 +1670,11 @@ const styles = StyleSheet.create({
   },
   imagePlaceholderText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
   removeImage: { alignSelf: "flex-end", marginTop: 4 },
-  removeImageText: { fontSize: 12, color: Colors.danger, fontWeight: "700" },
+  removeImageText: { fontSize: 12, color: c.danger, fontWeight: "700" },
   audioRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   audioPickBtn: {
     flex: 1,
@@ -1681,60 +1685,60 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
-  audioPickText: { flex: 1, fontSize: 14, color: Colors.text, fontWeight: "600" },
+  audioPickText: { flex: 1, fontSize: 14, color: c.text, fontWeight: "600" },
   audioPlayBtn: {
     width: 42, height: 42, borderRadius: 12,
     alignItems: "center", justifyContent: "center",
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   audioRemoveBtn: {
     width: 42, height: 42, borderRadius: 12,
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: Colors.danger,
-    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: c.danger,
+    backgroundColor: c.surface,
   },
-  audioHint: { marginTop: 6, fontSize: 12, color: Colors.textMuted },
+  audioHint: { marginTop: 6, fontSize: 12, color: c.textMuted },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     paddingLeft: 12,
     paddingRight: 4,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
   optionRowActive: {
-    borderColor: Colors.success,
-    backgroundColor: Colors.successLight,
+    borderColor: c.success,
+    backgroundColor: c.successLight,
   },
   optionBadge: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  optionBadgeActive: { backgroundColor: Colors.success, borderColor: Colors.success },
+  optionBadgeActive: { backgroundColor: c.success, borderColor: c.success },
   optionBadgeText: {
     fontSize: 12,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   optionInput: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
   },
 
   // Existing
@@ -1742,40 +1746,40 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "900",
-    color: Colors.dark,
+    color: c.dark,
     marginBottom: 12,
   },
   questionRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     gap: 12,
   },
   cardThumb: {
     width: 56,
     height: 56,
     borderRadius: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   questionNum: {
     fontSize: 10,
     fontWeight: "800",
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: "uppercase",
     marginBottom: 4,
   },
   questionText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.dark,
+    color: c.dark,
     marginBottom: 4,
   },
-  questionAnswer: { fontSize: 13, color: Colors.success, fontWeight: "600" },
+  questionAnswer: { fontSize: 13, color: c.success, fontWeight: "600" },
   cardActions: {
     flexDirection: "column",
     gap: 6,
@@ -1785,7 +1789,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1793,12 +1797,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.dangerLight,
+    backgroundColor: c.dangerLight,
     alignItems: "center",
     justifyContent: "center",
   },
   editModalCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 20,
     padding: 20,
     gap: 4,
@@ -1817,19 +1821,19 @@ const styles = StyleSheet.create({
   editModalTitle: {
     fontSize: 18,
     fontWeight: "900",
-    color: Colors.dark,
+    color: c.dark,
   },
   editFieldLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 6,
     marginTop: 4,
   },
   editSaveBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
@@ -1838,22 +1842,22 @@ const styles = StyleSheet.create({
   editSaveBtnText: {
     fontSize: 15,
     fontWeight: "900",
-    color: Colors.white,
+    color: c.white,
   },
 
   // Packs
   packsSection: { marginBottom: 12 },
   packsSectionTitle: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1, marginBottom: 8,
   },
   packChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white,
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.white,
   },
-  packChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  packChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  packChipTextActive: { color: Colors.white },
+  packChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  packChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  packChipTextActive: { color: c.white },
 
   // Modal overlay
   modalOverlay: {
@@ -1862,35 +1866,35 @@ const styles = StyleSheet.create({
     zIndex: 100, paddingHorizontal: 24,
   },
   modalCard: {
-    backgroundColor: Colors.white, borderRadius: 20, padding: 20, width: "100%", gap: 10,
+    backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10,
   },
-  modalTitle: { fontSize: 17, fontWeight: "900", color: Colors.dark },
-  modalSub: { fontSize: 13, color: Colors.textMuted, fontWeight: "500", marginBottom: 4 },
+  modalTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
+  modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500", marginBottom: 4 },
   modalLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1,
   },
   modalPackRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12,
-    backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1, borderColor: c.border,
   },
-  modalPackName: { fontSize: 14, fontWeight: "700", color: Colors.dark },
-  modalPackCount: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
-  modalDivider: { height: 1, backgroundColor: Colors.border, marginVertical: 4 },
+  modalPackName: { fontSize: 14, fontWeight: "700", color: c.dark },
+  modalPackCount: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
+  modalDivider: { height: 1, backgroundColor: c.border, marginVertical: 4 },
   modalInput: {
-    backgroundColor: Colors.background, borderRadius: 12,
+    backgroundColor: c.background, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 14, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
   },
   modalCreateBtn: {
-    backgroundColor: Colors.primary, borderRadius: 12,
+    backgroundColor: c.primary, borderRadius: 12,
     paddingVertical: 13, alignItems: "center",
   },
-  modalCreateBtnText: { fontSize: 14, fontWeight: "900", color: Colors.white },
+  modalCreateBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
   modalCancelBtn: { alignItems: "center", paddingVertical: 8 },
-  modalCancelText: { fontSize: 14, fontWeight: "700", color: Colors.textMuted },
+  modalCancelText: { fontSize: 14, fontWeight: "700", color: c.textMuted },
 
   askAiBtn: { flex: 1, borderRadius: 12, overflow: "hidden" },
   askAiGrad: {

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useRef, useMemo } from "react";
 import {
   Animated,
   Text,
@@ -6,7 +7,7 @@ import {
   View,
   Platform,
 } from "react-native";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { Feather } from "@expo/vector-icons";
 
 type ToastType = "success" | "error" | "info";
@@ -42,9 +43,9 @@ const ICON_MAP: Record<ToastType, React.ComponentProps<typeof Feather>["name"]> 
 };
 
 const COLOR_MAP: Record<ToastType, string> = {
-  success: Colors.success,
-  error: Colors.danger,
-  info: Colors.primary,
+  success: colors.success,
+  error: colors.danger,
+  info: colors.primary,
 };
 
 const BG_MAP: Record<ToastType, string> = {
@@ -60,6 +61,9 @@ interface State {
 }
 
 export function ToastContainer() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [state, setState] = React.useState<State>({
     visible: false,
     message: "",
@@ -126,7 +130,7 @@ export function ToastContainer() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   wrap: {
     position: "absolute",
     top: Platform.OS === "ios" ? 56 : 40,

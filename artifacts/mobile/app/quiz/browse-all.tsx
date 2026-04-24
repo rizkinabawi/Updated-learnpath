@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
@@ -11,7 +12,7 @@ import {
   getLearningPaths, getModules, getLessons, getQuizzes,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
-import Colors, { shadowSm } from "@/constants/colors";
+import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddQuizModal } from "@/components/QuickAddQuizModal";
 
@@ -23,15 +24,18 @@ interface LessonRow {
 }
 
 const GRAD: [string, string][] = [
-  [Colors.accent, Colors.amber],
-  [Colors.primary, Colors.purple],
-  [Colors.purple, "#A855F7"],
-  [Colors.teal, "#0EA5E9"],
-  [Colors.emerald, Colors.success],
-  [Colors.amber, Colors.danger],
+  [colors.accent, colors.amber],
+  [colors.primary, colors.purple],
+  [colors.purple, "#A855F7"],
+  [colors.teal, "#0EA5E9"],
+  [colors.emerald, colors.success],
+  [colors.amber, colors.danger],
 ];
 
 export default function QuizBrowseAll() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -110,7 +114,7 @@ export default function QuizBrowseAll() {
       </TouchableOpacity>
 
       <LinearGradient
-        colors={[Colors.accent, Colors.amber]}
+        colors={[colors.accent, colors.amber]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 12 }]}
       >
@@ -131,17 +135,17 @@ export default function QuizBrowseAll() {
         </View>
 
         <View style={styles.searchWrap}>
-          <Feather name="search" size={15} color={Colors.textMuted} />
+          <Feather name="search" size={15} color={colors.textMuted} />
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder={t.browse.search_ph}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Feather name="x" size={14} color={Colors.textMuted} />
+              <Feather name="x" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -149,7 +153,7 @@ export default function QuizBrowseAll() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} size="large" />
+          <ActivityIndicator color={colors.accent} size="large" />
           <Text style={styles.loadingText}>{t.common.loading}</Text>
         </View>
       ) : grouped.length === 0 ? (
@@ -185,7 +189,7 @@ export default function QuizBrowseAll() {
                       {Object.keys(modules).length} {t.common.modules} · {total} {t.common.quiz}
                     </Text>
                   </View>
-                  <Feather name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={Colors.textMuted} />
+                  <Feather name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
                 </TouchableOpacity>
 
                 {isOpen && Object.values(modules).map(({ module, lessons }) => (
@@ -239,8 +243,8 @@ export default function QuizBrowseAll() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
   blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)", top: -50, right: -40 },
   blob2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(255,255,255,0.06)", bottom: -20, left: 20 },
@@ -253,44 +257,44 @@ const styles = StyleSheet.create({
   countBadgeSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "700" },
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
+    backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
   },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.dark, fontWeight: "500" },
+  searchInput: { flex: 1, fontSize: 14, color: c.dark, fontWeight: "500" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
+  loadingText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: Colors.dark, textAlign: "center" },
-  emptySub: { fontSize: 14, color: Colors.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.dark, textAlign: "center" },
+  emptySub: { fontSize: 14, color: c.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
   list: { padding: 16, paddingBottom: 40, gap: 12 },
-  courseCard: { backgroundColor: Colors.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  courseCard: { backgroundColor: c.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: c.border },
   courseHeader: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   courseIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  courseName: { fontSize: 15, fontWeight: "800", color: Colors.dark },
-  courseMeta: { fontSize: 12, color: Colors.textMuted, fontWeight: "600", marginTop: 2 },
-  moduleWrap: { borderTopWidth: 1, borderTopColor: Colors.border, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
+  courseName: { fontSize: 15, fontWeight: "800", color: c.dark },
+  courseMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2 },
+  moduleWrap: { borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   moduleLabel: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   moduleDot: { width: 8, height: 8, borderRadius: 4 },
-  moduleName: { fontSize: 12, fontWeight: "800", color: Colors.textSecondary, flex: 1 },
+  moduleName: { fontSize: 12, fontWeight: "800", color: c.textSecondary, flex: 1 },
   lessonRow: {
     flexDirection: "row", alignItems: "center",
     paddingVertical: 10, paddingLeft: 16, paddingRight: 4,
     borderRadius: 12, marginBottom: 4,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   lessonLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0 },
-  lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.border, flexShrink: 0 },
-  lessonName: { fontSize: 13, fontWeight: "700", color: Colors.dark },
-  lessonDesc: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginTop: 1 },
+  lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border, flexShrink: 0 },
+  lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   lessonRight: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 },
   countChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   countChipText: { fontSize: 11, fontWeight: "800" },
   startBtn: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  emptyChip: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  emptyChip: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   fab: {
     position: "absolute", right: 20, width: 56, height: 56, borderRadius: 18,
-    backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center",
-    zIndex: 50, shadowColor: Colors.accent, shadowOffset: { width: 0, height: 6 },
+    backgroundColor: c.accent, alignItems: "center", justifyContent: "center",
+    zIndex: 50, shadowColor: c.accent, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 10,
   },
 });

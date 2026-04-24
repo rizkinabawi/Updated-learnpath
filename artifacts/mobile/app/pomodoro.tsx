@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
 
 const WORK_DURATION = 25 * 60;
@@ -30,12 +30,15 @@ function fmtTime(sec: number) {
 }
 
 const PHASE_CONFIG = {
-  work: { label: "Fokus Belajar", emoji: "🎯", grad: [Colors.primary, Colors.purple] as [string, string] },
-  break: { label: "Istirahat Sebentar", emoji: "☕", grad: [Colors.success, Colors.emerald] as [string, string] },
-  "long-break": { label: "Istirahat Panjang", emoji: "🌴", grad: [Colors.teal, "#0EA5E9"] as [string, string] },
+  work: { label: "Fokus Belajar", emoji: "🎯", grad: [colors.primary, colors.purple] as [string, string] },
+  break: { label: "Istirahat Sebentar", emoji: "☕", grad: [colors.success, colors.emerald] as [string, string] },
+  "long-break": { label: "Istirahat Panjang", emoji: "🌴", grad: [colors.teal, "#0EA5E9"] as [string, string] },
 };
 
 export default function PomodoroScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const C = useColors();
@@ -226,7 +229,7 @@ export default function PomodoroScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 24,
@@ -260,11 +263,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  phasePillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  phasePillText: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
-  phasePillTextActive: { color: Colors.white },
+  phasePillActive: { backgroundColor: c.primary, borderColor: c.primary },
+  phasePillText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
+  phasePillTextActive: { color: c.white },
   ringWrap: { width: 240, height: 240, alignItems: "center", justifyContent: "center", marginBottom: 24 },
   ringBg: {
     position: "absolute",
@@ -272,7 +275,7 @@ const styles = StyleSheet.create({
     height: 240,
     borderRadius: 120,
     borderWidth: 12,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   ringFill: {
     position: "absolute",
@@ -307,7 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 16,

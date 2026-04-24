@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -26,12 +27,15 @@ import {
   type AIKey,
   type AIProvider,
 } from "@/utils/ai-keys";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
 const PROVIDERS: AIProvider[] = ["openai", "gemini"];
 
 export default function AIKeysScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -139,7 +143,7 @@ export default function AIKeysScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 16 }}
@@ -147,28 +151,28 @@ export default function AIKeysScreen() {
       >
         {/* ── HEADER ── */}
         <LinearGradient
-          colors={[Colors.primary, Colors.purple]}
+          colors={[colors.primary, colors.purple]}
           style={[
-            s.header,
+            styles.header,
             { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 },
           ]}
         >
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Feather name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
-          <View style={s.headerIcon}>
+          <View style={styles.headerIcon}>
             <Feather name="key" size={20} color="#fff" />
           </View>
-          <Text style={s.headerTitle}>AI Keys</Text>
-          <Text style={s.headerSub}>
+          <Text style={styles.headerTitle}>AI Keys</Text>
+          <Text style={styles.headerSub}>
             Simpan API key OpenAI &amp; Gemini untuk generate konten langsung dari app
           </Text>
         </LinearGradient>
 
         {/* ── SECURITY NOTICE ── */}
-        <View style={s.securityCard}>
-          <Feather name="shield" size={16} color={Colors.success} />
-          <Text style={s.securityText}>
+        <View style={styles.securityCard}>
+          <Feather name="shield" size={16} color={colors.success} />
+          <Text style={styles.securityText}>
             API key dienkripsi dengan{" "}
             {Platform.OS === "ios" ? "iOS Keychain (AES-256)" : "Android Keystore (AES-256)"}
             {" "}dan hanya dapat diakses saat perangkat terbuka.
@@ -176,7 +180,7 @@ export default function AIKeysScreen() {
         </View>
 
         {/* ── PROVIDER CARDS ── */}
-        <View style={s.body}>
+        <View style={styles.body}>
           {PROVIDERS.map((prov) => {
             const meta = PROVIDER_META[prov];
             const existing = keys.find((k) => k.provider === prov) ?? null;
@@ -185,38 +189,38 @@ export default function AIKeysScreen() {
             const activeModel = selectedModel[prov];
 
             return (
-              <View key={prov} style={s.card}>
+              <View key={prov} style={styles.card}>
                 {/* Card Header */}
-                <View style={s.cardRow}>
-                  <View style={[s.provIcon, { backgroundColor: meta.bg }]}>
+                <View style={styles.cardRow}>
+                  <View style={[styles.provIcon, { backgroundColor: meta.bg }]}>
                     <Text style={{ fontSize: 20 }}>
                       {prov === "openai" ? "⚡" : "✨"}
                     </Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.cardTitle}>{meta.label}</Text>
-                    <Text style={s.cardModel}>Model aktif: {activeModel}</Text>
+                    <Text style={styles.cardTitle}>{meta.label}</Text>
+                    <Text style={styles.cardModel}>Model aktif: {activeModel}</Text>
                   </View>
                   {existing ? (
-                    <View style={[s.badge, { backgroundColor: Colors.successLight }]}>
-                      <Feather name="check" size={11} color={Colors.success} />
-                      <Text style={[s.badgeText, { color: Colors.success }]}>Aktif</Text>
+                    <View style={[styles.badge, { backgroundColor: colors.successLight }]}>
+                      <Feather name="check" size={11} color={colors.success} />
+                      <Text style={[styles.badgeText, { color: colors.success }]}>Aktif</Text>
                     </View>
                   ) : (
-                    <View style={[s.badge, { backgroundColor: Colors.background }]}>
-                      <Feather name="minus-circle" size={11} color={Colors.textMuted} />
-                      <Text style={[s.badgeText, { color: Colors.textMuted }]}>Belum ada</Text>
+                    <View style={[styles.badge, { backgroundColor: colors.background }]}>
+                      <Feather name="minus-circle" size={11} color={colors.textMuted} />
+                      <Text style={[styles.badgeText, { color: colors.textMuted }]}>Belum ada</Text>
                     </View>
                   )}
                 </View>
 
                 {/* ── MODEL SELECTOR ── */}
-                <View style={s.modelSection}>
-                  <Text style={s.modelSectionLabel}>Pilih Model:</Text>
+                <View style={styles.modelSection}>
+                  <Text style={styles.modelSectionLabel}>Pilih Model:</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={s.modelChips}
+                    contentContainerStyle={styles.modelChips}
                     keyboardShouldPersistTaps="handled"
                   >
                     {models.map((m) => {
@@ -225,7 +229,7 @@ export default function AIKeysScreen() {
                         <TouchableOpacity
                           key={m.id}
                           style={[
-                            s.modelChip,
+                            styles.modelChip,
                             isActive && { backgroundColor: meta.color, borderColor: meta.color },
                           ]}
                           onPress={() => handleModelChange(prov, m.id)}
@@ -234,7 +238,7 @@ export default function AIKeysScreen() {
                           {isActive && (
                             <Feather name="check" size={10} color="#fff" />
                           )}
-                          <Text style={[s.modelChipText, isActive && s.modelChipTextActive]}>
+                          <Text style={[styles.modelChipText, isActive && styles.modelChipTextActive]}>
                             {m.label}
                           </Text>
                         </TouchableOpacity>
@@ -245,17 +249,17 @@ export default function AIKeysScreen() {
                   {(() => {
                     const desc = models.find((m) => m.id === activeModel)?.desc;
                     return desc ? (
-                      <Text style={[s.modelDesc, { color: meta.color }]}>{desc}</Text>
+                      <Text style={[styles.modelDesc, { color: meta.color }]}>{desc}</Text>
                     ) : null;
                   })()}
                 </View>
 
                 {/* Existing Key Display */}
                 {existing && (
-                  <View style={s.existingRow}>
-                    <View style={s.maskedBox}>
-                      <Feather name="lock" size={13} color={Colors.textMuted} />
-                      <Text style={s.maskedText}>
+                  <View style={styles.existingRow}>
+                    <View style={styles.maskedBox}>
+                      <Feather name="lock" size={13} color={colors.textMuted} />
+                      <Text style={styles.maskedText}>
                         {reveal[existing.id]
                           ? existing.apiKey
                           : maskKey(existing.apiKey)}
@@ -265,19 +269,19 @@ export default function AIKeysScreen() {
                       onPress={() =>
                         setReveal((p) => ({ ...p, [existing.id]: !p[existing.id] }))
                       }
-                      style={s.iconBtn}
+                      style={styles.iconBtn}
                     >
                       <Feather
                         name={reveal[existing.id] ? "eye-off" : "eye"}
                         size={15}
-                        color={Colors.textMuted}
+                        color={colors.textMuted}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDelete(existing)}
-                      style={s.iconBtn}
+                      style={styles.iconBtn}
                     >
-                      <Feather name="trash-2" size={15} color={Colors.danger} />
+                      <Feather name="trash-2" size={15} color={colors.danger} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -285,7 +289,7 @@ export default function AIKeysScreen() {
                 {/* Input Toggle */}
                 {!inputOpen ? (
                   <TouchableOpacity
-                    style={[s.toggleBtn, { borderColor: meta.color + "50" }]}
+                    style={[styles.toggleBtn, { borderColor: meta.color + "50" }]}
                     onPress={() =>
                       setShowInput((p) => ({ ...p, [prov]: true }))
                     }
@@ -296,12 +300,12 @@ export default function AIKeysScreen() {
                       size={14}
                       color={meta.color}
                     />
-                    <Text style={[s.toggleBtnText, { color: meta.color }]}>
+                    <Text style={[styles.toggleBtnText, { color: meta.color }]}>
                       {existing ? "Ganti API Key" : "Tambah API Key"}
                     </Text>
                   </TouchableOpacity>
                 ) : (
-                  <View style={s.inputWrap}>
+                  <View style={styles.inputWrap}>
                     <TextInput
                       placeholder={
                         prov === "openai"
@@ -312,25 +316,25 @@ export default function AIKeysScreen() {
                       onChangeText={(v) =>
                         setInputs((p) => ({ ...p, [prov]: v }))
                       }
-                      style={s.input}
-                      placeholderTextColor={Colors.textMuted}
+                      style={styles.input}
+                      placeholderTextColor={colors.textMuted}
                       autoCapitalize="none"
                       autoCorrect={false}
                       secureTextEntry
                     />
-                    <View style={s.inputActions}>
+                    <View style={styles.inputActions}>
                       <TouchableOpacity
-                        style={s.cancelBtn}
+                        style={styles.cancelBtn}
                         onPress={() => {
                           setShowInput((p) => ({ ...p, [prov]: false }));
                           setInputs((p) => ({ ...p, [prov]: "" }));
                         }}
                       >
-                        <Text style={s.cancelBtnText}>Batal</Text>
+                        <Text style={styles.cancelBtnText}>Batal</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[
-                          s.saveBtn,
+                          styles.saveBtn,
                           { backgroundColor: meta.color },
                           saving && { opacity: 0.6 },
                         ]}
@@ -340,7 +344,7 @@ export default function AIKeysScreen() {
                         {saving ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                          <Text style={s.saveBtnText}>Simpan</Text>
+                          <Text style={styles.saveBtnText}>Simpan</Text>
                         )}
                       </TouchableOpacity>
                     </View>
@@ -352,18 +356,18 @@ export default function AIKeysScreen() {
         </View>
 
         {/* ── HOW TO GET KEYS ── */}
-        <View style={s.helpCard}>
-          <Text style={s.helpTitle}>Cara Mendapatkan API Key</Text>
-          <View style={s.helpItem}>
-            <Text style={[s.helpLabel, { color: Colors.success }]}>⚡ OpenAI</Text>
-            <Text style={s.helpDesc}>
+        <View style={styles.helpCard}>
+          <Text style={styles.helpTitle}>Cara Mendapatkan API Key</Text>
+          <View style={styles.helpItem}>
+            <Text style={[styles.helpLabel, { color: colors.success }]}>⚡ OpenAI</Text>
+            <Text style={styles.helpDesc}>
               platform.openai.com → API Keys → Create new secret key
             </Text>
           </View>
-          <View style={s.divider} />
-          <View style={s.helpItem}>
-            <Text style={[s.helpLabel, { color: Colors.primary }]}>✨ Gemini</Text>
-            <Text style={s.helpDesc}>
+          <View style={styles.divider} />
+          <View style={styles.helpItem}>
+            <Text style={[styles.helpLabel, { color: colors.primary }]}>✨ Gemini</Text>
+            <Text style={styles.helpDesc}>
               aistudio.google.com → Get API key → Create API key
             </Text>
           </View>
@@ -373,7 +377,7 @@ export default function AIKeysScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: {
     alignItems: "center",
     paddingBottom: 32,
@@ -419,16 +423,16 @@ const s = StyleSheet.create({
     gap: 10,
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: Colors.successLight,
+    backgroundColor: c.successLight,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.success + "30",
+    borderColor: c.success + "30",
   },
   securityText: {
     flex: 1,
     fontSize: 12,
-    color: Colors.success,
+    color: c.success,
     fontWeight: "600",
     lineHeight: 18,
   },
@@ -438,7 +442,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 18,
     padding: 16,
     gap: 12,
@@ -463,11 +467,11 @@ const s = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: Colors.dark,
+    color: c.dark,
   },
   cardModel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     marginTop: 2,
   },
@@ -491,7 +495,7 @@ const s = StyleSheet.create({
   modelSectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -507,13 +511,13 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
   },
   modelChipText: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.dark,
+    color: c.dark,
   },
   modelChipTextActive: {
     color: "#fff",
@@ -527,7 +531,7 @@ const s = StyleSheet.create({
   existingRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -542,7 +546,7 @@ const s = StyleSheet.create({
   maskedText: {
     flex: 1,
     fontSize: 12,
-    color: Colors.dark,
+    color: c.dark,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
@@ -570,15 +574,15 @@ const s = StyleSheet.create({
     gap: 10,
   },
   input: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   inputActions: {
@@ -590,13 +594,13 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
   cancelBtnText: {
     fontSize: 13,
     fontWeight: "800",
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   saveBtn: {
     flex: 2,
@@ -613,7 +617,7 @@ const s = StyleSheet.create({
   helpCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: Colors.dark,
+    backgroundColor: c.dark,
     borderRadius: 18,
     padding: 16,
     gap: 12,

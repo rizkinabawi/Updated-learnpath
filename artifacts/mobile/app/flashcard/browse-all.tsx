@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
@@ -13,7 +14,7 @@ import {
   deleteStandaloneCollection, assignStandaloneCollection,
   type LearningPath, type Module, type Lesson, type StandaloneCollection,
 } from "@/utils/storage";
-import Colors, { shadowSm } from "@/constants/colors";
+import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddFlashcardModal } from "@/components/QuickAddFlashcardModal";
 
@@ -30,19 +31,19 @@ interface CollectionRow {
 }
 
 const GRAD: [string, string][] = [
-  [Colors.primary, Colors.purple],
-  [Colors.accent, Colors.amber],
-  [Colors.teal, "#0EA5E9"],
-  [Colors.purple, "#A855F7"],
-  [Colors.emerald, Colors.success],
-  [Colors.amber, Colors.danger],
+  [colors.primary, colors.purple],
+  [colors.accent, colors.amber],
+  [colors.teal, "#0EA5E9"],
+  [colors.purple, "#A855F7"],
+  [colors.emerald, colors.success],
+  [colors.amber, colors.danger],
 ];
 
 const COL_GRADS: [string, string][] = [
-  [Colors.emerald, Colors.success],
-  ["#6366F1", Colors.purple],
-  [Colors.amber, Colors.danger],
-  [Colors.teal, "#0EA5E9"],
+  [colors.emerald, colors.success],
+  ["#6366F1", colors.purple],
+  [colors.amber, colors.danger],
+  [colors.teal, "#0EA5E9"],
   ["#EC4899", "#F43F5E"],
   ["#14B8A6", "#0D9488"],
 ];
@@ -79,7 +80,7 @@ function CollectionEditModal({
           <View style={em.header}>
             <Text style={em.title}>Edit Koleksi</Text>
             <TouchableOpacity style={em.iconBtn} onPress={onClose}>
-              <Feather name="x" size={20} color={Colors.dark} />
+              <Feather name="x" size={20} color={colors.dark} />
             </TouchableOpacity>
           </View>
           <View style={em.body}>
@@ -89,7 +90,7 @@ function CollectionEditModal({
               value={name}
               onChangeText={setName}
               placeholder="Nama koleksi…"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
             <Text style={em.label}>Deskripsi <Text style={em.optional}>(opsional)</Text></Text>
             <TextInput
@@ -97,7 +98,7 @@ function CollectionEditModal({
               value={desc}
               onChangeText={setDesc}
               placeholder="Deskripsi singkat…"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
             />
@@ -170,12 +171,12 @@ function CollectionAssignModal({
           <View style={am.header}>
             {step !== "course" ? (
               <TouchableOpacity style={am.backBtn} onPress={() => setStep(step === "module" ? "course" : "module")}>
-                <Feather name="arrow-left" size={18} color={Colors.dark} />
+                <Feather name="arrow-left" size={18} color={colors.dark} />
               </TouchableOpacity>
             ) : <View style={{ width: 34 }} />}
             <Text style={am.title} numberOfLines={1}>{stepTitle}</Text>
             <TouchableOpacity style={am.backBtn} onPress={onClose}>
-              <Feather name="x" size={18} color={Colors.dark} />
+              <Feather name="x" size={18} color={colors.dark} />
             </TouchableOpacity>
           </View>
 
@@ -185,12 +186,12 @@ function CollectionAssignModal({
 
           {saving ? (
             <View style={am.loadingWrap}>
-              <ActivityIndicator color={Colors.primary} />
-              <Text style={{ color: Colors.textMuted, fontSize: 13 }}>Memindahkan…</Text>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>Memindahkan…</Text>
             </View>
           ) : items.length === 0 ? (
             <View style={am.empty}>
-              <Feather name="inbox" size={28} color={Colors.textMuted} />
+              <Feather name="inbox" size={28} color={colors.textMuted} />
               <Text style={am.emptyText}>Tidak ada data</Text>
             </View>
           ) : (
@@ -209,7 +210,7 @@ function CollectionAssignModal({
                     <Text style={am.itemLabel}>{getLabel(item)}</Text>
                     {getSub(item) ? <Text style={am.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
                   </View>
-                  <Feather name={step === "lesson" ? "check-circle" : "chevron-right"} size={16} color={step === "lesson" ? Colors.success : Colors.textMuted} />
+                  <Feather name={step === "lesson" ? "check-circle" : "chevron-right"} size={16} color={step === "lesson" ? colors.success : colors.textMuted} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -222,6 +223,9 @@ function CollectionAssignModal({
 
 // ─── Main Screen ────────────────────────────────────────────────
 export default function FlashcardBrowseAll() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -360,7 +364,7 @@ export default function FlashcardBrowseAll() {
 
       {/* Header */}
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 12 }]}
       >
@@ -382,17 +386,17 @@ export default function FlashcardBrowseAll() {
 
         {/* Search */}
         <View style={styles.searchWrap}>
-          <Feather name="search" size={15} color={Colors.textMuted} />
+          <Feather name="search" size={15} color={colors.textMuted} />
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder={t.browse.search_ph}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Feather name="x" size={14} color={Colors.textMuted} />
+              <Feather name="x" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -400,7 +404,7 @@ export default function FlashcardBrowseAll() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.primary} size="large" />
+          <ActivityIndicator color={colors.primary} size="large" />
           <Text style={styles.loadingText}>{t.common.loading}</Text>
         </View>
       ) : !hasContent ? (
@@ -428,7 +432,7 @@ export default function FlashcardBrowseAll() {
           {filteredCollections.length > 0 && (
             <View style={styles.sectionWrap}>
               <View style={styles.sectionHeader}>
-                <LinearGradient colors={[Colors.emerald, Colors.success]} style={styles.sectionIcon}>
+                <LinearGradient colors={[colors.emerald, colors.success]} style={styles.sectionIcon}>
                   <Feather name="folder" size={16} color="#fff" />
                 </LinearGradient>
                 <View style={{ flex: 1 }}>
@@ -482,7 +486,7 @@ export default function FlashcardBrowseAll() {
                           onPress={() => setEditCol(cr.col)}
                           activeOpacity={0.7}
                         >
-                          <Feather name="edit-2" size={14} color={Colors.textSecondary} />
+                          <Feather name="edit-2" size={14} color={colors.textSecondary} />
                           <Text style={styles.colActionText}>Edit</Text>
                         </TouchableOpacity>
 
@@ -493,8 +497,8 @@ export default function FlashcardBrowseAll() {
                           onPress={() => setAssignCol(cr)}
                           activeOpacity={0.7}
                         >
-                          <Feather name="folder-plus" size={14} color={Colors.primary} />
-                          <Text style={[styles.colActionText, { color: Colors.primary }]}>Assign</Text>
+                          <Feather name="folder-plus" size={14} color={colors.primary} />
+                          <Text style={[styles.colActionText, { color: colors.primary }]}>Assign</Text>
                         </TouchableOpacity>
 
                         <View style={styles.colActionDivider} />
@@ -506,8 +510,8 @@ export default function FlashcardBrowseAll() {
                               onPress={() => router.push(`/flashcard/${cr.col.id}` as any)}
                               activeOpacity={0.7}
                             >
-                              <Feather name="play" size={14} color={Colors.success} />
-                              <Text style={[styles.colActionText, { color: Colors.success }]}>Main</Text>
+                              <Feather name="play" size={14} color={colors.success} />
+                              <Text style={[styles.colActionText, { color: colors.success }]}>Main</Text>
                             </TouchableOpacity>
                             <View style={styles.colActionDivider} />
                           </>
@@ -518,8 +522,8 @@ export default function FlashcardBrowseAll() {
                           onPress={() => handleDeleteCollection(cr.col)}
                           activeOpacity={0.7}
                         >
-                          <Feather name="trash-2" size={14} color={Colors.danger} />
-                          <Text style={[styles.colActionText, { color: Colors.danger }]}>Hapus</Text>
+                          <Feather name="trash-2" size={14} color={colors.danger} />
+                          <Text style={[styles.colActionText, { color: colors.danger }]}>Hapus</Text>
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
@@ -551,7 +555,7 @@ export default function FlashcardBrowseAll() {
                       {Object.keys(modules).length} {t.common.modules} · {total} {t.common.cards}
                     </Text>
                   </View>
-                  <Feather name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={Colors.textMuted} />
+                  <Feather name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
                 </TouchableOpacity>
 
                 {isOpen && Object.values(modules).map(({ module, lessons }) => (
@@ -605,8 +609,8 @@ export default function FlashcardBrowseAll() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
   blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(74,158,255,0.1)", top: -50, right: -40 },
   blob2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(108,99,255,0.08)", bottom: -20, left: 20 },
@@ -617,68 +621,68 @@ const styles = StyleSheet.create({
   countBadge: { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center" },
   countBadgeText: { fontSize: 20, fontWeight: "900", color: "#fff" },
   countBadgeSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "700" },
-  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11 },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.dark, fontWeight: "500" },
+  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11 },
+  searchInput: { flex: 1, fontSize: 14, color: c.dark, fontWeight: "500" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
+  loadingText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: Colors.dark, textAlign: "center" },
-  emptySub: { fontSize: 14, color: Colors.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
-  emptyFabHint: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, backgroundColor: Colors.primary, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.dark, textAlign: "center" },
+  emptySub: { fontSize: 14, color: c.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
+  emptyFabHint: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, backgroundColor: c.primary, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
   emptyFabHintText: { fontSize: 14, fontWeight: "800", color: "#fff" },
   list: { padding: 16, paddingBottom: 100, gap: 16 },
-  fab: { position: "absolute", right: 20, width: 56, height: 56, borderRadius: 18, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", zIndex: 50, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
+  fab: { position: "absolute", right: 20, width: 56, height: 56, borderRadius: 18, backgroundColor: c.primary, alignItems: "center", justifyContent: "center", zIndex: 50, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
 
   // ── Standalone Collections Section ──
   sectionWrap: { gap: 10 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 4 },
   sectionIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  sectionTitle: { fontSize: 16, fontWeight: "900", color: Colors.dark },
-  sectionMeta: { fontSize: 12, color: Colors.textMuted, fontWeight: "600", marginTop: 2 },
+  sectionTitle: { fontSize: 16, fontWeight: "900", color: c.dark },
+  sectionMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2 },
   collectionGrid: { gap: 10 },
 
   // ── Collection Card ──
-  colCard: { backgroundColor: Colors.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  colCard: { backgroundColor: c.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: c.border },
   colCardBar: { height: 5 },
   colCardBody: { padding: 16, gap: 6 },
   colCardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   colCardIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  colBadge: { backgroundColor: Colors.background, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  colBadge: { backgroundColor: c.background, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   colBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
-  colCardName: { fontSize: 16, fontWeight: "800", color: Colors.dark, lineHeight: 22 },
-  colCardDesc: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  colCardName: { fontSize: 16, fontWeight: "800", color: c.dark, lineHeight: 22 },
+  colCardDesc: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   colCardMeta: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
   countPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   countPillText: { fontSize: 12, fontWeight: "800" },
-  colCardDate: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  colCardDate: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
 
   // ── Collection Action Row ──
-  colCardActions: { flexDirection: "row", borderTopWidth: 1, borderTopColor: Colors.border },
+  colCardActions: { flexDirection: "row", borderTopWidth: 1, borderTopColor: c.border },
   colAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 11 },
-  colActionText: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
-  colActionDivider: { width: 1, backgroundColor: Colors.border, marginVertical: 8 },
+  colActionText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  colActionDivider: { width: 1, backgroundColor: c.border, marginVertical: 8 },
 
   // ── Course Cards ──
-  courseCard: { backgroundColor: Colors.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  courseCard: { backgroundColor: c.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: c.border },
   courseHeader: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   courseIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  courseName: { fontSize: 15, fontWeight: "800", color: Colors.dark },
-  courseMeta: { fontSize: 12, color: Colors.textMuted, fontWeight: "600", marginTop: 2 },
-  moduleWrap: { borderTopWidth: 1, borderTopColor: Colors.border, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
+  courseName: { fontSize: 15, fontWeight: "800", color: c.dark },
+  courseMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2 },
+  moduleWrap: { borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   moduleLabel: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   moduleDot: { width: 8, height: 8, borderRadius: 4 },
-  moduleName: { fontSize: 12, fontWeight: "800", color: Colors.textSecondary, flex: 1 },
-  lessonRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingLeft: 16, paddingRight: 4, borderRadius: 12, marginBottom: 4, backgroundColor: Colors.background },
+  moduleName: { fontSize: 12, fontWeight: "800", color: c.textSecondary, flex: 1 },
+  lessonRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingLeft: 16, paddingRight: 4, borderRadius: 12, marginBottom: 4, backgroundColor: c.background },
   lessonLeft: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 10, minWidth: 0 },
-  lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.border, flexShrink: 0, marginTop: 5 },
-  lessonName: { fontSize: 13, fontWeight: "700", color: Colors.dark },
-  lessonDesc: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginTop: 1 },
+  lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border, flexShrink: 0, marginTop: 5 },
+  lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   lessonRight: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 },
   countChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   countChipText: { fontSize: 11, fontWeight: "800" },
   startBtn: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  emptyChip: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  emptyChip: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
 });
 
 // ─── Edit Modal Styles ──────────────────────────────────────────

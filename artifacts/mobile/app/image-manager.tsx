@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Image, StyleSheet,
   Platform, Alert, ActivityIndicator, FlatList, Dimensions, Modal,
@@ -10,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "@/utils/fs-compat";
 import { Feather } from "@expo/vector-icons";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
 const IMAGE_EXTS = new Set([
@@ -19,10 +20,10 @@ const IMAGE_EXTS = new Set([
 ]);
 
 const DIR_DEFS = [
-  { label: "Foto Quiz",      key: "quiz",      folder: "quiz-images/",     color: Colors.danger },
-  { label: "Foto Flashcard", key: "flashcard", folder: "flashcard-images/", color: Colors.purple },
-  { label: "Materi Belajar", key: "material",  folder: "study-materials/",  color: Colors.teal },
-  { label: "Foto Profil",    key: "avatar",    folder: "avatars/",           color: Colors.success },
+  { label: "Foto Quiz",      key: "quiz",      folder: "quiz-images/",     color: colors.danger },
+  { label: "Foto Flashcard", key: "flashcard", folder: "flashcard-images/", color: colors.purple },
+  { label: "Materi Belajar", key: "material",  folder: "study-materials/",  color: colors.teal },
+  { label: "Foto Profil",    key: "avatar",    folder: "avatars/",           color: colors.success },
 ];
 
 interface ImageItem {
@@ -47,6 +48,9 @@ function formatBytes(bytes: number) {
 }
 
 export default function ImageManager() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -151,7 +155,7 @@ export default function ImageManager() {
   if ((Platform.OS as string) === "web") {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: Colors.textMuted, fontSize: 14 }}>
+        <Text style={{ color: colors.textMuted, fontSize: 14 }}>
           Image Manager hanya tersedia di perangkat mobile.
         </Text>
       </View>
@@ -159,9 +163,9 @@ export default function ImageManager() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <LinearGradient
-        colors={[Colors.teal, Colors.purple]}
+        colors={[colors.teal, colors.purple]}
         style={[styles.header, { paddingTop: (Platform.OS as string) === "web" ? 60 : insets.top + 16 }]}
       >
         <View style={styles.headerRow}>
@@ -213,18 +217,18 @@ export default function ImageManager() {
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ color: Colors.textMuted, fontSize: 14 }}>Memuat gambar...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.textMuted, fontSize: 14 }}>Memuat gambar...</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 10 }}>
-          <Feather name="image" size={48} color={Colors.border} />
-          <Text style={{ color: Colors.textMuted, fontSize: 15, fontWeight: "700" }}>Tidak ada gambar</Text>
-          <Text style={{ color: Colors.textMuted, fontSize: 13, textAlign: "center", paddingHorizontal: 32 }}>
+          <Feather name="image" size={48} color={colors.border} />
+          <Text style={{ color: colors.textMuted, fontSize: 15, fontWeight: "700" }}>Tidak ada gambar</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: "center", paddingHorizontal: 32 }}>
             Gambar akan muncul di sini saat kamu menambahkannya ke quiz, flashcard, atau materi belajar
           </Text>
           <TouchableOpacity onPress={load} style={styles.refreshBtn}>
-            <Feather name="refresh-cw" size={14} color={Colors.primary} />
+            <Feather name="refresh-cw" size={14} color={colors.primary} />
             <Text style={styles.refreshBtnText}>Muat Ulang</Text>
           </TouchableOpacity>
         </View>
@@ -341,7 +345,7 @@ export default function ImageManager() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 },
   backBtn: {
@@ -366,16 +370,16 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: "#fff" },
   filterDot: { width: 7, height: 7, borderRadius: 999 },
   filterText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.85)" },
-  filterTextActive: { color: Colors.primary },
+  filterTextActive: { color: c.primary },
 
   // Thumbnail grid
   imgCell: {
     width: THUMB, height: THUMB,
     borderRadius: 12, overflow: "hidden",
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     position: "relative",
   },
-  imgCellSelected: { borderWidth: 3, borderColor: Colors.primary },
+  imgCellSelected: { borderWidth: 3, borderColor: c.primary },
   thumb: { width: "100%", height: "100%" },
   catDot: {
     position: "absolute", top: 6, left: 6,
@@ -403,23 +407,23 @@ const styles = StyleSheet.create({
   refreshBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
     marginTop: 4, paddingHorizontal: 16, paddingVertical: 9,
-    borderRadius: 12, borderWidth: 1.5, borderColor: Colors.primary,
+    borderRadius: 12, borderWidth: 1.5, borderColor: c.primary,
   },
-  refreshBtnText: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  refreshBtnText: { fontSize: 13, fontWeight: "700", color: c.primary },
 
   // Select bar
   selectBar: {
     flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingTop: 12,
-    backgroundColor: Colors.white, borderTopWidth: 1, borderTopColor: Colors.border,
+    backgroundColor: c.white, borderTopWidth: 1, borderTopColor: c.border,
   },
   selectBarCancel: {
     flex: 1, paddingVertical: 13, borderRadius: 14, alignItems: "center",
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
   },
-  selectBarCancelText: { fontSize: 14, fontWeight: "800", color: Colors.textMuted },
+  selectBarCancelText: { fontSize: 14, fontWeight: "800", color: c.textMuted },
   selectBarDelete: {
     flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, paddingVertical: 13, borderRadius: 14, backgroundColor: Colors.danger,
+    gap: 8, paddingVertical: 13, borderRadius: 14, backgroundColor: c.danger,
   },
   selectBarDeleteText: { fontSize: 14, fontWeight: "900", color: "#fff" },
 

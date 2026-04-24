@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -30,7 +31,7 @@ import {
   getFlashcardPacks, saveFlashcardPack, deleteFlashcardPack,
   generateId, getLessons, ensureLocalAsset, type Flashcard, type FlashcardPack,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
@@ -163,6 +164,9 @@ ATURAN WAJIB — wajib diikuti untuk setiap kartu:
 };
 
 export default function CreateFlashcardScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -610,7 +614,7 @@ export default function CreateFlashcardScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t.create_fc.add_card_btn}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={20} color={Colors.dark} />
+          <X size={20} color={colors.dark} />
         </TouchableOpacity>
       </View>
       <Text style={styles.count}>{existing.length} kartu di pelajaran ini</Text>
@@ -680,7 +684,7 @@ export default function CreateFlashcardScreen() {
               onChangeText={setNewPackName}
               placeholder="Nama pack (contoh: Bab 1, Set Latihan)"
               style={styles.modalInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
             <TouchableOpacity style={styles.modalCreateBtn} onPress={handleCreatePackAndImport}>
@@ -703,7 +707,7 @@ export default function CreateFlashcardScreen() {
         >
           <View style={styles.aiCardLeft}>
             <View style={styles.aiIcon}>
-              <Bot size={18} color={Colors.white} />
+              <Bot size={18} color={colors.white} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.aiCardTitle}>{t.create_fc.section_import}</Text>
@@ -711,9 +715,9 @@ export default function CreateFlashcardScreen() {
             </View>
           </View>
           {showPrompt ? (
-            <ChevronUp size={18} color={Colors.primary} />
+            <ChevronUp size={18} color={colors.primary} />
           ) : (
-            <ChevronDown size={18} color={Colors.primary} />
+            <ChevronDown size={18} color={colors.primary} />
           )}
         </TouchableOpacity>
 
@@ -730,7 +734,7 @@ export default function CreateFlashcardScreen() {
               onChangeText={setPromptTopic}
               placeholder="Contoh: Fotosintesis, Hukum Newton, React Hooks"
               style={styles.aiInput}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
 
             <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Jumlah Kartu</Text>
@@ -751,7 +755,7 @@ export default function CreateFlashcardScreen() {
                 onChangeText={setPromptCount}
                 keyboardType="numeric"
                 style={styles.countInput}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 placeholder="Lainnya"
                 maxLength={3}
               />
@@ -793,7 +797,7 @@ export default function CreateFlashcardScreen() {
               onChangeText={setPromptCustomNote}
               placeholder="Contoh: Fokus pada kosakata teknis, sertakan contoh kalimat, dll."
               style={[styles.aiInput, { minHeight: 60, textAlignVertical: "top" }]}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
             />
@@ -814,9 +818,9 @@ export default function CreateFlashcardScreen() {
                 activeOpacity={0.85}
               >
                 {promptCopied ? (
-                  <Check size={14} color={Colors.white} />
+                  <Check size={14} color={colors.white} />
                 ) : (
-                  <Copy size={14} color={Colors.white} />
+                  <Copy size={14} color={colors.white} />
                 )}
                 <Text style={styles.copyPromptBtnText}>
                   {promptCopied ? "Tersalin!" : "Salin Prompt"}
@@ -853,14 +857,14 @@ export default function CreateFlashcardScreen() {
                 <View style={styles.stepBadge}><Text style={styles.stepNum}>2</Text></View>
                 <Text style={styles.stepLabel}>
                   Tempel prompt ke{" "}
-                  <Text style={{ fontWeight: "800", color: Colors.dark }}>ChatGPT / Gemini / AI lainnya</Text>
+                  <Text style={{ fontWeight: "800", color: colors.dark }}>ChatGPT / Gemini / AI lainnya</Text>
                 </Text>
               </View>
               <View style={[styles.stepRow, { marginTop: 8 }]}>
                 <View style={styles.stepBadge}><Text style={styles.stepNum}>3</Text></View>
                 <Text style={styles.stepLabel}>
                   Salin hasil JSON dari AI → tempel di{" "}
-                  <Text style={{ fontWeight: "800", color: Colors.primary }}>"Import JSON dari AI"</Text>
+                  <Text style={{ fontWeight: "800", color: colors.primary }}>"Import JSON dari AI"</Text>
                   {" "}di bawah
                 </Text>
               </View>
@@ -884,13 +888,13 @@ export default function CreateFlashcardScreen() {
         onPress={() => setShowImport(!showImport)}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Download size={15} color={Colors.primary} />
+          <Download size={15} color={colors.primary} />
           <Text style={styles.importToggleText}>Import JSON dari AI</Text>
         </View>
         {showImport ? (
-          <ChevronUp size={16} color={Colors.primary} />
+          <ChevronUp size={16} color={colors.primary} />
         ) : (
-          <ChevronDown size={16} color={Colors.primary} />
+          <ChevronDown size={16} color={colors.primary} />
         )}
       </TouchableOpacity>
 
@@ -898,7 +902,7 @@ export default function CreateFlashcardScreen() {
         <View style={styles.importBox}>
           {/* Upload file button */}
           <TouchableOpacity onPress={handlePickJsonFile} style={styles.filePickBtn} activeOpacity={0.8}>
-            <Download size={16} color={Colors.primary} />
+            <Download size={16} color={colors.primary} />
             <Text style={styles.filePickText}>Upload File JSON (.json / .txt)</Text>
           </TouchableOpacity>
           <View style={styles.importOr}>
@@ -913,7 +917,7 @@ export default function CreateFlashcardScreen() {
             onChangeText={setImportJson}
             style={[styles.input, { height: 140, textAlignVertical: "top" }]}
             placeholder={`[\n  {\n    "question": "Apa itu...",\n    "answer": "Adalah...",\n    "tag": "kata-kunci"\n  }\n]`}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
             autoCapitalize="none"
             autoCorrect={false}
@@ -942,7 +946,7 @@ export default function CreateFlashcardScreen() {
             value={question}
             onChangeText={setQuestion}
             style={[styles.input, { height: 80, textAlignVertical: "top" }]}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
           />
         </View>
@@ -953,7 +957,7 @@ export default function CreateFlashcardScreen() {
             value={answer}
             onChangeText={setAnswer}
             style={[styles.input, { height: 90, textAlignVertical: "top" }]}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
           />
         </View>
@@ -964,7 +968,7 @@ export default function CreateFlashcardScreen() {
             value={tag}
             onChangeText={setTag}
             style={styles.input}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
         </View>
 
@@ -975,7 +979,7 @@ export default function CreateFlashcardScreen() {
               <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <ImagePlus size={28} color={Colors.textMuted} />
+                <ImagePlus size={28} color={colors.textMuted} />
                 <Text style={styles.imagePlaceholderText}>Tap untuk upload gambar</Text>
               </View>
             )}
@@ -991,20 +995,20 @@ export default function CreateFlashcardScreen() {
           <Text style={styles.fieldLabel}>Audio (opsional)</Text>
           {audioUri ? (
             <View style={styles.audioPickedRow}>
-              <Music size={18} color={Colors.primary} />
+              <Music size={18} color={colors.primary} />
               <Text style={styles.audioPickedText} numberOfLines={1}>
                 {audioUri.split("/").pop() ?? "Audio terpilih"}
               </Text>
               <TouchableOpacity onPress={() => playPreview("new")} style={styles.audioMiniBtn}>
-                <Volume2 size={14} color={Colors.primary} />
+                <Volume2 size={14} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setAudioUri(null)} style={styles.audioMiniBtn}>
-                <X size={14} color={Colors.danger} />
+                <X size={14} color={colors.danger} />
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity onPress={() => pickAudio("new")} style={styles.audioPickerBtn} activeOpacity={0.75}>
-              <Music size={20} color={Colors.primary} />
+              <Music size={20} color={colors.primary} />
               <Text style={styles.audioPickerText}>Pilih file audio (mp3, m4a, wav...)</Text>
             </TouchableOpacity>
           )}
@@ -1038,9 +1042,9 @@ export default function CreateFlashcardScreen() {
               <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
                 <TouchableOpacity
                   onPress={() => openEdit(card)}
-                  style={[styles.deleteBtn, { backgroundColor: Colors.primaryLight }]}
+                  style={[styles.deleteBtn, { backgroundColor: colors.primaryLight }]}
                 >
-                  <PencilLine size={14} color={Colors.primary} />
+                  <PencilLine size={14} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
@@ -1051,7 +1055,7 @@ export default function CreateFlashcardScreen() {
                   }}
                   style={styles.deleteBtn}
                 >
-                  <Trash2 size={14} color={Colors.danger} />
+                  <Trash2 size={14} color={colors.danger} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1073,7 +1077,7 @@ export default function CreateFlashcardScreen() {
               <View style={styles.editModalHeader}>
                 <Text style={styles.editModalTitle}>Edit Flashcard</Text>
                 <TouchableOpacity onPress={() => setEditingCard(null)} style={styles.closeBtn}>
-                  <X size={18} color={Colors.dark} />
+                  <X size={18} color={colors.dark} />
                 </TouchableOpacity>
               </View>
 
@@ -1084,7 +1088,7 @@ export default function CreateFlashcardScreen() {
                 onChangeText={setEditQuestion}
                 placeholder="Pertanyaan atau istilah..."
                 style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
 
@@ -1095,7 +1099,7 @@ export default function CreateFlashcardScreen() {
                 onChangeText={setEditAnswer}
                 placeholder="Jawaban atau definisi..."
                 style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
 
@@ -1106,7 +1110,7 @@ export default function CreateFlashcardScreen() {
                 onChangeText={setEditTag}
                 placeholder="Misal: Biologi, Bab 3..."
                 style={styles.input}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
 
               {/* Image */}
@@ -1115,12 +1119,12 @@ export default function CreateFlashcardScreen() {
                 <View style={{ marginBottom: 8 }}>
                   <Image source={{ uri: editImageUri }} style={{ width: "100%", height: 160, borderRadius: 12 }} resizeMode="cover" />
                   <TouchableOpacity onPress={() => setEditImageUri(null)} style={{ marginTop: 6, alignSelf: "flex-end" }}>
-                    <Text style={{ color: Colors.danger, fontWeight: "700", fontSize: 13 }}>Hapus Foto</Text>
+                    <Text style={{ color: colors.danger, fontWeight: "700", fontSize: 13 }}>Hapus Foto</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity onPress={pickEditImage} style={styles.imgPickerBtn}>
-                  <ImagePlus size={18} color={Colors.primary} />
+                  <ImagePlus size={18} color={colors.primary} />
                   <Text style={styles.imgPickerText}>Pilih Foto</Text>
                 </TouchableOpacity>
               )}
@@ -1129,20 +1133,20 @@ export default function CreateFlashcardScreen() {
               <Text style={[styles.editFieldLabel, { marginTop: 12 }]}>Audio (opsional)</Text>
               {editAudioUri ? (
                 <View style={styles.audioPickedRow}>
-                  <Music size={18} color={Colors.primary} />
+                  <Music size={18} color={colors.primary} />
                   <Text style={styles.audioPickedText} numberOfLines={1}>
                     {editAudioUri.split("/").pop() ?? "Audio terpilih"}
                   </Text>
                   <TouchableOpacity onPress={() => playPreview("edit")} style={styles.audioMiniBtn}>
-                    <Volume2 size={14} color={Colors.primary} />
+                    <Volume2 size={14} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => setEditAudioUri(null)} style={styles.audioMiniBtn}>
-                    <X size={14} color={Colors.danger} />
+                    <X size={14} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity onPress={() => pickAudio("edit")} style={styles.imgPickerBtn}>
-                  <Music size={18} color={Colors.primary} />
+                  <Music size={18} color={colors.primary} />
                   <Text style={styles.imgPickerText}>Pilih Audio</Text>
                 </TouchableOpacity>
               )}
@@ -1151,16 +1155,16 @@ export default function CreateFlashcardScreen() {
               <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
                 <TouchableOpacity
                   onPress={() => setEditingCard(null)}
-                  style={[styles.editActionBtn, { backgroundColor: Colors.background, flex: 1 }]}
+                  style={[styles.editActionBtn, { backgroundColor: colors.background, flex: 1 }]}
                 >
-                  <Text style={[styles.editActionText, { color: Colors.textSecondary }]}>Batal</Text>
+                  <Text style={[styles.editActionText, { color: colors.textSecondary }]}>Batal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleEditSave}
                   disabled={editLoading}
-                  style={[styles.editActionBtn, { backgroundColor: Colors.primary, flex: 2 }]}
+                  style={[styles.editActionBtn, { backgroundColor: colors.primary, flex: 2 }]}
                 >
-                  <Text style={[styles.editActionText, { color: Colors.white }]}>
+                  <Text style={[styles.editActionText, { color: colors.white }]}>
                     {editLoading ? "Menyimpan..." : "Simpan Perubahan"}
                   </Text>
                 </TouchableOpacity>
@@ -1179,25 +1183,25 @@ export default function CreateFlashcardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: 20 },
   header: {
     flexDirection: "row", alignItems: "center",
     justifyContent: "space-between", marginBottom: 4,
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: Colors.dark },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
   closeBtn: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: Colors.background, alignItems: "center",
+    backgroundColor: c.background, alignItems: "center",
     justifyContent: "center",
   },
-  count: { fontSize: 13, color: Colors.textMuted, fontWeight: "600", marginBottom: 16 },
+  count: { fontSize: 13, color: c.textMuted, fontWeight: "600", marginBottom: 16 },
 
   // AI Card
   aiCard: {
-    backgroundColor: Colors.white, borderRadius: 18,
-    borderWidth: 1.5, borderColor: Colors.primaryLight,
+    backgroundColor: c.white, borderRadius: 18,
+    borderWidth: 1.5, borderColor: c.primaryLight,
     marginBottom: 12, overflow: "hidden",
   },
   aiCardHeader: {
@@ -1207,63 +1211,63 @@ const styles = StyleSheet.create({
   aiCardLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   aiIcon: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.primary, alignItems: "center", justifyContent: "center",
   },
-  aiCardTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  aiCardSub: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginTop: 1 },
+  aiCardTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  aiCardSub: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   aiCardBody: {
     paddingHorizontal: 14, paddingBottom: 16,
-    borderTopWidth: 1, borderTopColor: Colors.border,
+    borderTopWidth: 1, borderTopColor: c.border,
     paddingTop: 14, gap: 6,
   },
   stepRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   stepBadge: {
     width: 22, height: 22, borderRadius: 7,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center", justifyContent: "center",
   },
-  stepNum: { fontSize: 11, fontWeight: "900", color: Colors.primary },
-  stepLabel: { fontSize: 13, color: Colors.textSecondary, fontWeight: "600", flex: 1 },
+  stepNum: { fontSize: 11, fontWeight: "900", color: c.primary },
+  stepLabel: { fontSize: 13, color: c.textSecondary, fontWeight: "600", flex: 1 },
   fieldLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1,
   },
   aiInput: {
-    backgroundColor: Colors.background, borderRadius: 12,
+    backgroundColor: c.background, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 14, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
   },
   countRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   countBtn: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
   },
-  countBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  countBtnText: { fontSize: 13, fontWeight: "700", color: Colors.textSecondary },
-  countBtnTextActive: { color: Colors.white },
+  countBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  countBtnText: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+  countBtnTextActive: { color: c.white },
   countInput: {
     flex: 1, minWidth: 70, paddingHorizontal: 10, paddingVertical: 8,
-    borderRadius: 10, backgroundColor: Colors.background,
-    borderWidth: 1.5, borderColor: Colors.border,
-    fontSize: 13, fontWeight: "600", color: Colors.dark,
+    borderRadius: 10, backgroundColor: c.background,
+    borderWidth: 1.5, borderColor: c.border,
+    fontSize: 13, fontWeight: "600", color: c.dark,
   },
   diffRow: { flexDirection: "row", gap: 6 },
   diffBtn: {
     flex: 1, paddingVertical: 9, borderRadius: 10,
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
     alignItems: "center",
   },
-  diffBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  diffBtnText: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
-  diffBtnTextActive: { color: Colors.white },
+  diffBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  diffBtnText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  diffBtnTextActive: { color: c.white },
   formatBox: {
-    backgroundColor: Colors.background, borderRadius: 12,
-    padding: 10, borderWidth: 1, borderColor: Colors.border, gap: 4,
+    backgroundColor: c.background, borderRadius: 12,
+    padding: 10, borderWidth: 1, borderColor: c.border, gap: 4,
   },
-  formatLabel: { fontSize: 10, fontWeight: "800", color: Colors.textMuted, textTransform: "uppercase" },
+  formatLabel: { fontSize: 10, fontWeight: "800", color: c.textMuted, textTransform: "uppercase" },
   formatCode: {
-    fontSize: 11, color: Colors.dark, fontWeight: "600",
+    fontSize: 11, color: c.dark, fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     lineHeight: 17,
   },
@@ -1272,17 +1276,17 @@ const styles = StyleSheet.create({
   },
   copyPromptBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: Colors.primary,
+    gap: 8, backgroundColor: c.primary,
     borderRadius: 12, paddingVertical: 13, marginTop: 4,
   },
   copyPromptBtnSmall: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, backgroundColor: Colors.primary,
+    gap: 6, backgroundColor: c.primary,
     borderRadius: 12, paddingVertical: 13,
   },
-  copyPromptBtnDone: { backgroundColor: Colors.success },
-  copyPromptBtnText: { fontSize: 13, fontWeight: "900", color: Colors.white },
-  stepsGuide: { backgroundColor: Colors.background, borderRadius: 12, padding: 12, gap: 0 },
+  copyPromptBtnDone: { backgroundColor: c.success },
+  copyPromptBtnText: { fontSize: 13, fontWeight: "900", color: c.white },
+  stepsGuide: { backgroundColor: c.background, borderRadius: 12, padding: 12, gap: 0 },
   promptPreview: {
     backgroundColor: "#1E1E2E", borderRadius: 10, padding: 12,
   },
@@ -1298,78 +1302,78 @@ const styles = StyleSheet.create({
   // Import
   importToggle: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingVertical: 14, borderTopWidth: 1, borderTopColor: Colors.border, marginBottom: 8,
+    paddingVertical: 14, borderTopWidth: 1, borderTopColor: c.border, marginBottom: 8,
   },
-  importToggleText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
+  importToggleText: { fontSize: 14, fontWeight: "700", color: c.primary },
   importBox: { gap: 8, marginBottom: 20 },
-  importHint: { fontSize: 12, color: Colors.textMuted, fontWeight: "500", fontStyle: "italic" },
-  importFormat: { fontSize: 11, color: Colors.textSecondary, fontWeight: "600", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
-  filePickBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.card1, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderStyle: "dashed" },
-  filePickText: { fontSize: 13, fontWeight: "600", color: Colors.primary, flex: 1 },
+  importHint: { fontSize: 12, color: c.textMuted, fontWeight: "500", fontStyle: "italic" },
+  importFormat: { fontSize: 11, color: c.textSecondary, fontWeight: "600", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+  filePickBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.card1, borderWidth: 1.5, borderColor: c.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderStyle: "dashed" },
+  filePickText: { fontSize: 13, fontWeight: "600", color: c.primary, flex: 1 },
   importOr: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 2 },
-  importOrLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  importOrText: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  importOrLine: { flex: 1, height: 1, backgroundColor: c.border },
+  importOrText: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
 
   // Divider
   divider: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 16 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  dividerText: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+  dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
+  dividerText: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
 
   // Manual Form
   form: { gap: 14, marginBottom: 20 },
   field: { gap: 6 },
   input: {
-    backgroundColor: Colors.white, borderRadius: 14,
+    backgroundColor: c.white, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1, borderColor: Colors.border,
+    fontSize: 15, fontWeight: "600", color: c.dark,
+    borderWidth: 1, borderColor: c.border,
   },
   imagePicker: {
     borderRadius: 16, overflow: "hidden",
-    borderWidth: 1.5, borderColor: Colors.border,
-    borderStyle: "dashed", backgroundColor: Colors.background,
+    borderWidth: 1.5, borderColor: c.border,
+    borderStyle: "dashed", backgroundColor: c.background,
   },
   imagePreview: { width: "100%", height: 180, borderRadius: 14 },
   imagePlaceholder: { height: 100, alignItems: "center", justifyContent: "center", gap: 8 },
-  imagePlaceholderText: { fontSize: 13, color: Colors.textMuted, fontWeight: "600" },
+  imagePlaceholderText: { fontSize: 13, color: c.textMuted, fontWeight: "600" },
   removeImage: { alignSelf: "flex-end", marginTop: 4 },
-  removeImageText: { fontSize: 12, color: Colors.danger, fontWeight: "700" },
+  removeImageText: { fontSize: 12, color: c.danger, fontWeight: "700" },
 
   // Existing
   existingSection: { marginTop: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: "900", color: Colors.dark, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: "900", color: c.dark, marginBottom: 12 },
   cardRow: {
     flexDirection: "row", alignItems: "flex-start",
-    backgroundColor: Colors.white, borderRadius: 16,
+    backgroundColor: c.white, borderRadius: 16,
     padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: Colors.border, gap: 12,
+    borderWidth: 1, borderColor: c.border, gap: 12,
   },
-  cardThumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: Colors.background },
+  cardThumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: c.background },
   cardTag: {
-    fontSize: 10, fontWeight: "800", color: Colors.primary,
+    fontSize: 10, fontWeight: "800", color: c.primary,
     textTransform: "uppercase", letterSpacing: 1, marginBottom: 4,
   },
-  cardQ: { fontSize: 14, fontWeight: "700", color: Colors.dark, marginBottom: 4 },
-  cardA: { fontSize: 13, color: Colors.textSecondary, fontWeight: "500" },
+  cardQ: { fontSize: 14, fontWeight: "700", color: c.dark, marginBottom: 4 },
+  cardA: { fontSize: 13, color: c.textSecondary, fontWeight: "500" },
   deleteBtn: {
     width: 32, height: 32, borderRadius: 10,
-    backgroundColor: Colors.dangerLight,
+    backgroundColor: c.dangerLight,
     alignItems: "center", justifyContent: "center",
   },
 
   // Packs
   packsSection: { marginBottom: 12 },
   packsSectionTitle: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1, marginBottom: 8,
   },
   packChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white,
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.white,
   },
-  packChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  packChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  packChipTextActive: { color: Colors.white },
+  packChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  packChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  packChipTextActive: { color: c.white },
 
   // Modal
   modalOverlay: {
@@ -1378,39 +1382,39 @@ const styles = StyleSheet.create({
     zIndex: 100, paddingHorizontal: 24,
   },
   modalCard: {
-    backgroundColor: Colors.white, borderRadius: 20, padding: 20, width: "100%", gap: 10,
+    backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10,
   },
-  modalTitle: { fontSize: 17, fontWeight: "900", color: Colors.dark },
-  modalSub: { fontSize: 13, color: Colors.textMuted, fontWeight: "500", marginBottom: 4 },
+  modalTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
+  modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500", marginBottom: 4 },
   modalLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1,
   },
   modalPackRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12,
-    backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1, borderColor: c.border,
   },
-  modalPackName: { fontSize: 14, fontWeight: "700", color: Colors.dark },
-  modalPackCount: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
-  modalDivider: { height: 1, backgroundColor: Colors.border, marginVertical: 4 },
+  modalPackName: { fontSize: 14, fontWeight: "700", color: c.dark },
+  modalPackCount: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
+  modalDivider: { height: 1, backgroundColor: c.border, marginVertical: 4 },
   modalInput: {
-    backgroundColor: Colors.background, borderRadius: 12,
+    backgroundColor: c.background, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 14, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
   },
   modalCreateBtn: {
-    backgroundColor: Colors.primary, borderRadius: 12,
+    backgroundColor: c.primary, borderRadius: 12,
     paddingVertical: 13, alignItems: "center",
   },
-  modalCreateBtnText: { fontSize: 14, fontWeight: "900", color: Colors.white },
+  modalCreateBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
   modalCancelBtn: { alignItems: "center", paddingVertical: 8 },
-  modalCancelText: { fontSize: 14, fontWeight: "700", color: Colors.textMuted },
+  modalCancelText: { fontSize: 14, fontWeight: "700", color: c.textMuted },
 
   // Edit modal
   editModalCard: {
-    backgroundColor: Colors.white, borderRadius: 24,
+    backgroundColor: c.white, borderRadius: 24,
     padding: 20, width: "100%",
     shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
     elevation: 12,
@@ -1419,24 +1423,24 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     justifyContent: "space-between", marginBottom: 16,
   },
-  editModalTitle: { fontSize: 18, fontWeight: "900", color: Colors.dark },
+  editModalTitle: { fontSize: 18, fontWeight: "900", color: c.dark },
   editFieldLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 1, marginBottom: 6,
   },
   editActionBtn: {
     paddingVertical: 14, borderRadius: 14,
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5, borderColor: c.border,
   },
   editActionText: { fontSize: 14, fontWeight: "800" },
   imgPickerBtn: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    borderWidth: 1.5, borderColor: Colors.primary, borderStyle: "dashed",
+    borderWidth: 1.5, borderColor: c.primary, borderStyle: "dashed",
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
-    backgroundColor: Colors.primaryLight, marginBottom: 4,
+    backgroundColor: c.primaryLight, marginBottom: 4,
   },
-  imgPickerText: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  imgPickerText: { fontSize: 13, fontWeight: "700", color: c.primary },
   audioPickerBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1445,10 +1449,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: Colors.border ?? "#E6ECF8",
-    backgroundColor: Colors.primaryLight,
+    borderColor: c.border ?? "#E6ECF8",
+    backgroundColor: c.primaryLight,
   },
-  audioPickerText: { fontSize: 13, fontWeight: "700", color: Colors.primary, flex: 1 },
+  audioPickerText: { fontSize: 13, fontWeight: "700", color: c.primary, flex: 1 },
   audioPickedRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1457,17 +1461,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border ?? "#E6ECF8",
-    backgroundColor: Colors.white,
+    borderColor: c.border ?? "#E6ECF8",
+    backgroundColor: c.white,
   },
-  audioPickedText: { flex: 1, fontSize: 12, color: Colors.text, fontWeight: "600" },
+  audioPickedText: { flex: 1, fontSize: 12, color: c.text, fontWeight: "600" },
   audioMiniBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   askAiBtn: { flex: 1, borderRadius: 12, overflow: "hidden" },

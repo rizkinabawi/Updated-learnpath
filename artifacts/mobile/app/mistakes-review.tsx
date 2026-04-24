@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ import {
   type Flashcard,
   type Quiz,
 } from "@/utils/storage";
-import Colors, { shadow } from "@/constants/colors";
+import { shadow, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 type ReviewItem = {
@@ -28,6 +29,9 @@ type ReviewItem = {
 };
 
 export default function MistakesReview() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -64,7 +68,7 @@ export default function MistakesReview() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Feather name="arrow-left" size={20} color={Colors.dark} />
+          <Feather name="arrow-left" size={20} color={colors.dark} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{t.mistakes.header_title}</Text>
@@ -105,14 +109,14 @@ export default function MistakesReview() {
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: isFlashcard ? Colors.primaryLight : Colors.accentLight },
+                    { backgroundColor: isFlashcard ? colors.primaryLight : colors.accentLight },
                   ]}
                 >
                   <Text style={{ fontSize: 12 }}>{isFlashcard ? "🃏" : "❓"}</Text>
                   <Text
                     style={[
                       styles.badgeText,
-                      { color: isFlashcard ? Colors.primaryDark : "#B45309" },
+                      { color: isFlashcard ? colors.primaryDark : "#B45309" },
                     ]}
                   >
                     {isFlashcard ? "Flashcard" : "Quiz"}
@@ -155,8 +159,8 @@ export default function MistakesReview() {
                         <Text
                           style={[
                             styles.optionText,
-                            opt === quiz.answer && { color: Colors.success, fontWeight: "800" },
-                            opt === progress.userAnswer && opt !== quiz.answer && { color: Colors.danger },
+                            opt === quiz.answer && { color: colors.success, fontWeight: "800" },
+                            opt === progress.userAnswer && opt !== quiz.answer && { color: colors.danger },
                           ]}
                         >
                           {opt}
@@ -174,8 +178,8 @@ export default function MistakesReview() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -187,14 +191,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: Colors.dark },
-  headerSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "600", marginTop: 1 },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
+  headerSub: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 1 },
   center: {
     flex: 1,
     alignItems: "center",
@@ -202,19 +206,19 @@ const styles = StyleSheet.create({
     padding: 28,
     gap: 10,
   },
-  loadingText: { fontSize: 15, color: Colors.textMuted, fontWeight: "600" },
-  emptyTitle: { fontSize: 26, fontWeight: "900", color: Colors.dark, marginTop: 8 },
-  emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: "center", fontWeight: "500", lineHeight: 22 },
+  loadingText: { fontSize: 15, color: c.textMuted, fontWeight: "600" },
+  emptyTitle: { fontSize: 26, fontWeight: "900", color: c.dark, marginTop: 8 },
+  emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", fontWeight: "500", lineHeight: 22 },
   ctaBtn: {
     marginTop: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 999,
   },
-  ctaBtnText: { color: Colors.white, fontWeight: "800", fontSize: 15 },
+  ctaBtnText: { color: c.white, fontWeight: "800", fontSize: 15 },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 20,
     padding: 18,
     marginBottom: 12,
@@ -233,27 +237,27 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   badgeText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1 },
-  question: { fontSize: 16, fontWeight: "700", color: Colors.dark, lineHeight: 24 },
-  divider: { height: 1, backgroundColor: Colors.border },
+  question: { fontSize: 16, fontWeight: "700", color: c.dark, lineHeight: 24 },
+  divider: { height: 1, backgroundColor: c.border },
   answerLabel: {
     fontSize: 10,
     fontWeight: "800",
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  correctAnswer: { fontSize: 15, fontWeight: "700", color: Colors.success },
-  wrongAnswer: { fontSize: 14, fontWeight: "600", color: Colors.danger },
+  correctAnswer: { fontSize: 15, fontWeight: "700", color: c.success },
+  wrongAnswer: { fontSize: 14, fontWeight: "600", color: c.danger },
   optionsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   optionChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  optionCorrect: { backgroundColor: Colors.successLight, borderColor: Colors.success },
-  optionWrong: { backgroundColor: Colors.dangerLight, borderColor: Colors.danger },
-  optionText: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
+  optionCorrect: { backgroundColor: c.successLight, borderColor: c.success },
+  optionWrong: { backgroundColor: c.dangerLight, borderColor: c.danger },
+  optionText: { fontSize: 13, fontWeight: "600", color: c.textSecondary },
 });

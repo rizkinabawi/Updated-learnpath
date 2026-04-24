@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -30,12 +31,15 @@ import {
   type Lesson,
 } from "@/utils/storage";
 import { Feather } from "@expo/vector-icons";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 export default function FlashcardScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -176,7 +180,7 @@ export default function FlashcardScreen() {
           style={styles.addBtn}
           onPress={() => router.push(`/create-flashcard/${lessonId}`)}
         >
-          <Plus size={16} color={Colors.white} />
+          <Plus size={16} color={colors.white} />
           <Text style={styles.addBtnText}>{t.flashcard.add_btn}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
@@ -210,13 +214,13 @@ export default function FlashcardScreen() {
         <View style={{ width: "100%", marginVertical: 8 }}>
           <ProgressBar
             value={pct}
-            color={pct >= 80 ? Colors.success : pct >= 50 ? Colors.warning : Colors.danger}
+            color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger}
             height={10}
           />
         </View>
         <View style={styles.resultBtns}>
           <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
-            <RotateCcw size={16} color={Colors.white} />
+            <RotateCcw size={16} color={colors.white} />
             <Text style={styles.restartBtnText}>{t.common.restart}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
@@ -277,7 +281,7 @@ export default function FlashcardScreen() {
       {/* Nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <X size={20} color={Colors.black} />
+          <X size={20} color={colors.black} />
         </TouchableOpacity>
         <Text style={styles.navCount}>
           {viewMode === "card"
@@ -295,7 +299,7 @@ export default function FlashcardScreen() {
             <Feather
               name={viewMode === "card" ? "list" : "credit-card"}
               size={18}
-              color={Colors.black}
+              color={colors.black}
             />
           </TouchableOpacity>
           {viewMode === "card" && (
@@ -303,7 +307,7 @@ export default function FlashcardScreen() {
               <Feather
                 name="bookmark"
                 size={18}
-                color={bookmarked ? "#F59E0B" : Colors.textMuted}
+                color={bookmarked ? "#F59E0B" : colors.textMuted}
               />
             </TouchableOpacity>
           )}
@@ -311,7 +315,7 @@ export default function FlashcardScreen() {
             onPress={() => router.push(`/create-flashcard/${lessonId}`)}
             style={styles.navBtn}
           >
-            <Plus size={20} color={Colors.black} />
+            <Plus size={20} color={colors.black} />
           </TouchableOpacity>
         </View>
       </View>
@@ -361,7 +365,7 @@ export default function FlashcardScreen() {
                   <Text style={styles.tableCell}>{c.question}</Text>
                   {c.audio ? (
                     <View style={styles.tableMediaRow}>
-                      <Volume2 size={12} color={Colors.primary} />
+                      <Volume2 size={12} color={colors.primary} />
                       <Text style={styles.tableMediaText}>audio</Text>
                     </View>
                   ) : null}
@@ -451,7 +455,7 @@ function FlashcardCardView({
                 style={styles.audioBtn}
                 activeOpacity={0.85}
               >
-                <Volume2 size={16} color={Colors.primary} />
+                <Volume2 size={16} color={colors.primary} />
                 <Text style={styles.audioBtnText}>Putar audio</Text>
               </TouchableOpacity>
             )}
@@ -480,15 +484,15 @@ function FlashcardCardView({
             onPress={() => handleAnswer(false)}
             style={[styles.answerBtn, styles.wrongBtn]}
           >
-            <X size={24} color={Colors.danger} />
-            <Text style={[styles.answerBtnText, { color: Colors.danger }]}>{t.flashcard.btn_wrong}</Text>
+            <X size={24} color={colors.danger} />
+            <Text style={[styles.answerBtnText, { color: colors.danger }]}>{t.flashcard.btn_wrong}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleAnswer(true)}
             style={[styles.answerBtn, styles.correctBtn]}
           >
-            <Check size={24} color={Colors.success} />
-            <Text style={[styles.answerBtnText, { color: Colors.success }]}>{t.flashcard.btn_correct}</Text>
+            <Check size={24} color={colors.success} />
+            <Text style={[styles.answerBtnText, { color: colors.success }]}>{t.flashcard.btn_correct}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -500,31 +504,31 @@ function FlashcardCardView({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
     gap: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  emptyTitle: { fontSize: 22, fontWeight: "900", color: Colors.black },
-  emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: "center", fontWeight: "500" },
+  emptyTitle: { fontSize: 22, fontWeight: "900", color: c.black },
+  emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", fontWeight: "500" },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.black,
+    backgroundColor: c.black,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
     marginTop: 8,
   },
-  addBtnText: { color: Colors.white, fontWeight: "800", fontSize: 14 },
+  addBtnText: { color: c.white, fontWeight: "800", fontSize: 14 },
   backLink: { marginTop: 8 },
-  backLinkText: { color: Colors.primary, fontWeight: "700", fontSize: 14 },
+  backLinkText: { color: c.primary, fontWeight: "700", fontSize: 14 },
   nav: {
     flexDirection: "row",
     alignItems: "center",
@@ -536,18 +540,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  navCount: { fontSize: 14, fontWeight: "800", color: Colors.textSecondary },
+  navCount: { fontSize: 14, fontWeight: "800", color: c.textSecondary },
   cardTag: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.primary,
+    color: c.primary,
     textTransform: "uppercase",
     letterSpacing: 1,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
@@ -574,12 +578,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardFront: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
   },
   cardBack: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderWidth: 1,
     borderColor: "#BFDBFE",
   },
@@ -594,21 +598,21 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   cardText: {
     fontSize: 20,
     fontWeight: "800",
-    color: Colors.black,
+    color: c.black,
     textAlign: "center",
     lineHeight: 28,
   },
-  tapHint: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  tapHint: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   audioBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
@@ -617,15 +621,15 @@ const styles = StyleSheet.create({
   audioBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
   },
   tableScroll: { paddingHorizontal: 16, paddingBottom: 28 },
   tableCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.border ?? "#E6ECF8",
+    borderColor: c.border ?? "#E6ECF8",
   },
   tableRow: {
     flexDirection: "row",
@@ -634,26 +638,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border ?? "#E6ECF8",
+    borderBottomColor: c.border ?? "#E6ECF8",
   },
   tableRowAlt: { backgroundColor: "rgba(76,111,255,0.04)" },
   tableRowLast: { borderBottomWidth: 0 },
   tableHeaderRow: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border ?? "#E6ECF8",
+    borderBottomColor: c.border ?? "#E6ECF8",
   },
   tableHeaderCell: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.primary,
+    color: c.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  tableCell: { fontSize: 13, color: Colors.text, lineHeight: 19 },
+  tableCell: { fontSize: 13, color: c.text, lineHeight: 19 },
   cellNum: {
     fontWeight: "700",
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontVariant: ["tabular-nums"],
   },
   colNum: { width: 28 },
@@ -673,11 +677,11 @@ const styles = StyleSheet.create({
   tableMediaText: {
     fontSize: 10,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
     textTransform: "uppercase",
   },
   tableEmpty: { padding: 24, alignItems: "center" },
-  tableEmptyText: { color: Colors.textMuted, fontSize: 13 },
+  tableEmptyText: { color: c.textMuted, fontSize: 13 },
   answerBtns: {
     flexDirection: "row",
     paddingHorizontal: 20,
@@ -694,23 +698,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
   },
-  wrongBtn: { backgroundColor: Colors.dangerLight, borderColor: "#FCA5A5" },
-  correctBtn: { backgroundColor: Colors.successLight, borderColor: "#86EFAC" },
+  wrongBtn: { backgroundColor: c.dangerLight, borderColor: "#FCA5A5" },
+  correctBtn: { backgroundColor: c.successLight, borderColor: "#86EFAC" },
   answerBtnText: { fontSize: 16, fontWeight: "800" },
   flipHintWrap: { paddingTop: 16, alignItems: "center" },
-  flipHintText: { fontSize: 13, color: Colors.textMuted, fontWeight: "500" },
+  flipHintText: { fontSize: 13, color: c.textMuted, fontWeight: "500" },
   resultWrap: {
     flex: 1,
     paddingHorizontal: 28,
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   resultEmoji: { fontSize: 64 },
-  resultTitle: { fontSize: 26, fontWeight: "900", color: Colors.black },
-  resultScore: { fontSize: 64, fontWeight: "900", color: Colors.black },
-  resultSub: { fontSize: 16, color: Colors.textMuted, fontWeight: "600" },
+  resultTitle: { fontSize: 26, fontWeight: "900", color: c.black },
+  resultScore: { fontSize: 64, fontWeight: "900", color: c.black },
+  resultSub: { fontSize: 16, color: c.textMuted, fontWeight: "600" },
   resultBtns: { flexDirection: "row", gap: 12, marginTop: 16, width: "100%" },
   restartBtn: {
     flex: 1,
@@ -718,48 +722,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.black,
+    backgroundColor: c.black,
     paddingVertical: 16,
     borderRadius: 18,
   },
-  restartBtnText: { color: Colors.white, fontWeight: "800", fontSize: 15 },
+  restartBtnText: { color: c.white, fontWeight: "800", fontSize: 15 },
   doneBtn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingVertical: 16,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  doneBtnText: { color: Colors.black, fontWeight: "800", fontSize: 15 },
+  doneBtnText: { color: c.black, fontWeight: "800", fontSize: 15 },
   nextLessonBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 20,
     width: "100%",
     marginTop: 4,
   },
-  nextLessonBtnText: { color: Colors.primary, fontWeight: "800", fontSize: 14, flex: 1 },
-  nextLessonArrow: { color: Colors.primary, fontWeight: "900", fontSize: 18 },
+  nextLessonBtnText: { color: c.primary, fontWeight: "800", fontSize: 14, flex: 1 },
+  nextLessonArrow: { color: c.primary, fontWeight: "900", fontSize: 18 },
   xpBadge: {
     position: "absolute",
     top: Platform.OS === "web" ? 80 : 90,
     alignSelf: "center",
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
     zIndex: 100,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

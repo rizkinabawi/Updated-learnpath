@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -36,7 +37,7 @@ import {
   generateId,
   type Note,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { useTranslation } from "@/contexts/LanguageContext";
 
@@ -50,6 +51,9 @@ const ensureNotesDir = async () => {
 };
 
 export default function NotesScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { lessonId, openEditId } = useLocalSearchParams<{
     lessonId: string;
     openEditId?: string;
@@ -215,7 +219,7 @@ export default function NotesScreen() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={Colors.white} />
+          <X size={20} color={colors.white} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -224,7 +228,7 @@ export default function NotesScreen() {
           <Text style={styles.headerTitle}>{t.common.notes}</Text>
         </View>
         <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
-          <Plus size={20} color={Colors.white} />
+          <Plus size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -235,7 +239,7 @@ export default function NotesScreen() {
       >
         {notes.length === 0 ? (
           <TouchableOpacity style={styles.emptyCard} onPress={openAdd} activeOpacity={0.85}>
-            <FileText size={40} color={Colors.primary} strokeWidth={1.5} />
+            <FileText size={40} color={colors.primary} strokeWidth={1.5} />
             <Text style={styles.emptyTitle}>{t.notes.empty_title}</Text>
             <Text style={styles.emptySub}>{t.notes.empty_sub}</Text>
           </TouchableOpacity>
@@ -250,12 +254,12 @@ export default function NotesScreen() {
                   activeOpacity={0.75}
                 >
                   <View style={styles.noteIconWrap}>
-                    <PenLine size={16} color={Colors.primary} />
+                    <PenLine size={16} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.noteTitle}>{note.title}</Text>
                     <View style={styles.noteMeta}>
-                      <Clock size={10} color={Colors.textMuted} />
+                      <Clock size={10} color={colors.textMuted} />
                       <Text style={styles.noteDate}>{formatDate(note.updatedAt)}</Text>
                     </View>
                   </View>
@@ -265,24 +269,24 @@ export default function NotesScreen() {
                       style={styles.iconBtn}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <PenLine size={14} color={Colors.primary} />
+                      <PenLine size={14} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDelete(note)}
                       style={[styles.iconBtn, styles.iconBtnDanger]}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Trash2 size={14} color={Colors.danger} />
+                      <Trash2 size={14} color={colors.danger} />
                     </TouchableOpacity>
                     {hasImages && (
                       <View style={styles.attachBadge}>
-                        <FileImage size={11} color={Colors.success} />
+                        <FileImage size={11} color={colors.success} />
                         <Text style={styles.attachBadgeText}>
                           {note.images!.length}
                         </Text>
                       </View>
                     )}
-                    <ChevronRight size={16} color={Colors.textMuted} />
+                    <ChevronRight size={16} color={colors.textMuted} />
                   </View>
                 </TouchableOpacity>
               </View>
@@ -320,7 +324,7 @@ export default function NotesScreen() {
               onChangeText={setTitle}
               placeholder={t.notes.title_ph}
               style={styles.input}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
 
@@ -330,7 +334,7 @@ export default function NotesScreen() {
               onChangeText={setContent}
               placeholder={t.notes.content_ph}
               style={[styles.input, styles.textArea]}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
             />
@@ -344,12 +348,12 @@ export default function NotesScreen() {
                   onPress={addImage}
                   style={{
                     flexDirection: "row", alignItems: "center", gap: 4,
-                    backgroundColor: Colors.successLight, borderRadius: 8,
+                    backgroundColor: colors.successLight, borderRadius: 8,
                     paddingHorizontal: 10, paddingVertical: 6,
                   }}
                 >
-                  <Plus size={12} color={Colors.success} />
-                  <Text style={{ fontSize: 11, fontWeight: "800", color: Colors.success }}>
+                  <Plus size={12} color={colors.success} />
+                  <Text style={{ fontSize: 11, fontWeight: "800", color: colors.success }}>
                     Tambah
                   </Text>
                 </TouchableOpacity>
@@ -371,11 +375,11 @@ export default function NotesScreen() {
                         style={{
                           position: "absolute", top: -6, right: -6,
                           width: 22, height: 22, borderRadius: 11,
-                          backgroundColor: Colors.danger,
+                          backgroundColor: colors.danger,
                           alignItems: "center", justifyContent: "center",
                         }}
                       >
-                        <X size={12} color={Colors.white} />
+                        <X size={12} color={colors.white} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -410,10 +414,10 @@ export default function NotesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 16,
     paddingBottom: 16,
     flexDirection: "row",
@@ -434,7 +438,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: Colors.white },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.white },
   addBtn: {
     width: 40,
     height: 40,
@@ -445,28 +449,28 @@ const styles = StyleSheet.create({
   },
   listContent: { padding: 16, paddingBottom: 40, gap: 10 },
   emptyCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 20,
     padding: 36,
     alignItems: "center",
     gap: 10,
     borderWidth: 1.5,
-    borderColor: Colors.primaryLight,
+    borderColor: c.primaryLight,
     borderStyle: "dashed",
     marginTop: 24,
   },
-  emptyTitle: { fontSize: 17, fontWeight: "900", color: Colors.dark },
+  emptyTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
   emptySub: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     textAlign: "center",
   },
   noteCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
   noteHeader: {
@@ -479,38 +483,38 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
-  noteTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
+  noteTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
   noteMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  noteDate: { fontSize: 10, color: Colors.textMuted, fontWeight: "500" },
+  noteDate: { fontSize: 10, color: c.textMuted, fontWeight: "500" },
   noteActions: { flexDirection: "row", alignItems: "center", gap: 6 },
   iconBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconBtnDanger: { backgroundColor: Colors.dangerLight },
+  iconBtnDanger: { backgroundColor: c.dangerLight },
   noteBody: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     padding: 14,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   noteContent: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
     lineHeight: 22,
   },
   noteContentEmpty: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: "italic",
   },
   modalOverlay: {
@@ -519,7 +523,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalBox: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -530,28 +534,28 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     alignSelf: "center",
     marginBottom: 8,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: Colors.dark, marginBottom: 4 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.dark, marginBottom: 4 },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     marginTop: 6,
   },
   textArea: { height: 160, textAlignVertical: "top" },
@@ -560,24 +564,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "700", color: Colors.textSecondary },
+  cancelBtnText: { fontSize: 14, fontWeight: "700", color: c.textSecondary },
   saveBtn: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
   },
-  saveBtnText: { fontSize: 14, fontWeight: "900", color: Colors.white },
+  saveBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
   attachBadge: {
     flexDirection: "row", alignItems: "center", gap: 3,
-    backgroundColor: Colors.successLight, borderRadius: 8,
+    backgroundColor: c.successLight, borderRadius: 8,
     paddingHorizontal: 6, paddingVertical: 3, marginRight: 2,
   },
-  attachBadgeText: { fontSize: 10, fontWeight: "800", color: Colors.success },
+  attachBadgeText: { fontSize: 10, fontWeight: "800", color: c.success },
 });

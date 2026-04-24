@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -23,21 +24,24 @@ import {
   generateId,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 const GRAD_PALETTE: [string, string][] = [
-  [Colors.primary, Colors.purple],
-  [Colors.accent, Colors.amber],
-  [Colors.teal, "#0EA5E9"],
-  [Colors.purple, "#A855F7"],
-  [Colors.emerald, Colors.success],
+  [colors.primary, colors.purple],
+  [colors.accent, colors.amber],
+  [colors.teal, "#0EA5E9"],
+  [colors.purple, "#A855F7"],
+  [colors.emerald, colors.success],
 ];
 const MOD_EMOJIS = ["📘", "🎨", "🌐", "🧠", "⚗️"];
 
 type ModCounts = { fc: number; qz: number; nt: number; mt: number };
 
 export default function CourseDetailPage() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { pathId } = useLocalSearchParams<{ pathId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -141,7 +145,7 @@ export default function CourseDetailPage() {
     <View style={styles.container}>
       {/* HEADER */}
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 10 }]}
@@ -191,7 +195,7 @@ export default function CourseDetailPage() {
             style={styles.emptyModBtn}
             activeOpacity={0.8}
           >
-            <Feather name="plus-circle" size={18} color={Colors.primary} />
+            <Feather name="plus-circle" size={18} color={colors.primary} />
             <Text style={styles.emptyModText}>{t.course.empty_mod}</Text>
           </TouchableOpacity>
         )}
@@ -223,8 +227,8 @@ export default function CourseDetailPage() {
                         <MetaChip label={t.course.meta_lessons(modLessons.length)} />
                         <MetaChip label={t.course.meta_cards(cnt.fc)} />
                         <MetaChip label={t.course.meta_quiz(cnt.qz)} />
-                        <MetaChip label={t.course.meta_notes(cnt.nt)} color={Colors.primary} bg="#EEF0FF" />
-                        <MetaChip label={t.course.meta_material(cnt.mt)} color={Colors.purple} bg={Colors.purpleLight} />
+                        <MetaChip label={t.course.meta_notes(cnt.nt)} color={colors.primary} bg="#EEF0FF" />
+                        <MetaChip label={t.course.meta_material(cnt.mt)} color={colors.purple} bg={colors.purpleLight} />
                       </View>
                     </ScrollView>
                   </View>
@@ -234,11 +238,11 @@ export default function CourseDetailPage() {
                     style={styles.modDeleteBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Feather name="trash-2" size={13} color={Colors.danger} />
+                    <Feather name="trash-2" size={13} color={colors.danger} />
                   </TouchableOpacity>
                   <Feather
                     name={isExpanded ? "chevron-up" : "chevron-down"}
-                    size={16} color={Colors.textMuted}
+                    size={16} color={colors.textMuted}
                   />
                 </TouchableOpacity>
 
@@ -259,7 +263,7 @@ export default function CourseDetailPage() {
                               style={styles.lessonDeleteBtn}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
-                              <Feather name="trash-2" size={12} color={Colors.danger} />
+                              <Feather name="trash-2" size={12} color={colors.danger} />
                             </TouchableOpacity>
                           </View>
                           {!!lesson.description && (
@@ -270,24 +274,24 @@ export default function CourseDetailPage() {
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
                             <View style={styles.actionRow}>
                               <ActionPill
-                                label={t.course.action_notes} bg={Colors.primaryLight}
+                                label={t.course.action_notes} bg={colors.primaryLight}
                                 onPress={() => router.push(`/notes/${lesson.id}`)}
                               />
                               <ActionPill
-                                label={t.course.action_material} bg={Colors.purpleLight}
+                                label={t.course.action_material} bg={colors.purpleLight}
                                 onPress={() => router.push(`/study-material/${lesson.id}`)}
                               />
                               <ActionPill
-                                label={t.course.action_cards} bg={Colors.primaryLight}
+                                label={t.course.action_cards} bg={colors.primaryLight}
                                 onPress={() => router.push(`/flashcard/${lesson.id}`)}
                               />
                               <ActionPill
-                                label={t.course.action_quiz} bg={Colors.amberLight}
+                                label={t.course.action_quiz} bg={colors.amberLight}
                                 onPress={() => router.push(`/quiz/${lesson.id}`)}
                               />
                               <ActionPill
-                                icon="plus" label="Soal" bg={Colors.background}
-                                border={Colors.border} textColor={Colors.primary}
+                                icon="plus" label="Soal" bg={colors.background}
+                                border={colors.border} textColor={colors.primary}
                                 onPress={() => router.push(`/create-quiz/${lesson.id}`)}
                               />
                             </View>
@@ -300,7 +304,7 @@ export default function CourseDetailPage() {
                       style={styles.addLessonRow}
                       onPress={() => { setTargetMod(mod.id); setShowNewLesson(true); }}
                     >
-                      <Feather name="plus-circle" size={14} color={Colors.primary} />
+                      <Feather name="plus-circle" size={14} color={colors.primary} />
                       <Text style={styles.addLessonText}>{t.course.add_lesson}</Text>
                     </TouchableOpacity>
                   </View>
@@ -312,7 +316,7 @@ export default function CourseDetailPage() {
 
         {modules.length > 0 && (
           <TouchableOpacity style={styles.addModBtn} onPress={() => setShowNewModule(true)}>
-            <Feather name="plus" size={15} color={Colors.primary} />
+            <Feather name="plus" size={15} color={colors.primary} />
             <Text style={styles.addModText}>{t.course.add_mod_btn}</Text>
           </TouchableOpacity>
         )}
@@ -327,7 +331,7 @@ export default function CourseDetailPage() {
             <TextInput
               placeholder="Nama modul" value={modName}
               onChangeText={setModName} style={styles.mInput}
-              placeholderTextColor={Colors.textMuted} autoFocus
+              placeholderTextColor={colors.textMuted} autoFocus
             />
           ),
         },
@@ -339,12 +343,12 @@ export default function CourseDetailPage() {
               <TextInput
                 placeholder="Nama pelajaran" value={lessonName}
                 onChangeText={setLessonName} style={styles.mInput}
-                placeholderTextColor={Colors.textMuted} autoFocus
+                placeholderTextColor={colors.textMuted} autoFocus
               />
               <TextInput
                 placeholder="Deskripsi (opsional)" value={lessonDesc}
                 onChangeText={setLessonDesc} style={styles.mInput}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
             </>
           ),
@@ -361,7 +365,7 @@ export default function CourseDetailPage() {
                     <Text style={styles.mBtnCancelText}>{t.common.cancel}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={m.save} style={styles.mBtnOk}>
-                    <LinearGradient colors={[Colors.primary, Colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
+                    <LinearGradient colors={[colors.primary, colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mBtnOkGrad}>
                       <Text style={styles.mBtnOkText}>{t.common.save}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -396,14 +400,14 @@ function ActionPill({
       style={[styles.actionPill, { backgroundColor: bg }, border ? { borderWidth: 1, borderColor: border } : undefined]}
       activeOpacity={0.75}
     >
-      {icon && <Feather name={icon} size={10} color={textColor ?? Colors.dark} />}
+      {icon && <Feather name={icon} size={10} color={textColor ?? colors.dark} />}
       <Text style={[styles.actionPillText, textColor ? { color: textColor } : undefined]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
 
   header: { paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
   hdot1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.06)", top: -50, right: -40 },
@@ -427,71 +431,71 @@ const styles = StyleSheet.create({
   emptyModBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 10, paddingVertical: 20, borderRadius: 16,
-    borderWidth: 2, borderColor: Colors.primary, borderStyle: "dashed",
-    backgroundColor: Colors.primaryLight, marginBottom: 12,
+    borderWidth: 2, borderColor: c.primary, borderStyle: "dashed",
+    backgroundColor: c.primaryLight, marginBottom: 12,
   },
-  emptyModText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
+  emptyModText: { fontSize: 14, fontWeight: "700", color: c.primary },
 
   moduleCard: {
     backgroundColor: "#fff", borderRadius: 18, marginBottom: 10,
-    overflow: "hidden", borderWidth: 1, borderColor: Colors.border,
+    overflow: "hidden", borderWidth: 1, borderColor: c.border,
   },
   moduleCardTablet: { width: "48.5%", marginBottom: 0 },
   moduleHeader: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
   modIconGrad: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  moduleName: { fontSize: 15, fontWeight: "800", color: Colors.dark, marginBottom: 5 },
+  moduleName: { fontSize: 15, fontWeight: "800", color: c.dark, marginBottom: 5 },
   moduleMetaRow: { flexDirection: "row", gap: 5 },
-  metaChip: { backgroundColor: Colors.background, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 },
-  metaChipText: { fontSize: 10, fontWeight: "700", color: Colors.textSecondary },
+  metaChip: { backgroundColor: c.background, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 },
+  metaChipText: { fontSize: 10, fontWeight: "700", color: c.textSecondary },
   modDeleteBtn: {
     width: 30, height: 30, borderRadius: 8,
-    backgroundColor: Colors.dangerLight, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center",
   },
 
-  lessonList: { borderTopWidth: 1, borderTopColor: Colors.border, paddingHorizontal: 14, paddingBottom: 8 },
+  lessonList: { borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 14, paddingBottom: 8 },
   lessonRow: {
     flexDirection: "row", alignItems: "flex-start",
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border, gap: 10,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.border, gap: 10,
   },
   lessonNum: { width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center", marginTop: 2 },
   lessonNumText: { fontSize: 11, fontWeight: "900", color: "#fff" },
   lessonTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 1 },
-  lessonName: { fontSize: 13, fontWeight: "700", color: Colors.dark },
-  lessonDesc: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginTop: 1 },
+  lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   lessonDeleteBtn: {
     width: 24, height: 24, borderRadius: 6,
-    backgroundColor: Colors.dangerLight, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center",
   },
 
   actionRow: { flexDirection: "row", gap: 5, alignItems: "center" },
   actionPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
-  actionPillText: { fontSize: 10, fontWeight: "800", color: Colors.dark },
+  actionPillText: { fontSize: 10, fontWeight: "800", color: c.dark },
 
   addLessonRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  addLessonText: { fontSize: 13, color: Colors.primary, fontWeight: "700" },
+  addLessonText: { fontSize: 13, color: c.primary, fontWeight: "700" },
   addModBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 8, paddingVertical: 14, borderRadius: 14, marginTop: 4,
-    borderWidth: 1.5, borderColor: Colors.primary, borderStyle: "dashed",
+    borderWidth: 1.5, borderColor: c.primary, borderStyle: "dashed",
   },
-  addModText: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  addModText: { fontSize: 13, fontWeight: "700", color: c.primary },
 
   mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
   mBox: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
-  mTitle: { fontSize: 20, fontWeight: "900", color: Colors.dark },
+  mTitle: { fontSize: 20, fontWeight: "900", color: c.dark },
   mInput: {
-    backgroundColor: Colors.background, borderRadius: 14,
+    backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 14, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border,
+    fontSize: 14, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border,
   },
   mBtns: { flexDirection: "row", gap: 10 },
   mBtnCancel: {
     flex: 1, paddingVertical: 14, borderRadius: 999,
-    alignItems: "center", backgroundColor: Colors.background,
-    borderWidth: 1, borderColor: Colors.border,
+    alignItems: "center", backgroundColor: c.background,
+    borderWidth: 1, borderColor: c.border,
   },
-  mBtnCancelText: { fontSize: 14, fontWeight: "700", color: Colors.textSecondary },
+  mBtnCancelText: { fontSize: 14, fontWeight: "700", color: c.textSecondary },
   mBtnOk: { flex: 1, borderRadius: 999, overflow: "hidden" },
   mBtnOkGrad: { paddingVertical: 14, alignItems: "center" },
   mBtnOkText: { fontSize: 14, fontWeight: "900", color: "#fff" },

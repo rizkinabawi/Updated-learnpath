@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 /**
  * AdBanner — Google AdMob Banner Component
  * Supports: Banner, LargeBanner, AnchoredAdaptiveBanner
@@ -8,7 +9,7 @@
  *   - production build → Iklan nyata dari AdMob
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 // ─── Ad Unit IDs ──────────────────────────────────────────────────────────────
 const REAL_BANNER_ANDROID = "ca-app-pub-9450003707454763/5034353375";
@@ -67,9 +68,9 @@ function RealBannerAd({ size }: { size: "banner" | "largeBanner" | "adaptiveBann
 
 // ─── Mock Banner (Expo Go / Web / dev fallback) ───────────────────────────────
 const MOCK_ADS = [
-  { label: "Belajar lebih cepat dengan AI", cta: "Coba Gratis", color: Colors.primary },
-  { label: "Flashcard & Quiz tersedia 24/7", cta: "Mulai Sekarang", color: Colors.purple },
-  { label: "Raih target belajarmu hari ini", cta: "Lihat Tips", color: Colors.emerald },
+  { label: "Belajar lebih cepat dengan AI", cta: "Coba Gratis", color: colors.primary },
+  { label: "Flashcard & Quiz tersedia 24/7", cta: "Mulai Sekarang", color: colors.purple },
+  { label: "Raih target belajarmu hari ini", cta: "Lihat Tips", color: colors.emerald },
 ];
 
 function MockBannerAd({ size = "banner" }: { size?: string }) {
@@ -89,22 +90,22 @@ function MockBannerAd({ size = "banner" }: { size?: string }) {
   const bannerHeight = size === "largeBanner" ? 100 : 50;
 
   return (
-    <View style={[s.mockContainer, { height: bannerHeight }]}>
-      <View style={s.badge}><Text style={s.badgeText}>Ad</Text></View>
-      <View style={s.content}>
+    <View style={[styles.mockContainer, { height: bannerHeight }]}>
+      <View style={styles.badge}><Text style={styles.badgeText}>Ad</Text></View>
+      <View style={styles.content}>
         <Feather name="zap" size={14} color={ad.color} style={{ marginRight: 6 }} />
-        <Text style={s.adText} numberOfLines={1}>{ad.label}</Text>
+        <Text style={styles.adText} numberOfLines={1}>{ad.label}</Text>
       </View>
-      <TouchableOpacity style={[s.ctaBtn, { borderColor: ad.color }]} activeOpacity={0.75}>
-        <Text style={[s.ctaText, { color: ad.color }]}>{ad.cta}</Text>
+      <TouchableOpacity style={[styles.ctaBtn, { borderColor: ad.color }]} activeOpacity={0.75}>
+        <Text style={[styles.ctaText, { color: ad.color }]}>{ad.cta}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         onPress={() => setDismissed(true)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        style={s.dismissBtn}
+        style={styles.dismissBtn}
         activeOpacity={0.7}
       >
-        <Feather name="x" size={12} color={Colors.textMuted} />
+        <Feather name="x" size={12} color={colors.textMuted} />
       </TouchableOpacity>
     </View>
   );
@@ -117,6 +118,9 @@ interface AdBannerProps {
 }
 
 export function AdBanner({ size = "adaptiveBanner", style }: AdBannerProps) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   if (Platform.OS === "web") return null;
 
   const canShowRealAds = !isExpoGo && BannerAdComponent !== null;
@@ -131,31 +135,31 @@ export function AdBanner({ size = "adaptiveBanner", style }: AdBannerProps) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   mockContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 8,
     width: "100%",
   },
   badge: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   badgeText: {
     fontSize: 9,
     fontWeight: "800",
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 0.5,
   },
   content: {
@@ -166,7 +170,7 @@ const s = StyleSheet.create({
   adText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     flex: 1,
   },
   ctaBtn: {

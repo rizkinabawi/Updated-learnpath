@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -14,7 +15,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
 
 import * as FileSystem from "@/utils/fs-compat";
-import Colors, { shadow } from "@/constants/colors";
+import { shadow, type ColorScheme } from "@/constants/colors";
 import {
   buildBackup,
   restoreBackup,
@@ -24,6 +25,9 @@ import {
 import { isCancellationError } from "@/utils/safe-share";
 
 export default function BackupScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string>("");
 
@@ -155,13 +159,13 @@ export default function BackupScreen() {
       <Stack.Screen
         options={{
           title: "Backup & Pulih",
-          headerStyle: { backgroundColor: Colors.background },
-          headerTitleStyle: { color: Colors.text },
+          headerStyle: { backgroundColor: colors.background },
+          headerTitleStyle: { color: colors.text },
         }}
       />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.intro}>
-          <Feather name="hard-drive" size={28} color={Colors.primary} />
+          <Feather name="hard-drive" size={28} color={colors.primary} />
           <Text style={styles.title}>Backup Lengkap</Text>
           <Text style={styles.sub}>
             Simpan semua data belajarmu (kursus, modul, flashcard, quiz, catatan,
@@ -177,7 +181,7 @@ export default function BackupScreen() {
           disabled={busy}
           activeOpacity={0.85}
         >
-          <Feather name="upload" size={22} color={Colors.white} />
+          <Feather name="upload" size={22} color={colors.white} />
           <View style={styles.actionTextWrap}>
             <Text style={styles.actionTitle}>Buat & Bagikan Backup</Text>
             <Text style={styles.actionSub}>
@@ -192,12 +196,12 @@ export default function BackupScreen() {
           disabled={busy}
           activeOpacity={0.85}
         >
-          <Feather name="download" size={22} color={Colors.primary} />
+          <Feather name="download" size={22} color={colors.primary} />
           <View style={styles.actionTextWrap}>
-            <Text style={[styles.actionTitle, { color: Colors.primary }]}>
+            <Text style={[styles.actionTitle, { color: colors.primary }]}>
               Pulihkan dari File
             </Text>
-            <Text style={[styles.actionSub, { color: Colors.textMuted }]}>
+            <Text style={[styles.actionSub, { color: colors.textMuted }]}>
               Pilih file backup .json untuk memulihkan
             </Text>
           </View>
@@ -205,7 +209,7 @@ export default function BackupScreen() {
 
         {busy && (
           <View style={styles.progressBox}>
-            <ActivityIndicator color={Colors.primary} />
+            <ActivityIndicator color={colors.primary} />
             <Text style={styles.progressText}>
               {progress || "Memproses..."}
             </Text>
@@ -213,7 +217,7 @@ export default function BackupScreen() {
         )}
 
         <View style={styles.note}>
-          <Feather name="info" size={14} color={Colors.textMuted} />
+          <Feather name="info" size={14} color={colors.textMuted} />
           <Text style={styles.noteText}>
             Memulihkan akan menimpa data saat ini. Disarankan membuat backup
             terlebih dahulu sebelum memulihkan.
@@ -224,18 +228,18 @@ export default function BackupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: 20, gap: 16 },
   intro: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 16,
     padding: 18,
     gap: 8,
     ...shadow,
   },
-  title: { fontSize: 20, fontWeight: "800", color: Colors.text },
-  sub: { fontSize: 13, color: Colors.textMuted, lineHeight: 19 },
+  title: { fontSize: 20, fontWeight: "800", color: c.text },
+  sub: { fontSize: 13, color: c.textMuted, lineHeight: 19 },
   action: {
     flexDirection: "row",
     alignItems: "center",
@@ -244,14 +248,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     ...shadow,
   },
-  actionPrimary: { backgroundColor: Colors.primary },
+  actionPrimary: { backgroundColor: c.primary },
   actionSecondary: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   actionTextWrap: { flex: 1 },
-  actionTitle: { fontSize: 15, fontWeight: "700", color: Colors.white },
+  actionTitle: { fontSize: 15, fontWeight: "700", color: c.white },
   actionSub: {
     fontSize: 12,
     color: "rgba(255,255,255,0.85)",
@@ -261,17 +265,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 12,
     padding: 14,
     ...shadow,
   },
-  progressText: { fontSize: 13, color: Colors.text, flex: 1 },
+  progressText: { fontSize: 13, color: c.text, flex: 1 },
   note: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
     paddingHorizontal: 4,
   },
-  noteText: { fontSize: 12, color: Colors.textMuted, flex: 1, lineHeight: 17 },
+  noteText: { fontSize: 12, color: c.textMuted, flex: 1, lineHeight: 17 },
 });

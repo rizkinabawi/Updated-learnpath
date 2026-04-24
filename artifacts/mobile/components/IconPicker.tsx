@@ -1,7 +1,8 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 export const COURSE_ICON_CHOICES: React.ComponentProps<typeof Feather>["name"][] = [
   "book", "book-open", "code", "globe", "cpu", "layers", "award",
@@ -19,6 +20,9 @@ interface Props {
 }
 
 export function IconPicker({ visible, current, onClose, onSelect }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
@@ -28,7 +32,7 @@ export function IconPicker({ visible, current, onClose, onSelect }: Props) {
           <View style={styles.headerRow}>
             <Text style={styles.title}>Pilih Ikon Course</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Feather name="x" size={18} color={Colors.text} />
+              <Feather name="x" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
           <Text style={styles.sub}>Tap salah satu ikon untuk diterapkan</Text>
@@ -49,7 +53,7 @@ export function IconPicker({ visible, current, onClose, onSelect }: Props) {
                   <Feather
                     name={name}
                     size={22}
-                    color={active ? "#fff" : Colors.text}
+                    color={active ? "#fff" : colors.text}
                   />
                 </TouchableOpacity>
               );
@@ -61,11 +65,11 @@ export function IconPicker({ visible, current, onClose, onSelect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   root: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,31,61,0.4)" },
   sheet: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
@@ -75,27 +79,27 @@ const styles = StyleSheet.create({
   },
   handle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     alignSelf: "center", marginBottom: 12,
   },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { fontSize: 16, fontWeight: "800", color: Colors.text },
+  title: { fontSize: 16, fontWeight: "800", color: c.text },
   closeBtn: {
     width: 32, height: 32, borderRadius: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignItems: "center", justifyContent: "center",
   },
-  sub: { fontSize: 12, color: Colors.textMuted, marginTop: 4, marginBottom: 14 },
+  sub: { fontSize: 12, color: c.textMuted, marginTop: 4, marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "flex-start" },
   iconCell: {
     width: "18%",
     aspectRatio: 1,
     borderRadius: 14,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: "transparent",
   },
-  iconCellActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  iconCellActive: { backgroundColor: c.primary, borderColor: c.primary },
 });

@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useCallback, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions,
@@ -10,11 +11,14 @@ import {
   getLearningPaths, getFlashcards, getQuizzes, getStats,
   type LearningPath,
 } from "@/utils/storage";
-import Colors, { shadow, shadowSm, CARD_GRADIENTS } from "@/constants/colors";
+import { shadow, shadowSm, CARD_GRADIENTS, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { AdBanner } from "@/components/AdBanner";
 
 export default function PracticeTab() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -22,10 +26,10 @@ export default function PracticeTab() {
   const { t } = useTranslation();
 
   const MODES = [
-    { icon: "credit-card" as const, label: t.practice.mode_flash, sub: t.practice.mode_flash_sub, gradient: [Colors.primary, Colors.purple] as [string, string], route: "/flashcard/browse-all" },
-    { icon: "help-circle" as const, label: t.practice.mode_quiz, sub: t.practice.mode_quiz_sub, gradient: [Colors.accent, Colors.amber] as [string, string], route: "/quiz/browse-all" },
-    { icon: "repeat" as const, label: t.practice.mode_review, sub: t.practice.mode_review_sub, gradient: [Colors.purple, "#A855F7"] as [string, string], route: "/mistakes-review" },
-    { icon: "zap" as const, label: t.practice.mode_fast, sub: t.practice.mode_fast_sub, gradient: [Colors.amber, Colors.warning] as [string, string], route: "/(tabs)/learn" },
+    { icon: "credit-card" as const, label: t.practice.mode_flash, sub: t.practice.mode_flash_sub, gradient: [colors.primary, colors.purple] as [string, string], route: "/flashcard/browse-all" },
+    { icon: "help-circle" as const, label: t.practice.mode_quiz, sub: t.practice.mode_quiz_sub, gradient: [colors.accent, colors.amber] as [string, string], route: "/quiz/browse-all" },
+    { icon: "repeat" as const, label: t.practice.mode_review, sub: t.practice.mode_review_sub, gradient: [colors.purple, "#A855F7"] as [string, string], route: "/mistakes-review" },
+    { icon: "zap" as const, label: t.practice.mode_fast, sub: t.practice.mode_fast_sub, gradient: [colors.amber, colors.warning] as [string, string], route: "/(tabs)/learn" },
   ];
   const SCROLL_PAD = 20; // matches styles.scroll padding
   const modeCardWidth = isTablet
@@ -51,7 +55,7 @@ export default function PracticeTab() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={[Colors.accent, Colors.amber]}
+        colors={[colors.accent, colors.amber]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
@@ -157,7 +161,7 @@ export default function PracticeTab() {
 
         {paths.length === 0 && (
           <View style={[styles.emptyCard, shadow]}>
-            <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.emptyGrad}>
+            <LinearGradient colors={[colors.primary, colors.purple]} style={styles.emptyGrad}>
               <View style={styles.hBlob1} />
               <Feather name="book-open" size={36} color="rgba(255,255,255,0.85)" />
               <Text style={styles.emptyTitle}>{t.practice.no_course_title}</Text>
@@ -173,8 +177,8 @@ export default function PracticeTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
   hBlob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)", top: -50, right: -50 },
   hBlob2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.06)", bottom: -20, left: 30 },
@@ -188,7 +192,7 @@ const styles = StyleSheet.create({
   summaryVal: { fontSize: 16, fontWeight: "900", color: "#fff" },
   summaryLbl: { fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase" },
   scroll: { padding: 20, paddingBottom: 40, gap: 12 },
-  sectionTitle: { fontSize: 15, fontWeight: "800", color: Colors.dark, letterSpacing: -0.2, marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: "800", color: c.dark, letterSpacing: -0.2, marginBottom: 12 },
   modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   modeCard: { borderRadius: 16, overflow: "hidden" },
   modeGrad: { padding: 18, minHeight: 148, overflow: "hidden", justifyContent: "flex-end" },
@@ -198,12 +202,12 @@ const styles = StyleSheet.create({
   modeSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: "500", lineHeight: 17 },
   modeArrow: { position: "absolute", top: 14, right: 14, width: 26, height: 26, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   courseList: { gap: 8 },
-  courseRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: 16, padding: 14 },
+  courseRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.white, borderRadius: 16, padding: 14 },
   courseRowIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  courseRowName: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  courseRowSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500", marginTop: 2 },
-  practiceBtn: { backgroundColor: Colors.primaryLight, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
-  practiceBtnText: { fontSize: 12, fontWeight: "800", color: Colors.primary },
+  courseRowName: { fontSize: 14, fontWeight: "800", color: c.dark },
+  courseRowSub: { fontSize: 12, color: c.textMuted, fontWeight: "500", marginTop: 2 },
+  practiceBtn: { backgroundColor: c.primaryLight, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
+  practiceBtnText: { fontSize: 12, fontWeight: "800", color: c.primary },
   emptyCard: { borderRadius: 20, overflow: "hidden" },
   emptyGrad: { padding: 28, alignItems: "center", gap: 10, minHeight: 170, overflow: "hidden" },
   emptyTitle: { fontSize: 17, fontWeight: "900", color: "#fff" },

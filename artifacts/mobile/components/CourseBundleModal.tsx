@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Platform, Share,
@@ -11,7 +12,7 @@ import {
   type LearningPath, type CoursePack,
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
-import Colors, { shadowSm } from "@/constants/colors";
+import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
 
 interface PathStat {
@@ -28,6 +29,9 @@ interface Props {
 }
 
 export function CourseBundleShareModal({ visible, onClose }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState<string | null>(null);
   const [sharingStep, setSharingStep] = useState<string>("");
@@ -134,7 +138,7 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
         <View style={styles.header}>
           <Text style={styles.title}>Bagikan Bundle Kursus</Text>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <Feather name="x" size={20} color={Colors.dark} />
+            <Feather name="x" size={20} color={colors.dark} />
           </TouchableOpacity>
         </View>
         <Text style={styles.subtitle}>
@@ -144,14 +148,14 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
         {/* Sharing progress step */}
         {sharing !== null && sharingStep ? (
           <View style={styles.stepBanner}>
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.stepText}>{sharingStep}</Text>
           </View>
         ) : null}
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={Colors.primary} />
+            <ActivityIndicator color={colors.primary} />
             <Text style={styles.loadingText}>Memuat data kursus...</Text>
           </View>
         ) : pathStats.length === 0 ? (
@@ -170,7 +174,7 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
             >
               <View style={styles.allCardLeft}>
                 <View style={styles.allIcon}>
-                  <Feather name="package" size={22} color={Colors.white} />
+                  <Feather name="package" size={22} color={colors.white} />
                 </View>
                 <View>
                   <Text style={styles.allCardTitle}>Semua Kursus</Text>
@@ -180,9 +184,9 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
                 </View>
               </View>
               {sharing === "all" ? (
-                <ActivityIndicator size="small" color={Colors.white} />
+                <ActivityIndicator size="small" color={colors.white} />
               ) : (
-                <Feather name="share-2" size={18} color={Colors.white} />
+                <Feather name="share-2" size={18} color={colors.white} />
               )}
             </TouchableOpacity>
 
@@ -215,16 +219,16 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
                 </View>
                 <View style={styles.shareBtn}>
                   {sharing === s.path.id ? (
-                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   ) : (
-                    <Feather name="share-2" size={16} color={Colors.primary} />
+                    <Feather name="share-2" size={16} color={colors.primary} />
                   )}
                 </View>
               </TouchableOpacity>
             ))}
 
             <View style={styles.tipBox}>
-              <Feather name="info" size={13} color={Colors.primary} />
+              <Feather name="info" size={13} color={colors.primary} />
               <Text style={styles.tipText}>
                 File bundle akan dibagikan sebagai JSON. Teman cukup buka app → Profil → Import Bundle Kursus → pilih file.
               </Text>
@@ -240,7 +244,7 @@ function StatChip({ icon, val, label }: { icon: string; val: number; label: stri
   if (val === 0) return null;
   return (
     <View style={styles.chip}>
-      <Feather name={icon as any} size={10} color={Colors.textMuted} />
+      <Feather name={icon as any} size={10} color={colors.textMuted} />
       <Text style={styles.chipText}>{val} {label}</Text>
     </View>
   );
@@ -281,7 +285,7 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
         <View style={styles.header}>
           <Text style={styles.title}>Preview Bundle Kursus</Text>
           <TouchableOpacity style={styles.closeBtn} onPress={onCancel}>
-            <Feather name="x" size={20} color={Colors.dark} />
+            <Feather name="x" size={20} color={colors.dark} />
           </TouchableOpacity>
         </View>
         <Text style={styles.subtitle}>Berikut isi bundle yang akan diimport ke akunmu:</Text>
@@ -290,9 +294,9 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
         {hasAssets && (
           <View style={styles.assetBadgeRow}>
             {assets.images > 0 && <AssetBadge icon="image" label={`${assets.images} gambar`} color="#8B5CF6" />}
-            {assets.files > 0 && <AssetBadge icon="file" label={`${assets.files} file`} color={Colors.teal} />}
-            {assets.links > 0 && <AssetBadge icon="link" label={`${assets.links} link`} color={Colors.primary} />}
-            {isV2 && <AssetBadge icon="check-circle" label="Aset disertakan" color={Colors.success} />}
+            {assets.files > 0 && <AssetBadge icon="file" label={`${assets.files} file`} color={colors.teal} />}
+            {assets.links > 0 && <AssetBadge icon="link" label={`${assets.links} link`} color={colors.primary} />}
+            {isV2 && <AssetBadge icon="check-circle" label="Aset disertakan" color={colors.success} />}
           </View>
         )}
 
@@ -317,10 +321,10 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
                   </View>
                 </View>
                 <View style={styles.previewStats}>
-                  <PreviewStat label="Modul" val={mods.length} color={Colors.primary} />
-                  <PreviewStat label="Pelajaran" val={lessons.length} color={Colors.teal} />
-                  <PreviewStat label="Flashcard" val={fc} color={Colors.purple} />
-                  <PreviewStat label="Soal Quiz" val={qz} color={Colors.amber} />
+                  <PreviewStat label="Modul" val={mods.length} color={colors.primary} />
+                  <PreviewStat label="Pelajaran" val={lessons.length} color={colors.teal} />
+                  <PreviewStat label="Flashcard" val={fc} color={colors.purple} />
+                  <PreviewStat label="Soal Quiz" val={qz} color={colors.amber} />
                 </View>
               </View>
             );
@@ -329,14 +333,14 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
 
         {/* Total summary */}
         <View style={styles.totalBox}>
-          <Feather name="package" size={14} color={Colors.primary} />
+          <Feather name="package" size={14} color={colors.primary} />
           <Text style={styles.totalText}>
-            Total: <Text style={{ fontWeight: "900", color: Colors.primary }}>{totalItems} item</Text> · Dibuat: {exportDate}
+            Total: <Text style={{ fontWeight: "900", color: colors.primary }}>{totalItems} item</Text> · Dibuat: {exportDate}
           </Text>
         </View>
 
         <View style={styles.importNote}>
-          <Feather name="alert-circle" size={13} color={Colors.amber} />
+          <Feather name="alert-circle" size={13} color={colors.amber} />
           <Text style={styles.importNoteText}>
             Jika sudah ada kursus dengan ID yang sama, data lama akan ditimpa.
           </Text>
@@ -348,9 +352,9 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
           </TouchableOpacity>
           <TouchableOpacity style={[styles.confirmBtn, importing && { opacity: 0.6 }]} onPress={onConfirm} disabled={importing}>
             {importing ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Feather name="download" size={16} color={Colors.white} />
+              <Feather name="download" size={16} color={colors.white} />
             )}
             <Text style={styles.confirmBtnText}>{importing ? "Mengimport..." : "Import Sekarang"}</Text>
           </TouchableOpacity>
@@ -378,84 +382,84 @@ function AssetBadge({ icon, label, color }: { icon: string; label: string; color
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: {
     position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end", zIndex: 200,
   },
   sheet: {
-    backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: 20, paddingBottom: 32, maxHeight: "85%",
   },
   importSheet: { maxHeight: "90%" },
   handle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border,
+    width: 40, height: 4, borderRadius: 2, backgroundColor: c.border,
     alignSelf: "center", marginTop: 12, marginBottom: 8,
   },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
-  title: { fontSize: 18, fontWeight: "900", color: Colors.dark },
+  title: { fontSize: 18, fontWeight: "900", color: c.dark },
   closeBtn: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: Colors.background, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.background, alignItems: "center", justifyContent: "center",
   },
-  subtitle: { fontSize: 13, color: Colors.textMuted, fontWeight: "500", lineHeight: 19, marginBottom: 16 },
+  subtitle: { fontSize: 13, color: c.textMuted, fontWeight: "500", lineHeight: 19, marginBottom: 16 },
   loadingWrap: { alignItems: "center", gap: 10, paddingVertical: 40 },
-  loadingText: { color: Colors.textMuted, fontWeight: "600" },
+  loadingText: { color: c.textMuted, fontWeight: "600" },
   emptyWrap: { alignItems: "center", paddingVertical: 40, gap: 8 },
   emptyEmoji: { fontSize: 36 },
-  emptyText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
+  emptyText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
   listContent: { gap: 12, paddingBottom: 8 },
   allCard: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: Colors.primary, borderRadius: 18, padding: 16,
+    backgroundColor: c.primary, borderRadius: 18, padding: 16,
   },
   allCardLeft: { flexDirection: "row", alignItems: "center", gap: 14, flex: 1 },
   allIcon: {
     width: 44, height: 44, borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center",
   },
-  allCardTitle: { fontSize: 15, fontWeight: "900", color: Colors.white },
+  allCardTitle: { fontSize: 15, fontWeight: "900", color: c.white },
   allCardSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: "600", marginTop: 2 },
   sectionLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textMuted,
+    fontSize: 11, fontWeight: "800", color: c.textMuted,
     textTransform: "uppercase", letterSpacing: 1, marginTop: 4,
   },
   pathCard: {
-    backgroundColor: Colors.white, borderRadius: 18, padding: 14,
+    backgroundColor: c.white, borderRadius: 18, padding: 14,
     flexDirection: "row", alignItems: "center", gap: 12,
-    borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5, borderColor: c.border,
   },
   pathCardLeft: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 12 },
   pathIconWrap: {
     width: 44, height: 44, borderRadius: 14,
-    backgroundColor: Colors.primaryLight, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center",
     flexShrink: 0,
   },
-  pathIconText: { fontSize: 20, fontWeight: "900", color: Colors.primary },
-  pathName: { fontSize: 14, fontWeight: "800", color: Colors.dark, marginBottom: 2 },
-  pathDesc: { fontSize: 12, color: Colors.textMuted, fontWeight: "500", marginBottom: 6 },
+  pathIconText: { fontSize: 20, fontWeight: "900", color: c.primary },
+  pathName: { fontSize: 14, fontWeight: "800", color: c.dark, marginBottom: 2 },
+  pathDesc: { fontSize: 12, color: c.textMuted, fontWeight: "500", marginBottom: 6 },
   statChips: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 3,
-    backgroundColor: Colors.background, borderRadius: 6,
+    backgroundColor: c.background, borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 3,
   },
-  chipText: { fontSize: 10, fontWeight: "700", color: Colors.textMuted },
+  chipText: { fontSize: 10, fontWeight: "700", color: c.textMuted },
   shareBtn: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.primaryLight,
+    width: 38, height: 38, borderRadius: 12, backgroundColor: c.primaryLight,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   tipBox: {
-    flexDirection: "row", gap: 8, backgroundColor: Colors.primaryLight,
+    flexDirection: "row", gap: 8, backgroundColor: c.primaryLight,
     borderRadius: 14, padding: 14, alignItems: "flex-start",
   },
-  tipText: { flex: 1, fontSize: 12, color: Colors.primary, fontWeight: "600", lineHeight: 18 },
+  tipText: { flex: 1, fontSize: 12, color: c.primary, fontWeight: "600", lineHeight: 18 },
 
   // Import preview
   previewPathCard: {
-    backgroundColor: Colors.white, borderRadius: 16, padding: 14,
-    borderWidth: 1.5, borderColor: Colors.border, marginBottom: 10,
+    backgroundColor: c.white, borderRadius: 16, padding: 14,
+    borderWidth: 1.5, borderColor: c.border, marginBottom: 10,
   },
   previewPathHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   previewStats: { flexDirection: "row", gap: 6 },
@@ -464,33 +468,33 @@ const styles = StyleSheet.create({
   previewStatLabel: { fontSize: 9, fontWeight: "800", textTransform: "uppercase" },
   totalBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.primaryLight, borderRadius: 12,
+    backgroundColor: c.primaryLight, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 10, marginTop: 12, marginBottom: 8,
   },
-  totalText: { fontSize: 13, color: Colors.primary, fontWeight: "600", flex: 1 },
+  totalText: { fontSize: 13, color: c.primary, fontWeight: "600", flex: 1 },
   importNote: {
-    flexDirection: "row", gap: 8, backgroundColor: Colors.amberLight,
+    flexDirection: "row", gap: 8, backgroundColor: c.amberLight,
     borderRadius: 12, padding: 12, alignItems: "flex-start", marginBottom: 16,
   },
-  importNoteText: { flex: 1, fontSize: 12, color: Colors.amber, fontWeight: "600", lineHeight: 18 },
+  importNoteText: { flex: 1, fontSize: 12, color: c.amber, fontWeight: "600", lineHeight: 18 },
   importBtns: { flexDirection: "row", gap: 10 },
   cancelBtn: {
     flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: "center",
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "800", color: Colors.textSecondary },
+  cancelBtnText: { fontSize: 14, fontWeight: "800", color: c.textSecondary },
   confirmBtn: {
     flex: 2, paddingVertical: 14, borderRadius: 16, alignItems: "center",
-    backgroundColor: Colors.primary, flexDirection: "row", justifyContent: "center", gap: 8,
+    backgroundColor: c.primary, flexDirection: "row", justifyContent: "center", gap: 8,
   },
-  confirmBtnText: { fontSize: 14, fontWeight: "900", color: Colors.white },
+  confirmBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
 
   stepBanner: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.primaryLight, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: c.primaryLight, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
     marginBottom: 10,
   },
-  stepText: { fontSize: 12, fontWeight: "600", color: Colors.primary, flex: 1 },
+  stepText: { fontSize: 12, fontWeight: "600", color: c.primary, flex: 1 },
 
   assetBadgeRow: {
     flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10,

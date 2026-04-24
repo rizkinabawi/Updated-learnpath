@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -49,7 +50,7 @@ import {
   generateId,
   type StudyMaterial,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -90,7 +91,7 @@ function YoutubeEmbed({ url }: { url: string }) {
       >
         <Video size={20} color="#FF0000" />
         <Text style={ytStyles.fallbackText}>Buka di YouTube</Text>
-        <ExternalLink size={14} color={Colors.textMuted} />
+        <ExternalLink size={14} color={colors.textMuted} />
       </TouchableOpacity>
     );
   }
@@ -177,7 +178,7 @@ function YoutubeEmbed({ url }: { url: string }) {
         onPress={() => Linking.openURL(url).catch(() => {})}
         activeOpacity={0.8}
       >
-        <ExternalLink size={12} color={Colors.textMuted} />
+        <ExternalLink size={12} color={colors.textMuted} />
         <Text style={ytStyles.openBtnText}>Buka di YouTube</Text>
       </TouchableOpacity>
     </View>
@@ -196,7 +197,7 @@ const ytStyles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, paddingVertical: 6,
   },
-  openBtnText: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+  openBtnText: { fontSize: 12, color: colors.textMuted, fontWeight: "600" },
 });
 
 const MATERIAL_DIR =
@@ -227,22 +228,22 @@ type TabType = "text" | "html" | "file" | "youtube" | "googledoc" | "image";
 
 const TYPE_INFO: Record<TabType, { icon: React.ReactNode; label: string; color: string; bg: string }> = {
   text: {
-    icon: <FileText size={14} color={Colors.primary} />,
+    icon: <FileText size={14} color={colors.primary} />,
     label: "Teks",
-    color: Colors.primary,
-    bg: Colors.primaryLight,
+    color: colors.primary,
+    bg: colors.primaryLight,
   },
   html: {
-    icon: <Code2 size={14} color={Colors.purple} />,
+    icon: <Code2 size={14} color={colors.purple} />,
     label: "HTML",
-    color: Colors.purple,
-    bg: Colors.purpleLight,
+    color: colors.purple,
+    bg: colors.purpleLight,
   },
   file: {
-    icon: <Paperclip size={14} color={Colors.amber} />,
+    icon: <Paperclip size={14} color={colors.amber} />,
     label: "File",
-    color: Colors.amber,
-    bg: Colors.amberLight,
+    color: colors.amber,
+    bg: colors.amberLight,
   },
   youtube: {
     icon: <Video size={14} color="#FF0000" />,
@@ -257,10 +258,10 @@ const TYPE_INFO: Record<TabType, { icon: React.ReactNode; label: string; color: 
     bg: "#E8F0FE",
   },
   image: {
-    icon: <FileImage size={14} color={Colors.success} />,
+    icon: <FileImage size={14} color={colors.success} />,
     label: "Gambar",
-    color: Colors.success,
-    bg: Colors.successLight,
+    color: colors.success,
+    bg: colors.successLight,
   },
 };
 
@@ -283,12 +284,12 @@ function ExtraImagesEditor({
           onPress={onAdd}
           style={{
             flexDirection: "row", alignItems: "center", gap: 4,
-            backgroundColor: Colors.successLight, borderRadius: 8,
+            backgroundColor: colors.successLight, borderRadius: 8,
             paddingHorizontal: 10, paddingVertical: 6,
           }}
         >
-          <Plus size={12} color={Colors.success} />
-          <Text style={{ fontSize: 11, fontWeight: "800", color: Colors.success }}>
+          <Plus size={12} color={colors.success} />
+          <Text style={{ fontSize: 11, fontWeight: "800", color: colors.success }}>
             Tambah
           </Text>
         </TouchableOpacity>
@@ -310,11 +311,11 @@ function ExtraImagesEditor({
                 style={{
                   position: "absolute", top: -6, right: -6,
                   width: 22, height: 22, borderRadius: 11,
-                  backgroundColor: Colors.danger,
+                  backgroundColor: colors.danger,
                   alignItems: "center", justifyContent: "center",
                 }}
               >
-                <X size={12} color={Colors.white} />
+                <X size={12} color={colors.white} />
               </TouchableOpacity>
             </View>
           ))}
@@ -325,6 +326,9 @@ function ExtraImagesEditor({
 }
 
 export default function StudyMaterialScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { lessonId, openEditId } = useLocalSearchParams<{
     lessonId: string;
     openEditId?: string;
@@ -659,7 +663,7 @@ export default function StudyMaterialScreen() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={Colors.white} />
+          <X size={20} color={colors.white} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -668,7 +672,7 @@ export default function StudyMaterialScreen() {
           <Text style={styles.headerTitle}>{t.common.material}</Text>
         </View>
         <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
-          <Plus size={20} color={Colors.white} />
+          <Plus size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -683,7 +687,7 @@ export default function StudyMaterialScreen() {
             onPress={openAdd}
             activeOpacity={0.85}
           >
-            <BookOpen size={40} color={Colors.purple} strokeWidth={1.5} />
+            <BookOpen size={40} color={colors.purple} strokeWidth={1.5} />
             <Text style={styles.emptyTitle}>{t.material.empty_title}</Text>
             <Text style={styles.emptySub}>{t.material.empty_sub}</Text>
           </TouchableOpacity>
@@ -707,7 +711,7 @@ export default function StudyMaterialScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.matTitle}>{mat.title}</Text>
                     <View style={styles.matMeta}>
-                      <Clock size={10} color={Colors.textMuted} />
+                      <Clock size={10} color={colors.textMuted} />
                       <Text style={styles.matDate}>{formatDate(mat.createdAt)}</Text>
                       {mat.type === "file" && typeof mat.fileSize === "number" && (
                         <Text style={styles.matDate}>
@@ -722,24 +726,24 @@ export default function StudyMaterialScreen() {
                       style={[styles.iconBtn, styles.iconBtnEdit]}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <PencilLine size={13} color={Colors.purple} />
+                      <PencilLine size={13} color={colors.purple} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDelete(mat)}
                       style={[styles.iconBtn, styles.iconBtnDanger]}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Trash2 size={13} color={Colors.danger} />
+                      <Trash2 size={13} color={colors.danger} />
                     </TouchableOpacity>
                     {hasAttachments && (
                       <View style={styles.attachBadge}>
-                        <FileImage size={11} color={Colors.success} />
+                        <FileImage size={11} color={colors.success} />
                         <Text style={styles.attachBadgeText}>
                           {mat.images!.length}
                         </Text>
                       </View>
                     )}
-                    <ChevronRight size={16} color={Colors.textMuted} />
+                    <ChevronRight size={16} color={colors.textMuted} />
                   </View>
                 </TouchableOpacity>
 
@@ -757,13 +761,13 @@ export default function StudyMaterialScreen() {
                     {mat.type === "html" && (
                       <View style={styles.htmlBox}>
                         <View style={styles.htmlPreviewBar}>
-                          <Code2 size={13} color={Colors.purple} />
+                          <Code2 size={13} color={colors.purple} />
                           <Text style={styles.htmlPreviewLabel}>Konten HTML</Text>
                           <TouchableOpacity
                             style={styles.previewBtn}
                             onPress={() => handlePreviewHtml(mat)}
                           >
-                            <Eye size={13} color={Colors.white} />
+                            <Eye size={13} color={colors.white} />
                             <Text style={styles.previewBtnText}>Buka Preview</Text>
                           </TouchableOpacity>
                         </View>
@@ -776,7 +780,7 @@ export default function StudyMaterialScreen() {
                     {mat.type === "file" && (
                       <View style={styles.fileBox}>
                         <View style={styles.fileInfo}>
-                          <Paperclip size={20} color={Colors.amber} />
+                          <Paperclip size={20} color={colors.amber} />
                           <View style={{ flex: 1 }}>
                             <Text style={styles.fileName}>{mat.fileName}</Text>
                             {mat.fileSize !== undefined ? (
@@ -790,7 +794,7 @@ export default function StudyMaterialScreen() {
                           style={styles.openFileBtn}
                           onPress={() => handleOpenFile(mat)}
                         >
-                          <ExternalLink size={14} color={Colors.white} />
+                          <ExternalLink size={14} color={colors.white} />
                           <Text style={styles.openFileBtnText}>
                             Buka / Bagikan File
                           </Text>
@@ -894,7 +898,7 @@ export default function StudyMaterialScreen() {
                 onChangeText={setMatTitle}
                 placeholder={t.material.title_ph}
                 style={styles.input}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoFocus
               />
 
@@ -908,7 +912,7 @@ export default function StudyMaterialScreen() {
                     onChangeText={setMatContent}
                     placeholder={t.material.content_ph_text}
                     style={[styles.input, styles.textArea]}
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     multiline
                     textAlignVertical="top"
                   />
@@ -933,7 +937,7 @@ export default function StudyMaterialScreen() {
                     onChangeText={setMatContent}
                     placeholder={t.material.content_ph_html}
                     style={[styles.input, styles.textArea, styles.codeInput]}
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     multiline
                     textAlignVertical="top"
                     autoCapitalize="none"
@@ -949,7 +953,7 @@ export default function StudyMaterialScreen() {
                   </Text>
                   {pickedFile ? (
                     <View style={styles.pickedFile}>
-                      <Paperclip size={16} color={Colors.amber} />
+                      <Paperclip size={16} color={colors.amber} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.pickedFileName}>{pickedFile.name}</Text>
                         {pickedFile.size && (
@@ -959,7 +963,7 @@ export default function StudyMaterialScreen() {
                         )}
                       </View>
                       <TouchableOpacity onPress={() => setPickedFile(null)}>
-                        <X size={16} color={Colors.danger} />
+                        <X size={16} color={colors.danger} />
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -968,7 +972,7 @@ export default function StudyMaterialScreen() {
                       onPress={pickFile}
                       activeOpacity={0.8}
                     >
-                      <Paperclip size={20} color={Colors.amber} />
+                      <Paperclip size={20} color={colors.amber} />
                       <Text style={styles.uploadBtnText}>{t.material.pick_file}</Text>
                       <Text style={styles.uploadBtnHint}>PPT, PDF, DOC, DOCX</Text>
                     </TouchableOpacity>
@@ -985,7 +989,7 @@ export default function StudyMaterialScreen() {
                     onChangeText={setMatContent}
                     placeholder={t.material.content_ph_youtube}
                     style={styles.input}
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
@@ -1002,7 +1006,7 @@ export default function StudyMaterialScreen() {
                     onChangeText={setMatContent}
                     placeholder={t.material.content_ph_googledoc}
                     style={styles.input}
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
@@ -1017,18 +1021,18 @@ export default function StudyMaterialScreen() {
                     <View style={styles.pickedImageWrap}>
                       <Image source={{ uri: pickedImage }} style={styles.pickedImagePreview} resizeMode="cover" />
                       <TouchableOpacity onPress={() => setPickedImage(null)} style={styles.removeImageBtn}>
-                        <X size={14} color={Colors.danger} />
+                        <X size={14} color={colors.danger} />
                         <Text style={styles.removeImageText}>Ganti Gambar</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
                     <TouchableOpacity
-                      style={[styles.uploadBtn, { borderColor: Colors.success }]}
+                      style={[styles.uploadBtn, { borderColor: colors.success }]}
                       onPress={pickMaterialImage}
                       activeOpacity={0.8}
                     >
-                      <FileImage size={20} color={Colors.success} />
-                      <Text style={[styles.uploadBtnText, { color: Colors.success }]}>{t.material.pick_image}</Text>
+                      <FileImage size={20} color={colors.success} />
+                      <Text style={[styles.uploadBtnText, { color: colors.success }]}>{t.material.pick_image}</Text>
                       <Text style={styles.uploadBtnHint}>JPG, PNG, WebP</Text>
                     </TouchableOpacity>
                   )}
@@ -1061,10 +1065,10 @@ export default function StudyMaterialScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
-    backgroundColor: Colors.purple,
+    backgroundColor: c.purple,
     paddingHorizontal: 16,
     paddingBottom: 16,
     flexDirection: "row",
@@ -1080,7 +1084,7 @@ const styles = StyleSheet.create({
     fontSize: 11, color: "rgba(255,255,255,0.6)",
     fontWeight: "700", textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: Colors.white },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.white },
   addBtn: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.2)",
@@ -1088,15 +1092,15 @@ const styles = StyleSheet.create({
   },
   listContent: { padding: 16, paddingBottom: 40, gap: 10 },
   emptyCard: {
-    backgroundColor: Colors.white, borderRadius: 20, padding: 36,
+    backgroundColor: c.white, borderRadius: 20, padding: 36,
     alignItems: "center", gap: 10, borderWidth: 1.5,
-    borderColor: Colors.purpleLight, borderStyle: "dashed", marginTop: 24,
+    borderColor: c.purpleLight, borderStyle: "dashed", marginTop: 24,
   },
-  emptyTitle: { fontSize: 17, fontWeight: "900", color: Colors.dark },
-  emptySub: { fontSize: 13, color: Colors.textMuted, fontWeight: "500", textAlign: "center" },
+  emptyTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
+  emptySub: { fontSize: 13, color: c.textMuted, fontWeight: "500", textAlign: "center" },
   matCard: {
-    backgroundColor: Colors.white, borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.border, overflow: "hidden",
+    backgroundColor: c.white, borderRadius: 16,
+    borderWidth: 1, borderColor: c.border, overflow: "hidden",
   },
   matHeader: { flexDirection: "row", alignItems: "center", padding: 14, gap: 10 },
   typeTag: {
@@ -1104,81 +1108,81 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
   typeTagText: { fontSize: 11, fontWeight: "800" },
-  matTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
+  matTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
   matMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  matDate: { fontSize: 10, color: Colors.textMuted, fontWeight: "500" },
+  matDate: { fontSize: 10, color: c.textMuted, fontWeight: "500" },
   matActions: { flexDirection: "row", alignItems: "center", gap: 6 },
   iconBtn: {
     width: 28, height: 28, borderRadius: 8,
     alignItems: "center", justifyContent: "center",
   },
-  iconBtnDanger: { backgroundColor: Colors.dangerLight },
+  iconBtnDanger: { backgroundColor: c.dangerLight },
   iconBtnEdit: { backgroundColor: "#EDE9FE" },
   matBody: {
-    borderTopWidth: 1, borderTopColor: Colors.border,
-    padding: 14, backgroundColor: Colors.background,
+    borderTopWidth: 1, borderTopColor: c.border,
+    padding: 14, backgroundColor: c.background,
   },
   textScroll: { maxHeight: 240 },
   matText: {
-    fontSize: 14, color: Colors.textSecondary,
+    fontSize: 14, color: c.textSecondary,
     fontWeight: "500", lineHeight: 22,
   },
   htmlBox: { gap: 8 },
   htmlPreviewBar: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.purpleLight, borderRadius: 10,
+    backgroundColor: c.purpleLight, borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 8,
   },
-  htmlPreviewLabel: { flex: 1, fontSize: 12, fontWeight: "700", color: Colors.purple },
+  htmlPreviewLabel: { flex: 1, fontSize: 12, fontWeight: "700", color: c.purple },
   previewBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: Colors.purple, borderRadius: 8,
+    backgroundColor: c.purple, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 6,
   },
-  previewBtnText: { fontSize: 11, fontWeight: "800", color: Colors.white },
+  previewBtnText: { fontSize: 11, fontWeight: "800", color: c.white },
   htmlCodeScroll: { maxHeight: 180, backgroundColor: "#1E1E2E", borderRadius: 10, padding: 10 },
   htmlCode: { fontSize: 11, color: "#A9B1D6", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 18 },
   fileBox: { gap: 10 },
-  fileInfo: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.amberLight, borderRadius: 12, padding: 12 },
-  fileName: { fontSize: 13, fontWeight: "700", color: Colors.dark },
-  fileSize: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  fileInfo: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.amberLight, borderRadius: 12, padding: 12 },
+  fileName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  fileSize: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   openFileBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: Colors.amber, borderRadius: 12, paddingVertical: 12,
+    backgroundColor: c.amber, borderRadius: 12, paddingVertical: 12,
   },
-  openFileBtnText: { fontSize: 13, fontWeight: "800", color: Colors.white },
+  openFileBtnText: { fontSize: 13, fontWeight: "800", color: c.white },
   modalOverlay: {
     flex: 1, backgroundColor: "rgba(10,22,40,0.55)", justifyContent: "flex-end",
   },
   modalBox: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: 20, paddingTop: 12, gap: 8,
   },
   modalHandle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: Colors.border, alignSelf: "center", marginBottom: 8,
+    backgroundColor: c.border, alignSelf: "center", marginBottom: 8,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: Colors.dark, marginBottom: 4 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.dark, marginBottom: 4 },
   tabRow: { flexDirection: "row", gap: 6, marginBottom: 4 },
   tabBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
     alignItems: "center",
   },
-  tabBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  tabBtnText: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
-  tabBtnTextActive: { color: Colors.white },
+  tabBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  tabBtnText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  tabBtnTextActive: { color: c.white },
   fieldLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 0.8,
   },
-  fieldHint: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  fieldHint: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   input: {
-    backgroundColor: Colors.background, borderRadius: 14,
+    backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, fontWeight: "600", color: Colors.dark,
-    borderWidth: 1.5, borderColor: Colors.border, marginTop: 6,
+    fontSize: 15, fontWeight: "600", color: c.dark,
+    borderWidth: 1.5, borderColor: c.border, marginTop: 6,
   },
   textArea: { height: 160, textAlignVertical: "top" },
   codeInput: {
@@ -1187,44 +1191,44 @@ const styles = StyleSheet.create({
     borderColor: "#3B3B5C",
   },
   uploadBtn: {
-    borderRadius: 14, borderWidth: 1.5, borderColor: Colors.amber,
+    borderRadius: 14, borderWidth: 1.5, borderColor: c.amber,
     borderStyle: "dashed", padding: 20, alignItems: "center", gap: 6,
-    backgroundColor: Colors.amberLight, marginTop: 6,
+    backgroundColor: c.amberLight, marginTop: 6,
   },
-  uploadBtnText: { fontSize: 15, fontWeight: "800", color: Colors.amber },
-  uploadBtnHint: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  uploadBtnText: { fontSize: 15, fontWeight: "800", color: c.amber },
+  uploadBtnHint: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   pickedFile: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.amberLight, borderRadius: 12, padding: 12, marginTop: 6,
-    borderWidth: 1, borderColor: Colors.amber,
+    backgroundColor: c.amberLight, borderRadius: 12, padding: 12, marginTop: 6,
+    borderWidth: 1, borderColor: c.amber,
   },
-  pickedFileName: { fontSize: 13, fontWeight: "700", color: Colors.dark },
-  pickedFileSize: { fontSize: 11, color: Colors.textMuted },
+  pickedFileName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  pickedFileSize: { fontSize: 11, color: c.textMuted },
   modalBtns: { flexDirection: "row", gap: 10, marginTop: 12 },
   cancelBtn: {
     flex: 1, paddingVertical: 14, borderRadius: 14,
-    backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
     alignItems: "center",
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "700", color: Colors.textSecondary },
+  cancelBtnText: { fontSize: 14, fontWeight: "700", color: c.textSecondary },
   saveBtn: {
     flex: 2, paddingVertical: 14, borderRadius: 14,
-    backgroundColor: Colors.primary, alignItems: "center",
+    backgroundColor: c.primary, alignItems: "center",
   },
-  saveBtnText: { fontSize: 14, fontWeight: "900", color: Colors.white },
+  saveBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
 
   // YouTube / Google Docs link display
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.white, borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.white, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: c.border,
   },
   linkIconWrap: {
     width: 44, height: 44, borderRadius: 10,
     backgroundColor: "#FFF0F0", alignItems: "center", justifyContent: "center",
   },
   linkLabel: { fontSize: 12, fontWeight: "800", color: "#FF0000", marginBottom: 2 },
-  linkUrl: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
+  linkUrl: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   openLinkBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8,
@@ -1242,13 +1246,13 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 6,
     alignSelf: "center",
   },
-  removeImageText: { fontSize: 12, color: Colors.danger, fontWeight: "700" },
+  removeImageText: { fontSize: 12, color: c.danger, fontWeight: "700" },
 
   // Attachment badge on list card
   attachBadge: {
     flexDirection: "row", alignItems: "center", gap: 3,
-    backgroundColor: Colors.successLight, borderRadius: 8,
+    backgroundColor: c.successLight, borderRadius: 8,
     paddingHorizontal: 6, paddingVertical: 3, marginRight: 2,
   },
-  attachBadgeText: { fontSize: 10, fontWeight: "800", color: Colors.success },
+  attachBadgeText: { fontSize: 10, fontWeight: "800", color: c.success },
 });

@@ -66,7 +66,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const p = await AsyncStorage.getItem(PALETTE_KEY);
         const nextMode: ThemeMode =
           t === "light" || t === "dark" || t === "system" ? t : "system";
-        const nextPalette: Palette = p === "minimal" ? "minimal" : "color";
+        const nextPalette: Palette =
+          p === "minimal" || p === "premium" || p === "color" ? p : "color";
         const nextDark =
           nextMode === "dark" || (nextMode === "system" && systemScheme === "dark");
         setModeState(nextMode);

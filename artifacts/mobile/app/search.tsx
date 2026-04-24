@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -26,7 +27,7 @@ import {
   type Quiz,
   type StandaloneCollection,
 } from "@/utils/storage";
-import Colors, { shadow } from "@/constants/colors";
+import { shadow, type ColorScheme } from "@/constants/colors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ResultKind = "course" | "module" | "lesson" | "collection" | "flashcard" | "quiz";
@@ -43,12 +44,12 @@ interface SearchResult {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const KIND_CONFIG: Record<ResultKind, { label: string; icon: React.ComponentProps<typeof Feather>["name"]; color: string; bg: string }> = {
-  course:     { label: "Kursus",        icon: "book",          color: Colors.primary, bg: Colors.primaryLight },
-  module:     { label: "Modul",         icon: "layers",        color: Colors.purple, bg: Colors.purpleLight },
-  lesson:     { label: "Pelajaran",     icon: "file-text",     color: Colors.teal, bg: Colors.tealLight },
-  collection: { label: "Koleksi",       icon: "folder",        color: Colors.emerald, bg: Colors.emeraldLight },
-  flashcard:  { label: "Flashcard",     icon: "credit-card",   color: Colors.amber, bg: Colors.amberLight },
-  quiz:       { label: "Soal Quiz",     icon: "help-circle",   color: Colors.danger, bg: Colors.dangerLight },
+  course:     { label: "Kursus",        icon: "book",          color: colors.primary, bg: colors.primaryLight },
+  module:     { label: "Modul",         icon: "layers",        color: colors.purple, bg: colors.purpleLight },
+  lesson:     { label: "Pelajaran",     icon: "file-text",     color: colors.teal, bg: colors.tealLight },
+  collection: { label: "Koleksi",       icon: "folder",        color: colors.emerald, bg: colors.emeraldLight },
+  flashcard:  { label: "Flashcard",     icon: "credit-card",   color: colors.amber, bg: colors.amberLight },
+  quiz:       { label: "Soal Quiz",     icon: "help-circle",   color: colors.danger, bg: colors.dangerLight },
 };
 
 const SECTION_ORDER: ResultKind[] = ["course", "module", "lesson", "collection", "flashcard", "quiz"];
@@ -63,6 +64,9 @@ const SECTION_LABELS: Record<ResultKind, string> = {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 export default function SearchScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
@@ -259,15 +263,15 @@ export default function SearchScreen() {
       {/* Header + Search Bar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Feather name="arrow-left" size={22} color={Colors.text} />
+          <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.searchBar}>
-          <Feather name="search" size={16} color={Colors.textSecondary} style={styles.searchIcon} />
+          <Feather name="search" size={16} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
             placeholder="Cari kursus, modul, flashcard, soal..."
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
@@ -276,7 +280,7 @@ export default function SearchScreen() {
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x-circle" size={16} color={Colors.textSecondary} />
+              <Feather name="x-circle" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -287,7 +291,7 @@ export default function SearchScreen() {
         <EmptyPrompt />
       ) : loading ? (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Mencari...</Text>
         </View>
       ) : totalCount === 0 ? (
@@ -339,7 +343,7 @@ export default function SearchScreen() {
                         </View>
                       ) : null}
                     </View>
-                    <Feather name="chevron-right" size={15} color={Colors.textSecondary} />
+                    <Feather name="chevron-right" size={15} color={colors.textSecondary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -377,14 +381,14 @@ function EmptyPrompt() {
   return (
     <View style={styles.centerBox}>
       <View style={styles.emptyIcon}>
-        <Feather name="search" size={32} color={Colors.primary} />
+        <Feather name="search" size={32} color={colors.primary} />
       </View>
       <Text style={styles.emptyTitle}>Cari di semua konten</Text>
       <Text style={styles.emptySubtitle}>Ketik untuk mencari:</Text>
       <View style={styles.tipList}>
         {tips.map((tip, i) => (
           <View key={i} style={styles.tipRow}>
-            <Feather name={tip.icon} size={14} color={Colors.primary} />
+            <Feather name={tip.icon} size={14} color={colors.primary} />
             <Text style={styles.tipText}>{tip.text}</Text>
           </View>
         ))}
@@ -396,7 +400,7 @@ function EmptyPrompt() {
 function NoResults({ query }: { query: string }) {
   return (
     <View style={styles.centerBox}>
-      <Feather name="search" size={40} color={Colors.border} />
+      <Feather name="search" size={40} color={colors.border} />
       <Text style={styles.noResultTitle}>Tidak ditemukan</Text>
       <Text style={styles.noResultSub}>Tidak ada hasil untuk "{query}"</Text>
       <Text style={styles.noResultHint}>Coba kata kunci yang berbeda atau lebih singkat</Text>
@@ -405,19 +409,19 @@ function NoResults({ query }: { query: string }) {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     gap: 10,
   },
   backBtn: {
@@ -427,7 +431,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.borderLight,
+    backgroundColor: c.borderLight,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === "ios" ? 10 : 8,
@@ -439,7 +443,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: Colors.text,
+    color: c.text,
     padding: 0,
     margin: 0,
   },
@@ -448,7 +452,7 @@ const styles = StyleSheet.create({
   },
   totalCount: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginHorizontal: 16,
     marginTop: 14,
     marginBottom: 4,
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   countPill: {
@@ -486,7 +490,7 @@ const styles = StyleSheet.create({
   resultCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -507,16 +511,16 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.text,
+    color: c.text,
     lineHeight: 20,
   },
   highlight: {
-    backgroundColor: Colors.warningLight,
-    color: Colors.warning,
+    backgroundColor: c.warningLight,
+    color: c.warning,
   },
   resultSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
   metaPill: {
@@ -539,14 +543,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 10,
   },
   emptyIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
@@ -554,12 +558,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.text,
+    color: c.text,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   tipList: {
@@ -570,30 +574,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   tipText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   noResultTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 12,
   },
   noResultSub: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
     textAlign: "center",
   },
   noResultHint: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
     textAlign: "center",
   },

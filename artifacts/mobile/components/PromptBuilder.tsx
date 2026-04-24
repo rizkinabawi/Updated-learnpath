@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -22,7 +23,7 @@ import {
   saveStandaloneCollection, STANDALONE_COLLECTION_PREFIX,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
-import Colors, { shadow, shadowSm } from "@/constants/colors";
+import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
@@ -56,14 +57,14 @@ const extractJson = (text: string): string => {
 };
 
 const DIFFICULTY_OPTIONS = [
-  { id: "beginner", label: "Mudah", color: Colors.success, bg: Colors.successLight },
-  { id: "intermediate", label: "Sedang", color: Colors.amber, bg: Colors.amberLight },
-  { id: "advanced", label: "Sulit", color: Colors.danger, bg: Colors.dangerLight },
+  { id: "beginner", label: "Mudah", color: colors.success, bg: colors.successLight },
+  { id: "intermediate", label: "Sedang", color: colors.amber, bg: colors.amberLight },
+  { id: "advanced", label: "Sulit", color: colors.danger, bg: colors.dangerLight },
 ];
 
 const TYPE_OPTIONS = [
-  { id: "flashcard", label: "Flashcard", icon: "credit-card" as const, color: Colors.primary, bg: Colors.primaryLight },
-  { id: "quiz", label: "Quiz", icon: "help-circle" as const, color: Colors.amber, bg: Colors.amberLight },
+  { id: "flashcard", label: "Flashcard", icon: "credit-card" as const, color: colors.primary, bg: colors.primaryLight },
+  { id: "quiz", label: "Quiz", icon: "help-circle" as const, color: colors.amber, bg: colors.amberLight },
 ];
 
 function Chip({
@@ -90,7 +91,7 @@ function Chip({
         active && { backgroundColor: bg, borderColor: color },
       ]}
     >
-      {icon && <Feather name={icon} size={13} color={active ? color : Colors.textMuted} />}
+      {icon && <Feather name={icon} size={13} color={active ? color : colors.textMuted} />}
       <Text style={[styles.chipText, active && { color }]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -106,19 +107,19 @@ function TemplateCard({
   onPress: () => void;
 }) {
   const isFlashcard = t.type === "flashcard";
-  const color = isFlashcard ? Colors.primary : Colors.amber;
-  const bg = isFlashcard ? Colors.primaryLight : Colors.amberLight;
+  const color = isFlashcard ? colors.primary : colors.amber;
+  const bg = isFlashcard ? colors.primaryLight : colors.amberLight;
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.78}
       style={[styles.templateCard, active && { borderColor: color, backgroundColor: bg }]}
     >
-      <View style={[styles.templateIconWrap, { backgroundColor: active ? color : Colors.border }]}>
+      <View style={[styles.templateIconWrap, { backgroundColor: active ? color : colors.border }]}>
         <Feather
           name={isFlashcard ? "credit-card" : "help-circle"}
           size={16}
-          color={active ? "#fff" : Colors.textMuted}
+          color={active ? "#fff" : colors.textMuted}
         />
       </View>
       <View style={styles.templateInfo}>
@@ -128,7 +129,7 @@ function TemplateCard({
       {active ? (
         <Feather name="check-circle" size={18} color={color} />
       ) : (
-        <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+        <Feather name="chevron-right" size={16} color={colors.textMuted} />
       )}
     </TouchableOpacity>
   );
@@ -148,16 +149,16 @@ function PickerSheet<T extends { id: string }>({
   return (
     <View style={ps.overlay}>
       <View style={ps.sheet}>
-        <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
+        <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
         <View style={ps.header}>
           {onBack
-            ? <TouchableOpacity style={ps.iconBtn} onPress={onBack}><Feather name="arrow-left" size={18} color={Colors.dark} /></TouchableOpacity>
+            ? <TouchableOpacity style={ps.iconBtn} onPress={onBack}><Feather name="arrow-left" size={18} color={colors.dark} /></TouchableOpacity>
             : <View style={{ width: 34 }} />}
           <Text style={ps.title} numberOfLines={1}>{title}</Text>
-          <TouchableOpacity style={ps.iconBtn} onPress={onClose}><Feather name="x" size={18} color={Colors.dark} /></TouchableOpacity>
+          <TouchableOpacity style={ps.iconBtn} onPress={onClose}><Feather name="x" size={18} color={colors.dark} /></TouchableOpacity>
         </View>
         {items.length === 0
-          ? <View style={ps.empty}><Feather name="inbox" size={32} color={Colors.textMuted} /><Text style={ps.emptyText}>Tidak ada data</Text></View>
+          ? <View style={ps.empty}><Feather name="inbox" size={32} color={colors.textMuted} /><Text style={ps.emptyText}>Tidak ada data</Text></View>
           : (
             <ScrollView contentContainerStyle={ps.list}>
               {items.map((item) => (
@@ -166,7 +167,7 @@ function PickerSheet<T extends { id: string }>({
                     <Text style={ps.itemLabel}>{getLabel(item)}</Text>
                     {getSub(item) ? <Text style={ps.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
                   </View>
-                  <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+                  <Feather name="chevron-right" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -179,6 +180,9 @@ function PickerSheet<T extends { id: string }>({
 type Tab = "builder" | "share";
 
 export const PromptBuilder = () => {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [activeTab, setActiveTab] = useState<Tab>("builder");
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("intermediate");
@@ -586,7 +590,7 @@ export const PromptBuilder = () => {
     >
       {/* Header */}
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -627,7 +631,7 @@ export const PromptBuilder = () => {
               value={topic}
               onChangeText={setTopic}
               style={styles.input}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
@@ -678,8 +682,8 @@ export const PromptBuilder = () => {
                   key={l.id}
                   label={l.label}
                   active={language === l.id}
-                  color={Colors.primary}
-                  bg={Colors.primaryLight}
+                  color={colors.primary}
+                  bg={colors.primaryLight}
                   onPress={() => setLanguage(l.id)}
                 />
               ))}
@@ -694,7 +698,7 @@ export const PromptBuilder = () => {
               value={customNote}
               onChangeText={setCustomNote}
               style={[styles.input, { minHeight: 72, textAlignVertical: "top", paddingTop: 12 }]}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
             />
           </View>
@@ -722,7 +726,7 @@ export const PromptBuilder = () => {
             disabled={loading}
           >
             <LinearGradient
-              colors={[Colors.primary, Colors.purple]}
+              colors={[colors.primary, colors.purple]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.generateGrad}
@@ -743,7 +747,7 @@ export const PromptBuilder = () => {
             <View style={[styles.outputBox, shadowSm]}>
               <View style={styles.outputHeader}>
                 <View style={styles.outputBadge}>
-                  <Feather name="check-circle" size={13} color={Colors.success} />
+                  <Feather name="check-circle" size={13} color={colors.success} />
                   <Text style={styles.outputBadgeText}>Prompt Siap</Text>
                 </View>
                 <Text style={styles.outputHint}>Paste ke ChatGPT / Claude</Text>
@@ -769,7 +773,7 @@ export const PromptBuilder = () => {
                   style={styles.actionBtnOutline}
                   activeOpacity={0.8}
                 >
-                  <Feather name="share-2" size={15} color={Colors.primary} />
+                  <Feather name="share-2" size={15} color={colors.primary} />
                 </TouchableOpacity>
               </View>
               {/* Ask AI Button */}
@@ -780,7 +784,7 @@ export const PromptBuilder = () => {
                 disabled={aiLoading}
               >
                 <LinearGradient
-                  colors={[Colors.success, Colors.primary]}
+                  colors={[colors.success, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.askAiGrad}
@@ -815,17 +819,17 @@ export const PromptBuilder = () => {
                 <Text style={styles.jsonText}>{JSON.stringify(sampleJson, null, 2)}</Text>
               </ScrollView>
               <View style={styles.jsonActions}>
-                <TouchableOpacity onPress={handleCopyJson} style={[styles.jsonActionBtn, { backgroundColor: Colors.dark }]} activeOpacity={0.8}>
+                <TouchableOpacity onPress={handleCopyJson} style={[styles.jsonActionBtn, { backgroundColor: colors.dark }]} activeOpacity={0.8}>
                   <Feather name="copy" size={14} color="#fff" />
                   <Text style={styles.jsonActionBtnText}>Salin JSON</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleShareJson} style={[styles.jsonActionBtn, { backgroundColor: Colors.primaryLight, borderWidth: 1, borderColor: Colors.primary }]} activeOpacity={0.8}>
-                  <Feather name="share-2" size={14} color={Colors.primary} />
-                  <Text style={[styles.jsonActionBtnText, { color: Colors.primary }]}>Share</Text>
+                <TouchableOpacity onPress={handleShareJson} style={[styles.jsonActionBtn, { backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.primary }]} activeOpacity={0.8}>
+                  <Feather name="share-2" size={14} color={colors.primary} />
+                  <Text style={[styles.jsonActionBtnText, { color: colors.primary }]}>Share</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleExportZip} style={[styles.jsonActionBtn, { backgroundColor: Colors.purpleLight, borderWidth: 1, borderColor: Colors.purple }]} activeOpacity={0.8}>
-                  <Feather name="archive" size={14} color={Colors.purple} />
-                  <Text style={[styles.jsonActionBtnText, { color: Colors.purple }]}>ZIP</Text>
+                <TouchableOpacity onPress={handleExportZip} style={[styles.jsonActionBtn, { backgroundColor: colors.purpleLight, borderWidth: 1, borderColor: colors.purple }]} activeOpacity={0.8}>
+                  <Feather name="archive" size={14} color={colors.purple} />
+                  <Text style={[styles.jsonActionBtnText, { color: colors.purple }]}>ZIP</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -835,7 +839,7 @@ export const PromptBuilder = () => {
         <>
           {/* Share & Import Tab */}
           <View style={[styles.infoCard, shadowSm]}>
-            <Feather name="info" size={16} color={Colors.primary} />
+            <Feather name="info" size={16} color={colors.primary} />
             <Text style={styles.infoText}>
               Setelah AI menghasilkan JSON, paste di sini untuk melihat pratinjau dan mengimpornya ke aplikasi.
             </Text>
@@ -848,7 +852,7 @@ export const PromptBuilder = () => {
               value={jsonInput}
               onChangeText={setJsonInput}
               style={[styles.input, styles.jsonInput]}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={8}
               textAlignVertical="top"
@@ -856,7 +860,7 @@ export const PromptBuilder = () => {
           </View>
 
           <TouchableOpacity onPress={handleParseJson} style={[styles.generateBtn, shadow]} activeOpacity={0.85}>
-            <LinearGradient colors={[Colors.purple, "#A855F7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.generateGrad}>
+            <LinearGradient colors={[colors.purple, "#A855F7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.generateGrad}>
               <Feather name="upload" size={18} color="#fff" />
               <Text style={styles.generateBtnText}>Parse & Preview JSON</Text>
             </LinearGradient>
@@ -865,8 +869,8 @@ export const PromptBuilder = () => {
           {importedJson && (
             <View style={[styles.importedCard, shadow]}>
               <View style={styles.importedHeader}>
-                <View style={[styles.importedIconWrap, { backgroundColor: Colors.successLight }]}>
-                  <Feather name="check-circle" size={20} color={Colors.success} />
+                <View style={[styles.importedIconWrap, { backgroundColor: colors.successLight }]}>
+                  <Feather name="check-circle" size={20} color={colors.success} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.importedTitle}>{importedJson.topic}</Text>
@@ -910,13 +914,13 @@ export const PromptBuilder = () => {
                 disabled={saving}
                 activeOpacity={0.85}
               >
-                <Feather name="book-open" size={16} color={Colors.primary} />
+                <Feather name="book-open" size={16} color={colors.primary} />
                 <Text style={styles.assignBtnText} numberOfLines={1}>
                   {selLesson
                     ? `Assign ke: ${selLesson.name}`
                     : "Assign ke Pelajaran..."}
                 </Text>
-                <Feather name="chevron-right" size={16} color={Colors.primary} />
+                <Feather name="chevron-right" size={16} color={colors.primary} />
               </TouchableOpacity>
 
               {selLesson && (
@@ -937,7 +941,7 @@ export const PromptBuilder = () => {
               <View style={styles.importedActions}>
                 <TouchableOpacity
                   onPress={() => { copyJsonToClipboard(importedJson); toast.success("JSON tersalin!"); }}
-                  style={[styles.jsonActionBtn, { backgroundColor: Colors.dark, flex: 1 }]}
+                  style={[styles.jsonActionBtn, { backgroundColor: colors.dark, flex: 1 }]}
                   activeOpacity={0.8}
                 >
                   <Feather name="copy" size={14} color="#fff" />
@@ -950,12 +954,12 @@ export const PromptBuilder = () => {
                       shareJson(importedJson).then(() => toast.success("Dibagikan!")).catch(() => {}).finally(() => setIsSharing(false));
                     }
                   }}
-                  style={[styles.jsonActionBtn, { backgroundColor: Colors.primaryLight, borderWidth: 1, borderColor: Colors.primary, flex: 1 }]}
+                  style={[styles.jsonActionBtn, { backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.primary, flex: 1 }]}
                   activeOpacity={0.8}
                   disabled={isSharing}
                 >
-                  <Feather name="share-2" size={14} color={Colors.primary} />
-                  <Text style={[styles.jsonActionBtnText, { color: Colors.primary }]}>Share</Text>
+                  <Feather name="share-2" size={14} color={colors.primary} />
+                  <Text style={[styles.jsonActionBtnText, { color: colors.primary }]}>Share</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1011,8 +1015,8 @@ export const PromptBuilder = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.background },
   content: { paddingBottom: 32 },
 
   header: {
@@ -1038,22 +1042,22 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 1.2,
     marginBottom: 8,
   },
 
   input: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
     fontWeight: "600",
-    color: Colors.dark,
+    color: c.dark,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   jsonInput: {
     minHeight: 140,
@@ -1072,21 +1076,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderColor: c.border,
+    backgroundColor: c.white,
   },
-  chipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
+  chipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
 
   templateList: { gap: 8 },
   templateCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   templateIconWrap: {
     width: 36,
@@ -1096,8 +1100,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   templateInfo: { flex: 1 },
-  templateTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark, marginBottom: 2 },
-  templateSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  templateTitle: { fontSize: 14, fontWeight: "800", color: c.dark, marginBottom: 2 },
+  templateSub: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
 
   generateBtn: { marginHorizontal: 16, marginTop: 24, borderRadius: 16, overflow: "hidden" },
   generateGrad: {
@@ -1112,11 +1116,11 @@ const styles = StyleSheet.create({
   outputBox: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     gap: 12,
   },
   outputHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -1124,15 +1128,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: Colors.successLight,
+    backgroundColor: c.successLight,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
   },
-  outputBadgeText: { fontSize: 11, fontWeight: "800", color: Colors.success },
-  outputHint: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
+  outputBadgeText: { fontSize: 11, fontWeight: "800", color: c.success },
+  outputHint: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   promptScroll: { maxHeight: 200, backgroundColor: "#F8FAFF", borderRadius: 10, padding: 12 },
-  promptText: { fontSize: 13, color: Colors.dark, lineHeight: 21, fontWeight: "500" },
+  promptText: { fontSize: 13, color: c.dark, lineHeight: 21, fontWeight: "500" },
   outputActions: { flexDirection: "row", gap: 8 },
   actionBtnPrimary: {
     flex: 1,
@@ -1140,7 +1144,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.dark,
+    backgroundColor: c.dark,
     paddingVertical: 12,
     borderRadius: 12,
   },
@@ -1152,8 +1156,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   askAiBtn: {
     borderRadius: 14,
@@ -1178,13 +1182,13 @@ const styles = StyleSheet.create({
   jsonBox: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: Colors.dark,
+    backgroundColor: c.dark,
     borderRadius: 18,
     padding: 16,
     gap: 12,
   },
   jsonHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  jsonDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success },
+  jsonDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.success },
   jsonHeaderTitle: { fontSize: 12, fontWeight: "800", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1 },
   typeBadge: { backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeBadgeText: { fontSize: 10, fontWeight: "900", color: "rgba(255,255,255,0.7)", letterSpacing: 1 },
@@ -1205,44 +1209,44 @@ const styles = StyleSheet.create({
   infoCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 14,
     padding: 14,
     flexDirection: "row",
     gap: 10,
     alignItems: "flex-start",
     borderWidth: 1,
-    borderColor: Colors.primary + "30",
+    borderColor: c.primary + "30",
   },
-  infoText: { flex: 1, fontSize: 13, color: Colors.primary, fontWeight: "600", lineHeight: 19 },
+  infoText: { flex: 1, fontSize: 13, color: c.primary, fontWeight: "600", lineHeight: 19 },
 
   importedCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 18,
     padding: 16,
     gap: 14,
   },
   importedHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   importedIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  importedTitle: { fontSize: 16, fontWeight: "900", color: Colors.dark },
-  importedSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "600", marginTop: 2, textTransform: "capitalize" },
+  importedTitle: { fontSize: 16, fontWeight: "900", color: c.dark },
+  importedSub: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2, textTransform: "capitalize" },
   importedPreview: { gap: 8 },
   importedItem: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   importedItemNum: {
     width: 20,
     height: 20,
     borderRadius: 6,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     textAlign: "center",
     lineHeight: 20,
     fontSize: 11,
     fontWeight: "900",
-    color: Colors.primary,
+    color: c.primary,
   },
-  importedItemText: { flex: 1, fontSize: 13, color: Colors.dark, fontWeight: "500", lineHeight: 19 },
-  importedMore: { fontSize: 12, color: Colors.textMuted, fontWeight: "700", textAlign: "center", paddingTop: 4 },
+  importedItemText: { flex: 1, fontSize: 13, color: c.dark, fontWeight: "500", lineHeight: 19 },
+  importedMore: { fontSize: 12, color: c.textMuted, fontWeight: "700", textAlign: "center", paddingTop: 4 },
   importedActions: { flexDirection: "row", gap: 8 },
 
   docsCard: {
@@ -1262,19 +1266,19 @@ const styles = StyleSheet.create({
   // Save / Assign buttons
   saveToPersonalBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9,
-    backgroundColor: Colors.success, borderRadius: 14, paddingVertical: 14,
+    backgroundColor: c.success, borderRadius: 14, paddingVertical: 14,
   },
   saveToLessonBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9,
-    backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 14,
+    backgroundColor: c.primary, borderRadius: 14, paddingVertical: 14,
   },
   saveToPersonalBtnText: { fontSize: 14, fontWeight: "900", color: "#fff" },
   assignBtn: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14,
-    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: Colors.primaryLight,
+    borderWidth: 1.5, borderColor: c.primary, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: c.primaryLight,
   },
-  assignBtnText: { flex: 1, fontSize: 13, fontWeight: "700", color: Colors.primary },
+  assignBtnText: { flex: 1, fontSize: 13, fontWeight: "700", color: c.primary },
 });
 
 const ps = StyleSheet.create({

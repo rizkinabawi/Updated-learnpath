@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useRef, useMemo } from "react";
 import {
   Animated,
   Modal,
@@ -8,7 +9,7 @@ import {
   View,
   Dimensions,
 } from "react-native";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 export type AchievementType =
   | "lesson_complete"
@@ -30,49 +31,52 @@ const CONFIGS: Record<AchievementType, { emoji: string; title: string; sub: (v?:
     emoji: "🎉",
     title: "Pelajaran Selesai!",
     sub: () => "Luar biasa! Kamu berhasil menyelesaikan satu pelajaran hari ini.",
-    color: Colors.primary,
-    bg: Colors.primaryLight,
+    color: colors.primary,
+    bg: colors.primaryLight,
   },
   quiz_perfect: {
     emoji: "🏆",
     title: "Nilai Sempurna!",
     sub: (v) => `Selamat! Kamu menjawab semua soal dengan benar. Score: ${v ?? 100}%`,
-    color: Colors.amber,
-    bg: Colors.amberLight,
+    color: colors.amber,
+    bg: colors.amberLight,
   },
   quiz_done: {
     emoji: "✅",
     title: "Quiz Selesai!",
     sub: (v) => `Kerja bagus! Kamu meraih skor ${v ?? 0}%. Terus berlatih!`,
-    color: Colors.teal,
-    bg: Colors.tealLight,
+    color: colors.teal,
+    bg: colors.tealLight,
   },
   flashcard_done: {
     emoji: "⚡",
     title: "Flashcard Tuntas!",
     sub: (v) => `Kamu sudah mengulas ${v ?? 0} kartu hari ini. Ingatan makin kuat!`,
-    color: Colors.purple,
-    bg: Colors.purpleLight,
+    color: colors.purple,
+    bg: colors.purpleLight,
   },
   streak: {
     emoji: "🔥",
     title: "Streak Baru!",
     sub: (v) => `Luar biasa! Kamu sudah belajar ${v ?? 1} hari berturut-turut!`,
-    color: Colors.danger,
-    bg: Colors.dangerLight,
+    color: colors.danger,
+    bg: colors.dangerLight,
   },
   first_lesson: {
     emoji: "🌟",
     title: "Awal yang Bagus!",
     sub: () => "Selamat atas pelajaran pertamamu! Perjalanan belajarmu dimulai hari ini.",
-    color: Colors.primary,
-    bg: Colors.primaryLight,
+    color: colors.primary,
+    bg: colors.primaryLight,
   },
 };
 
 const STARS = ["⭐", "✨", "🌟", "💫", "⭐", "✨"];
 
 export function AchievementPopup({ visible, type, value, onClose }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const starAnims = useRef(STARS.map(() => ({
@@ -169,7 +173,7 @@ export function AchievementPopup({ visible, type, value, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   overlay: {
     flex: 1, justifyContent: "center", alignItems: "center",
   },
@@ -178,7 +182,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.55)",
   },
   card: {
-    backgroundColor: Colors.white, borderRadius: 28,
+    backgroundColor: c.white, borderRadius: 28,
     paddingBottom: 24, alignItems: "center",
     overflow: "hidden",
     shadowColor: "#000", shadowOffset: { width: 0, height: 12 },
@@ -200,7 +204,7 @@ const styles = StyleSheet.create({
     fontSize: 22, fontWeight: "900", marginBottom: 8, textAlign: "center", paddingHorizontal: 24,
   },
   sub: {
-    fontSize: 14, fontWeight: "500", color: Colors.textSecondary,
+    fontSize: 14, fontWeight: "500", color: c.textSecondary,
     textAlign: "center", lineHeight: 21, paddingHorizontal: 28, marginBottom: 16,
   },
   strip: {
@@ -211,5 +215,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 24, borderRadius: 16, paddingVertical: 15,
     alignItems: "center", width: "85%",
   },
-  btnText: { fontSize: 15, fontWeight: "900", color: Colors.white },
+  btnText: { fontSize: 15, fontWeight: "900", color: c.white },
 });

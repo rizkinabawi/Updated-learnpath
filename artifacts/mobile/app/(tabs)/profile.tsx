@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Platform, Share,
   ActivityIndicator, Switch, useWindowDimensions, Image,
@@ -20,7 +20,7 @@ import {
 } from "@/utils/notifications";
 import { CourseBundleShareModal, CourseImportPreviewModal } from "@/components/CourseBundleModal";
 import { extractAssetsFromPack } from "@/utils/bundle-assets";
-import Colors, { shadow, shadowSm } from "@/constants/colors";
+import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
 import {
   shouldShowBackupReminder,
@@ -28,9 +28,12 @@ import {
   getDaysSinceLastBackup,
 } from "@/utils/backup";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme, useColors } from "@/contexts/ThemeContext";
 
 export default function ProfileTab() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -142,49 +145,49 @@ export default function ProfileTab() {
     {
       icon: "user" as const, label: "Edit Profil",
       sub: "Ubah nama, foto, level & target belajar",
-      color: Colors.primary,
+      color: colors.primary,
       onPress: () => router.push("/edit-profile"),
     },
     {
       icon: "key" as const, label: "AI Keys",
       sub: "Simpan API key OpenAI & Gemini untuk Ask Your AI",
-      color: Colors.success,
+      color: colors.success,
       onPress: () => router.push("/ai-keys"),
     },
     {
       icon: "package" as const, label: "Pack Manager",
       sub: "Kelola pack flashcard & quiz kamu",
-      color: Colors.purple,
+      color: colors.purple,
       onPress: () => router.push("/pack-manager"),
     },
     {
       icon: "image" as const, label: "Image Manager",
       sub: "Lihat & hapus gambar tersimpan",
-      color: Colors.teal,
+      color: colors.teal,
       onPress: () => router.push("/image-manager"),
     },
     {
       icon: "share-2" as const, label: t.profile.share_bundle,
       sub: t.profile.share_bundle_sub,
-      color: Colors.teal,
+      color: colors.teal,
       onPress: () => setShowShareModal(true),
     },
     {
       icon: "download" as const, label: t.profile.import_bundle,
       sub: t.profile.import_bundle_sub,
-      color: Colors.primary,
+      color: colors.primary,
       onPress: handleImportCourse,
     },
     {
       icon: "hard-drive" as const, label: "Backup & Pulih",
       sub: "Simpan / pulihkan semua data + media (offline)",
-      color: Colors.teal,
+      color: colors.teal,
       onPress: () => router.push("/backup" as any),
     },
     {
       icon: "share-2" as const, label: t.profile.share_progress,
       sub: t.profile.share_progress_sub,
-      color: Colors.amber,
+      color: colors.amber,
       onPress: async () => {
         try {
           await Share.share({ message: `Akurasi saya ${accuracy}% dengan ${stats?.totalAnswers ?? 0} jawaban di Mobile Learning! 🎓` });
@@ -196,43 +199,43 @@ export default function ProfileTab() {
     {
       icon: "star" as const, label: "Tantangan Harian",
       sub: "Coba soal challenge hari ini",
-      color: Colors.warning,
+      color: colors.warning,
       onPress: () => router.push("/daily-challenge"),
     },
     {
       icon: "clock" as const, label: "Timer Pomodoro",
       sub: "Sesi belajar terstruktur 25/5 menit",
-      color: Colors.danger,
+      color: colors.danger,
       onPress: () => router.push("/pomodoro"),
     },
     {
       icon: "bookmark" as const, label: "Soal Tersimpan",
       sub: "Review flashcard & quiz yang di-bookmark",
-      color: Colors.purple,
+      color: colors.purple,
       onPress: () => router.push("/bookmarks"),
     },
     {
       icon: "list" as const, label: "Riwayat Sesi",
       sub: "Lihat semua sesi belajar yang lalu",
-      color: Colors.teal,
+      color: colors.teal,
       onPress: () => router.push("/session-history"),
     },
     {
       icon: "droplet" as const, label: "Tema",
       sub: "Pilih palet warna & mode terang/gelap",
-      color: Colors.dark,
+      color: colors.dark,
       onPress: () => router.push("/theme-settings" as any),
     },
     {
       icon: "code" as const, label: t.profile.about_dev,
       sub: t.profile.about_dev_sub,
-      color: Colors.purple,
+      color: colors.purple,
       onPress: () => router.push("/about-developer"),
     },
     {
       icon: "refresh-cw" as const, label: t.profile.reset_profile,
       sub: t.profile.reset_profile_sub,
-      color: Colors.amber,
+      color: colors.amber,
       onPress: () => Alert.alert(t.profile.reset_profile, "Reset profil pengguna?", [
         { text: t.common.cancel, style: "cancel" },
         { text: "Reset", onPress: async () => { const AS = (await import("@react-native-async-storage/async-storage")).default; await AS.removeItem("user"); router.replace("/onboarding"); } },
@@ -241,7 +244,7 @@ export default function ProfileTab() {
     {
       icon: "trash-2" as const, label: t.profile.delete_all,
       sub: t.profile.delete_all_sub,
-      color: Colors.danger,
+      color: colors.danger,
       onPress: () => Alert.alert(t.profile.delete_all, "Semua data akan dihapus permanen.", [
         { text: t.common.cancel, style: "cancel" },
         { text: t.common.delete, style: "destructive", onPress: async () => { await clearAllData(); router.replace("/onboarding"); } },
@@ -260,7 +263,7 @@ export default function ProfileTab() {
     >
       {/* ── HEADER ── */}
       <LinearGradient
-        colors={[Colors.primary, Colors.purple]}
+        colors={[colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
@@ -317,7 +320,7 @@ export default function ProfileTab() {
         {showBackupReminder && (
           <View style={styles.backupBanner}>
             <View style={styles.backupBannerIcon}>
-              <Feather name="hard-drive" size={18} color={Colors.teal} />
+              <Feather name="hard-drive" size={18} color={colors.teal} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.backupBannerTitle}>
@@ -353,7 +356,7 @@ export default function ProfileTab() {
         {/* Goal */}
         {user?.goal && (
           <View style={[styles.goalCard, shadowSm]}>
-            <LinearGradient colors={[Colors.primary, Colors.purple]} style={styles.goalIconWrap}>
+            <LinearGradient colors={[colors.primary, colors.purple]} style={styles.goalIconWrap}>
               <Feather name="target" size={18} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
@@ -368,9 +371,9 @@ export default function ProfileTab() {
           <Text style={styles.cardSectionLabel}>Ringkasan Progress</Text>
           <View style={styles.progressRow}>
             {[
-              { val: stats?.correctAnswers ?? 0, lbl: t.profile.correct, color: Colors.teal },
-              { val: wrong, lbl: t.profile.wrong, color: Colors.danger },
-              { val: `${accuracy}%`, lbl: t.profile.accuracy, color: Colors.primary },
+              { val: stats?.correctAnswers ?? 0, lbl: t.profile.correct, color: colors.teal },
+              { val: wrong, lbl: t.profile.wrong, color: colors.danger },
+              { val: `${accuracy}%`, lbl: t.profile.accuracy, color: colors.primary },
             ].map((p, i) => (
               <View key={i} style={[styles.progressChip, { backgroundColor: p.color + "15" }]}>
                 <Text style={[styles.progressChipVal, { color: p.color }]}>{p.val}</Text>
@@ -381,7 +384,7 @@ export default function ProfileTab() {
           <View style={styles.barTrack}>
             <View style={[styles.barFill, {
               width: `${accuracy}%` as any,
-              backgroundColor: accuracy >= 70 ? Colors.teal : accuracy >= 40 ? Colors.amber : Colors.danger,
+              backgroundColor: accuracy >= 70 ? colors.teal : accuracy >= 40 ? colors.amber : colors.danger,
             }]} />
           </View>
           <Text style={styles.barSub}>{stats?.totalAnswers ?? 0} total jawaban</Text>
@@ -390,25 +393,25 @@ export default function ProfileTab() {
         {/* Quick actions */}
         <View style={styles.quickRow}>
           <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: Colors.primaryLight }, shadowSm]}
+            style={[styles.quickCard, { backgroundColor: colors.primaryLight }, shadowSm]}
             onPress={() => router.push("/(tabs)/progress")}
           >
-            <Feather name="bar-chart-2" size={20} color={Colors.primary} />
-            <Text style={[styles.quickLbl, { color: Colors.primary }]}>Progress{"\n"}Detail</Text>
+            <Feather name="bar-chart-2" size={20} color={colors.primary} />
+            <Text style={[styles.quickLbl, { color: colors.primary }]}>Progress{"\n"}Detail</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: Colors.amberLight }, shadowSm]}
+            style={[styles.quickCard, { backgroundColor: colors.amberLight }, shadowSm]}
             onPress={() => router.push("/(tabs)/practice")}
           >
-            <Feather name="zap" size={20} color={Colors.amber} />
-            <Text style={[styles.quickLbl, { color: Colors.amber }]}>Mulai{"\n"}Latihan</Text>
+            <Feather name="zap" size={20} color={colors.amber} />
+            <Text style={[styles.quickLbl, { color: colors.amber }]}>Mulai{"\n"}Latihan</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: Colors.tealLight }, shadowSm]}
+            style={[styles.quickCard, { backgroundColor: colors.tealLight }, shadowSm]}
             onPress={() => router.push("/(tabs)/learn")}
           >
-            <Feather name="book-open" size={20} color={Colors.teal} />
-            <Text style={[styles.quickLbl, { color: Colors.teal }]}>Semua{"\n"}Kursus</Text>
+            <Feather name="book-open" size={20} color={colors.teal} />
+            <Text style={[styles.quickLbl, { color: colors.teal }]}>Semua{"\n"}Kursus</Text>
           </TouchableOpacity>
         </View>
 
@@ -425,12 +428,12 @@ export default function ProfileTab() {
                   onPress={() => setLanguage(lang)}
                   style={{
                     flex: 1, paddingVertical: 12, borderRadius: 14, alignItems: "center",
-                    backgroundColor: active ? Colors.primary : Colors.background,
+                    backgroundColor: active ? colors.primary : colors.background,
                   }}
                 >
                   <Text style={{
                     fontSize: 14, fontWeight: "800",
-                    color: active ? "#fff" : Colors.textMuted,
+                    color: active ? "#fff" : colors.textMuted,
                   }}>
                     {label}
                   </Text>
@@ -444,14 +447,14 @@ export default function ProfileTab() {
         <Text style={styles.menuLabel}>Tampilan</Text>
         <View style={[styles.menuCard, shadowSm, { marginBottom: 4 }]}>
           <View style={{ flexDirection: "row", alignItems: "center", padding: 16, gap: 14 }}>
-            <View style={[styles.menuIconWrap, { backgroundColor: isDark ? Colors.darkMed : Colors.background }]}>
-              <Feather name={isDark ? "moon" : "sun"} size={18} color={isDark ? Colors.teal : Colors.warning} />
+            <View style={[styles.menuIconWrap, { backgroundColor: isDark ? colors.darkMed : colors.background }]}>
+              <Feather name={isDark ? "moon" : "sun"} size={18} color={isDark ? colors.teal : colors.warning} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.menuTitle]}>Dark Mode</Text>
               <Text style={styles.menuSub}>{isDark ? "Mode gelap aktif" : "Mode terang aktif"}</Text>
             </View>
-            <Switch value={isDark} onValueChange={toggleDark} trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={Colors.white} />
+            <Switch value={isDark} onValueChange={toggleDark} trackColor={{ true: colors.primary, false: colors.border }} thumbColor={colors.white} />
           </View>
         </View>
 
@@ -459,8 +462,8 @@ export default function ProfileTab() {
         <Text style={styles.menuLabel}>{t.profile.section_reminder}</Text>
         <View style={[styles.reminderCard, shadowSm]}>
           <View style={styles.reminderRow}>
-            <View style={[styles.menuIconWrap, { backgroundColor: Colors.primaryLight }]}>
-              <Feather name="bell" size={18} color={Colors.primary} />
+            <View style={[styles.menuIconWrap, { backgroundColor: colors.primaryLight }]}>
+              <Feather name="bell" size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.menuTitle}>{t.profile.reminder_toggle}</Text>
@@ -473,8 +476,8 @@ export default function ProfileTab() {
             <Switch
               value={reminder.enabled}
               onValueChange={handleToggleReminder}
-              trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-              thumbColor={reminder.enabled ? Colors.primary : Colors.textMuted}
+              trackColor={{ false: colors.border, true: colors.primaryLight }}
+              thumbColor={reminder.enabled ? colors.primary : colors.textMuted}
             />
           </View>
 
@@ -485,13 +488,13 @@ export default function ProfileTab() {
                 <Text style={styles.timePickerLabel}>Jam Pengingat</Text>
                 <View style={styles.timePicker}>
                   <TouchableOpacity style={styles.timeArrow} onPress={() => cycleHour(-1)}>
-                    <Feather name="chevron-left" size={18} color={Colors.primary} />
+                    <Feather name="chevron-left" size={18} color={colors.primary} />
                   </TouchableOpacity>
                   <Text style={styles.timeVal}>{String(reminder.hour).padStart(2, "0")}</Text>
                   <Text style={styles.timeSep}>:</Text>
                   <Text style={styles.timeVal}>{String(reminder.minute).padStart(2, "0")}</Text>
                   <TouchableOpacity style={styles.timeArrow} onPress={() => cycleHour(1)}>
-                    <Feather name="chevron-right" size={18} color={Colors.primary} />
+                    <Feather name="chevron-right" size={18} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.minuteRow}>
@@ -508,9 +511,9 @@ export default function ProfileTab() {
                   ))}
                 </View>
               </View>
-              <View style={[styles.reminderHint, { backgroundColor: Colors.primaryLight }]}>
-                <Feather name="info" size={12} color={Colors.primary} />
-                <Text style={[styles.reminderHintText, { color: Colors.primary }]}>
+              <View style={[styles.reminderHint, { backgroundColor: colors.primaryLight }]}>
+                <Feather name="info" size={12} color={colors.primary} />
+                <Text style={[styles.reminderHintText, { color: colors.primary }]}>
                   Notifikasi motivasi harian juga aktif setiap jam 08:00
                 </Text>
               </View>
@@ -522,7 +525,7 @@ export default function ProfileTab() {
         <Text style={styles.menuLabel}>{t.profile.section_menu}</Text>
         {importing && (
           <View style={styles.importingBanner}>
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.importingText}>Mengimport kursus...</Text>
           </View>
         )}
@@ -534,12 +537,12 @@ export default function ProfileTab() {
                   <Feather name={item.icon} size={18} color={item.color} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.menuTitle, item.color === Colors.danger && { color: Colors.danger }]}>
+                  <Text style={[styles.menuTitle, item.color === colors.danger && { color: colors.danger }]}>
                     {item.label}
                   </Text>
                   <Text style={styles.menuSub}>{item.sub}</Text>
                 </View>
-                <Feather name="chevron-right" size={15} color={Colors.textMuted} />
+                <Feather name="chevron-right" size={15} color={colors.textMuted} />
               </TouchableOpacity>
               {i < MENU.length - 1 && <View style={styles.menuDivider} />}
             </React.Fragment>
@@ -568,8 +571,8 @@ export default function ProfileTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 0, overflow: "hidden" },
   blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)", top: -50, right: -50 },
   blob2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.06)", bottom: 20, left: 20 },
@@ -598,95 +601,95 @@ const styles = StyleSheet.create({
   backupBanner: {
     flexDirection: "row",
     gap: 12,
-    backgroundColor: Colors.tealLight,
+    backgroundColor: c.tealLight,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   backupBannerIcon: {
     width: 36, height: 36, borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     alignItems: "center", justifyContent: "center",
   },
-  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  backupBannerSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2, lineHeight: 17 },
+  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  backupBannerSub: { fontSize: 12, color: c.textSecondary, marginTop: 2, lineHeight: 17 },
   backupBannerBtns: { flexDirection: "row", gap: 10, marginTop: 10 },
   backupBannerCta: {
-    backgroundColor: Colors.teal,
+    backgroundColor: c.teal,
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 999,
   },
-  backupBannerCtaText: { color: Colors.white, fontWeight: "800", fontSize: 12 },
+  backupBannerCtaText: { color: c.white, fontWeight: "800", fontSize: 12 },
   backupBannerSnooze: {
     paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 999,
   },
-  backupBannerSnoozeText: { color: Colors.textSecondary, fontWeight: "700", fontSize: 12 },
-  goalCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: 20, padding: 16 },
+  backupBannerSnoozeText: { color: c.textSecondary, fontWeight: "700", fontSize: 12 },
+  goalCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: c.white, borderRadius: 20, padding: 16 },
   goalIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  goalLabel: { fontSize: 10, fontWeight: "800", color: Colors.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  goalText: { fontSize: 14, fontWeight: "700", color: Colors.dark, lineHeight: 20 },
-  progressCard: { backgroundColor: Colors.white, borderRadius: 20, padding: 18, gap: 12 },
-  cardSectionLabel: { fontSize: 11, fontWeight: "800", color: Colors.textMuted, textTransform: "uppercase", letterSpacing: 1 },
+  goalLabel: { fontSize: 10, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
+  goalText: { fontSize: 14, fontWeight: "700", color: c.dark, lineHeight: 20 },
+  progressCard: { backgroundColor: c.white, borderRadius: 20, padding: 18, gap: 12 },
+  cardSectionLabel: { fontSize: 11, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1 },
   progressRow: { flexDirection: "row", gap: 8 },
   progressChip: { flex: 1, borderRadius: 14, padding: 12, alignItems: "center", gap: 3 },
   progressChipVal: { fontSize: 20, fontWeight: "900" },
   progressChipLbl: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
-  barTrack: { height: 7, backgroundColor: Colors.border, borderRadius: 999, overflow: "hidden" },
+  barTrack: { height: 7, backgroundColor: c.border, borderRadius: 999, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 999 },
-  barSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+  barSub: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
   quickRow: { flexDirection: "row", gap: 10 },
   quickCard: { flex: 1, borderRadius: 18, padding: 14, alignItems: "center", gap: 8 },
   quickLbl: { fontSize: 12, fontWeight: "800", textAlign: "center", lineHeight: 17 },
-  menuLabel: { fontSize: 11, fontWeight: "800", color: Colors.textMuted, textTransform: "uppercase", letterSpacing: 1 },
-  menuCard: { backgroundColor: Colors.white, borderRadius: 20, overflow: "hidden" },
+  menuLabel: { fontSize: 11, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1 },
+  menuCard: { backgroundColor: c.white, borderRadius: 20, overflow: "hidden" },
   menuItem: { flexDirection: "row", alignItems: "center", padding: 16, gap: 14 },
   menuIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  menuTitle: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  menuSub: { fontSize: 11, color: Colors.textMuted, fontWeight: "500", marginTop: 2 },
-  menuDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: 16 },
-  footer: { textAlign: "center", fontSize: 11, color: Colors.textMuted, fontWeight: "600", paddingTop: 8, paddingBottom: 12 },
+  menuTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  menuSub: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 2 },
+  menuDivider: { height: 1, backgroundColor: c.borderLight, marginHorizontal: 16 },
+  footer: { textAlign: "center", fontSize: 11, color: c.textMuted, fontWeight: "600", paddingTop: 8, paddingBottom: 12 },
   importingBanner: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.primaryLight, borderRadius: 14,
+    backgroundColor: c.primaryLight, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 12,
   },
-  importingText: { fontSize: 14, fontWeight: "700", color: Colors.primary },
+  importingText: { fontSize: 14, fontWeight: "700", color: c.primary },
 
   // Reminder
   reminderCard: {
-    backgroundColor: Colors.white, borderRadius: 20, overflow: "hidden",
+    backgroundColor: c.white, borderRadius: 20, overflow: "hidden",
     paddingTop: 4, paddingBottom: 4,
   },
   reminderRow: {
     flexDirection: "row", alignItems: "center", padding: 16, gap: 14,
   },
-  reminderDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: 16 },
+  reminderDivider: { height: 1, backgroundColor: c.borderLight, marginHorizontal: 16 },
   timePickerRow: { padding: 16, gap: 12 },
   timePickerLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textMuted,
+    fontSize: 11, fontWeight: "800", color: c.textMuted,
     textTransform: "uppercase", letterSpacing: 1,
   },
   timePicker: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: Colors.background, borderRadius: 16, padding: 14,
+    gap: 8, backgroundColor: c.background, borderRadius: 16, padding: 14,
   },
-  timeVal: { fontSize: 32, fontWeight: "900", color: Colors.dark, minWidth: 52, textAlign: "center" },
-  timeSep: { fontSize: 28, fontWeight: "900", color: Colors.textMuted },
+  timeVal: { fontSize: 32, fontWeight: "900", color: c.dark, minWidth: 52, textAlign: "center" },
+  timeSep: { fontSize: 28, fontWeight: "900", color: c.textMuted },
   timeArrow: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: Colors.white, alignItems: "center", justifyContent: "center",
-    borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: c.white, alignItems: "center", justifyContent: "center",
+    borderWidth: 1.5, borderColor: c.border,
   },
   minuteRow: { flexDirection: "row", gap: 8 },
   minuteChip: {
     flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: "center",
-    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white,
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.white,
   },
-  minuteChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  minuteChipText: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
-  minuteChipTextActive: { color: Colors.white },
+  minuteChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  minuteChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+  minuteChipTextActive: { color: c.white },
   reminderHint: {
     flexDirection: "row", alignItems: "center", gap: 6,
     margin: 12, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,

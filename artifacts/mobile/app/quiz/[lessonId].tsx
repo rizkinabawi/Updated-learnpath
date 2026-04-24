@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useColors } from "@/contexts/ThemeContext";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -29,12 +30,15 @@ import {
   type Quiz,
   type Lesson,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 export default function QuizScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -174,7 +178,7 @@ export default function QuizScreen() {
           style={styles.addBtn}
           onPress={() => router.push(`/create-quiz/${lessonId}`)}
         >
-          <Plus size={16} color={Colors.white} />
+          <Plus size={16} color={colors.white} />
           <Text style={styles.addBtnText}>{t.quiz.add_btn}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
@@ -207,13 +211,13 @@ export default function QuizScreen() {
         <View style={{ width: "100%", marginVertical: 8 }}>
           <ProgressBar
             value={pct}
-            color={pct >= 80 ? Colors.success : pct >= 50 ? Colors.warning : Colors.danger}
+            color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger}
             height={10}
           />
         </View>
         <View style={styles.resultBtns}>
           <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
-            <RotateCcw size={16} color={Colors.white} />
+            <RotateCcw size={16} color={colors.white} />
             <Text style={styles.restartBtnText}>{t.common.restart}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
@@ -253,18 +257,18 @@ export default function QuizScreen() {
       {/* Nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <X size={20} color={Colors.black} />
+          <X size={20} color={colors.black} />
         </TouchableOpacity>
         <Text style={styles.navCount}>{currentIndex + 1} / {quizzes.length}</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
-            <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : Colors.textMuted} />
+            <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push(`/create-quiz/${lessonId}`)}
             style={styles.navBtn}
           >
-            <Plus size={20} color={Colors.black} />
+            <Plus size={20} color={colors.black} />
           </TouchableOpacity>
         </View>
       </View>
@@ -343,15 +347,15 @@ export default function QuizScreen() {
                 <Text
                   style={[
                     styles.optionText,
-                    showCorrect && { color: Colors.success },
-                    showWrong && { color: Colors.danger },
-                    isSelected && !isAnswered && { color: Colors.black },
+                    showCorrect && { color: colors.success },
+                    showWrong && { color: colors.danger },
+                    isSelected && !isAnswered && { color: colors.black },
                   ]}
                 >
                   {opt}
                 </Text>
-                {showCorrect && <Check size={18} color={Colors.success} />}
-                {showWrong && <X size={18} color={Colors.danger} />}
+                {showCorrect && <Check size={18} color={colors.success} />}
+                {showWrong && <X size={18} color={colors.danger} />}
               </TouchableOpacity>
             );
           })}
@@ -370,7 +374,7 @@ export default function QuizScreen() {
             <Text style={styles.nextBtnText}>
               {currentIndex === quizzes.length - 1 ? t.quiz.btn_finish : t.quiz.btn_next}
             </Text>
-            <ChevronRight size={20} color={Colors.white} />
+            <ChevronRight size={20} color={colors.white} />
           </TouchableOpacity>
         )}
       </View>
@@ -378,31 +382,31 @@ export default function QuizScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
     gap: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  emptyTitle: { fontSize: 22, fontWeight: "900", color: Colors.black },
-  emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: "center", fontWeight: "500" },
+  emptyTitle: { fontSize: 22, fontWeight: "900", color: c.black },
+  emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", fontWeight: "500" },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.black,
+    backgroundColor: c.black,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
     marginTop: 8,
   },
-  addBtnText: { color: Colors.white, fontWeight: "800", fontSize: 14 },
+  addBtnText: { color: c.white, fontWeight: "800", fontSize: 14 },
   backLink: { marginTop: 8 },
-  backLinkText: { color: Colors.primary, fontWeight: "700", fontSize: 14 },
+  backLinkText: { color: c.primary, fontWeight: "700", fontSize: 14 },
   nav: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,25 +418,25 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  navCount: { fontSize: 14, fontWeight: "800", color: Colors.textSecondary },
+  navCount: { fontSize: 14, fontWeight: "800", color: c.textSecondary },
   questionCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
     gap: 10,
     overflow: "hidden",
   },
   questionLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -444,7 +448,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 19,
     fontWeight: "800",
-    color: Colors.black,
+    color: c.black,
     lineHeight: 26,
   },
   questionAudioBtn: {
@@ -453,7 +457,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -463,61 +467,61 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 16,
     padding: 14,
     gap: 14,
     borderWidth: 2,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
   },
-  optionSelected: { borderColor: Colors.black, backgroundColor: Colors.surface },
-  optionCorrect: { borderColor: Colors.success, backgroundColor: Colors.successLight },
-  optionWrong: { borderColor: Colors.danger, backgroundColor: Colors.dangerLight },
+  optionSelected: { borderColor: c.black, backgroundColor: c.surface },
+  optionCorrect: { borderColor: c.success, backgroundColor: c.successLight },
+  optionWrong: { borderColor: c.danger, backgroundColor: c.dangerLight },
   optionBadge: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  badgeSelected: { backgroundColor: Colors.black, borderColor: Colors.black },
-  badgeCorrect: { backgroundColor: Colors.success, borderColor: Colors.success },
-  badgeWrong: { backgroundColor: Colors.danger, borderColor: Colors.danger },
-  optionBadgeText: { fontSize: 13, fontWeight: "800", color: Colors.textSecondary },
-  optionBadgeTextActive: { color: Colors.white },
-  optionText: { flex: 1, fontSize: 15, fontWeight: "600", color: Colors.black },
+  badgeSelected: { backgroundColor: c.black, borderColor: c.black },
+  badgeCorrect: { backgroundColor: c.success, borderColor: c.success },
+  badgeWrong: { backgroundColor: c.danger, borderColor: c.danger },
+  optionBadgeText: { fontSize: 13, fontWeight: "800", color: c.textSecondary },
+  optionBadgeTextActive: { color: c.white },
+  optionText: { flex: 1, fontSize: 15, fontWeight: "600", color: c.black },
   bottomBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: c.borderLight,
   },
   nextBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.black,
+    backgroundColor: c.black,
     paddingVertical: 18,
     borderRadius: 20,
   },
-  nextBtnText: { color: Colors.white, fontWeight: "800", fontSize: 16 },
+  nextBtnText: { color: c.white, fontWeight: "800", fontSize: 16 },
   resultWrap: {
     flex: 1,
     paddingHorizontal: 28,
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   resultEmoji: { fontSize: 64 },
-  resultTitle: { fontSize: 26, fontWeight: "900", color: Colors.black },
-  resultScore: { fontSize: 64, fontWeight: "900", color: Colors.black },
-  resultSub: { fontSize: 16, color: Colors.textMuted, fontWeight: "600" },
+  resultTitle: { fontSize: 26, fontWeight: "900", color: c.black },
+  resultScore: { fontSize: 64, fontWeight: "900", color: c.black },
+  resultSub: { fontSize: 16, color: c.textMuted, fontWeight: "600" },
   resultBtns: { flexDirection: "row", gap: 12, marginTop: 16, width: "100%" },
   restartBtn: {
     flex: 1,
@@ -525,41 +529,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.black,
+    backgroundColor: c.black,
     paddingVertical: 16,
     borderRadius: 18,
   },
-  restartBtnText: { color: Colors.white, fontWeight: "800", fontSize: 15 },
+  restartBtnText: { color: c.white, fontWeight: "800", fontSize: 15 },
   doneBtn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingVertical: 16,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  doneBtnText: { color: Colors.black, fontWeight: "800", fontSize: 15 },
+  doneBtnText: { color: c.black, fontWeight: "800", fontSize: 15 },
   nextLessonBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: Colors.primaryLight,
-    borderWidth: 1.5, borderColor: Colors.primary,
+    gap: 8, backgroundColor: c.primaryLight,
+    borderWidth: 1.5, borderColor: c.primary,
     borderRadius: 18, paddingVertical: 14, paddingHorizontal: 20,
     width: "100%", marginTop: 4,
   },
-  nextLessonBtnText: { color: Colors.primary, fontWeight: "800", fontSize: 14, flex: 1 },
-  nextLessonArrow: { color: Colors.primary, fontWeight: "900", fontSize: 18 },
+  nextLessonBtnText: { color: c.primary, fontWeight: "800", fontSize: 14, flex: 1 },
+  nextLessonArrow: { color: c.primary, fontWeight: "900", fontSize: 18 },
   xpBadge: {
     position: "absolute",
     top: Platform.OS === "web" ? 80 : 90,
     alignSelf: "center",
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
     zIndex: 100,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

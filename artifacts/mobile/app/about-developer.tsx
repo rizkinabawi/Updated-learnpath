@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useColors } from "@/contexts/ThemeContext";
 import React from "react";
 import {
   View,
@@ -12,7 +14,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PERSONALISASI — Ubah bagian ini sesuai data kamu!
@@ -57,8 +59,8 @@ const DEV = {
       icon: "globe" as const,
       label: "kipotraits.com",
       url: "https://www.kipotraits.com",
-      color: Colors.teal,
-      bg: Colors.teal + "18",
+      color: colors.teal,
+      bg: colors.teal + "18",
     },
   ],
 };
@@ -72,6 +74,9 @@ const APP_INFO = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AboutDeveloper() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -80,14 +85,14 @@ export default function AboutDeveloper() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 16 }}
       >
         {/* ── HEADER ── */}
         <LinearGradient
-          colors={[Colors.primary, Colors.purple]}
+          colors={[colors.primary, colors.purple]}
           style={[
             styles.header,
             { paddingTop: Platform.OS === "web" ? 60 : insets.top + 16 },
@@ -101,7 +106,7 @@ export default function AboutDeveloper() {
           {/* Avatar */}
           <View style={styles.avatarRing}>
             <LinearGradient
-              colors={[Colors.warning, Colors.accent]}
+              colors={[colors.warning, colors.accent]}
               style={styles.avatarGrad}
             >
               <Text style={styles.avatarEmoji}>{DEV.avatar}</Text>
@@ -120,7 +125,7 @@ export default function AboutDeveloper() {
           {/* ── BIO ── */}
           <View style={styles.card}>
             <View style={styles.cardHead}>
-              <Feather name="user" size={15} color={Colors.primary} />
+              <Feather name="user" size={15} color={colors.primary} />
               <Text style={styles.cardTitle}>Tentang Saya</Text>
             </View>
             <Text style={styles.bioText}>{DEV.bio}</Text>
@@ -129,7 +134,7 @@ export default function AboutDeveloper() {
           {/* ── SKILLS ── */}
           <View style={styles.card}>
             <View style={styles.cardHead}>
-              <Feather name="zap" size={15} color={Colors.amber} />
+              <Feather name="zap" size={15} color={colors.amber} />
               <Text style={styles.cardTitle}>Tech Stack & Skills</Text>
             </View>
             <View style={styles.skillsWrap}>
@@ -144,7 +149,7 @@ export default function AboutDeveloper() {
           {/* ── SOCIAL MEDIA ── */}
           <View style={styles.card}>
             <View style={styles.cardHead}>
-              <Feather name="share-2" size={15} color={Colors.teal} />
+              <Feather name="share-2" size={15} color={colors.teal} />
               <Text style={styles.cardTitle}>Temukan Saya Di</Text>
             </View>
             <View style={styles.socialsGrid}>
@@ -177,7 +182,7 @@ export default function AboutDeveloper() {
               <Text style={styles.appInfoTagline}>{APP_INFO.tagline}</Text>
               <View style={styles.appInfoDivider} />
               <Text style={styles.appInfoMade}>
-                Made with <Text style={{ color: Colors.accent }}>♥</Text> by {DEV.name} · {APP_INFO.year}
+                Made with <Text style={{ color: colors.accent }}>♥</Text> by {DEV.name} · {APP_INFO.year}
               </Text>
             </LinearGradient>
           </View>
@@ -187,7 +192,7 @@ export default function AboutDeveloper() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
   header: {
     alignItems: "center",
     paddingBottom: 36,
@@ -264,7 +269,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: c.white,
     borderRadius: 18,
     padding: 18,
     shadowColor: "#000",
@@ -282,12 +287,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: "800",
-    color: Colors.dark,
+    color: c.dark,
     letterSpacing: 0.3,
   },
   bioText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 22,
     fontWeight: "500",
   },
@@ -297,16 +302,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   skillChip: {
-    backgroundColor: Colors.primary + "12",
+    backgroundColor: c.primary + "12",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.primary + "25",
+    borderColor: c.primary + "25",
   },
   skillText: {
     fontSize: 12,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   socialsGrid: {
@@ -350,16 +355,16 @@ const styles = StyleSheet.create({
   appInfoName: {
     fontSize: 20,
     fontWeight: "900",
-    color: Colors.dark,
+    color: c.dark,
   },
   appInfoVersion: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
   appInfoTagline: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
     marginTop: 4,
     textAlign: "center",
@@ -367,13 +372,13 @@ const styles = StyleSheet.create({
   appInfoDivider: {
     width: 40,
     height: 1.5,
-    backgroundColor: Colors.border ?? "#E2E8F0",
+    backgroundColor: c.border ?? "#E2E8F0",
     borderRadius: 1,
     marginVertical: 12,
   },
   appInfoMade: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
 });

@@ -1,3 +1,4 @@
+import { useColors } from "@/contexts/ThemeContext";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -35,7 +36,7 @@ import {
   getLessons,
   type StudyMaterial,
 } from "@/utils/storage";
-import Colors from "@/constants/colors";
+import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 
@@ -74,12 +75,12 @@ const TYPE_META: Record<
   StudyMaterial["type"],
   { label: string; color: string; bg: string; Icon: any }
 > = {
-  text: { label: "Teks", color: Colors.primary, bg: Colors.primaryLight, Icon: FileText },
-  html: { label: "HTML", color: Colors.purple, bg: Colors.purpleLight, Icon: Code2 },
-  file: { label: "File", color: Colors.amber, bg: Colors.amberLight, Icon: Paperclip },
+  text: { label: "Teks", color: colors.primary, bg: colors.primaryLight, Icon: FileText },
+  html: { label: "HTML", color: colors.purple, bg: colors.purpleLight, Icon: Code2 },
+  file: { label: "File", color: colors.amber, bg: colors.amberLight, Icon: Paperclip },
   youtube: { label: "YouTube", color: "#FF0000", bg: "#FFF0F0", Icon: Video },
   googledoc: { label: "Google Docs", color: "#1967D2", bg: "#E8F0FE", Icon: Globe },
-  image: { label: "Gambar", color: Colors.success, bg: Colors.successLight, Icon: FileImage },
+  image: { label: "Gambar", color: colors.success, bg: colors.successLight, Icon: FileImage },
 };
 
 function YoutubePlayer({ url }: { url: string }) {
@@ -94,7 +95,7 @@ function YoutubePlayer({ url }: { url: string }) {
         <Text style={{ flex: 1, fontWeight: "700", color: "#FF0000" }}>
           Buka di YouTube
         </Text>
-        <ExternalLink size={14} color={Colors.textMuted} />
+        <ExternalLink size={14} color={colors.textMuted} />
       </TouchableOpacity>
     );
 
@@ -138,6 +139,9 @@ function YoutubePlayer({ url }: { url: string }) {
 }
 
 export default function MaterialFullView() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const { matId, lessonId } = useLocalSearchParams<{
     matId: string;
     lessonId?: string;
@@ -227,7 +231,7 @@ export default function MaterialFullView() {
   if (!current) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ color: Colors.textMuted }}>Materi tidak ditemukan</Text>
+        <Text style={{ color: colors.textMuted }}>Materi tidak ditemukan</Text>
         <TouchableOpacity onPress={() => router.back()} style={[styles.editBtn, { marginTop: 12 }]}>
           <Text style={styles.editBtnText}>Kembali</Text>
         </TouchableOpacity>
@@ -250,7 +254,7 @@ export default function MaterialFullView() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={Colors.white} />
+          <X size={20} color={colors.white} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -261,7 +265,7 @@ export default function MaterialFullView() {
           </Text>
         </View>
         <TouchableOpacity onPress={goEdit} style={styles.editBtn}>
-          <PencilLine size={16} color={Colors.white} />
+          <PencilLine size={16} color={colors.white} />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -274,7 +278,7 @@ export default function MaterialFullView() {
           <Icon size={14} color={meta.color} />
           <Text style={[styles.metaText, { color: meta.color }]}>{meta.label}</Text>
           <View style={{ flex: 1 }} />
-          <Clock size={11} color={Colors.textMuted} />
+          <Clock size={11} color={colors.textMuted} />
           <Text style={styles.metaDate}>{formatDate(current.createdAt)}</Text>
         </View>
 
@@ -290,7 +294,7 @@ export default function MaterialFullView() {
               // @ts-ignore
               <iframe
                 srcDoc={current.content}
-                style={{ width: "100%", minHeight: 400, border: "1px solid " + Colors.border, borderRadius: 12 }}
+                style={{ width: "100%", minHeight: 400, border: "1px solid " + colors.border, borderRadius: 12 }}
               />
             ) : (
               <WebView
@@ -304,7 +308,7 @@ export default function MaterialFullView() {
 
         {current.type === "file" && (
           <View style={styles.fileBox}>
-            <Paperclip size={28} color={Colors.amber} />
+            <Paperclip size={28} color={colors.amber} />
             <View style={{ flex: 1 }}>
               <Text style={styles.fileName}>{current.fileName}</Text>
               {current.fileSize ? (
@@ -312,7 +316,7 @@ export default function MaterialFullView() {
               ) : null}
             </View>
             <TouchableOpacity style={styles.openFileBtn} onPress={() => openFile(current)}>
-              <ExternalLink size={14} color={Colors.white} />
+              <ExternalLink size={14} color={colors.white} />
               <Text style={styles.openFileBtnText}>Buka</Text>
             </TouchableOpacity>
           </View>
@@ -363,8 +367,8 @@ export default function MaterialFullView() {
           disabled={!hasPrev}
           activeOpacity={0.8}
         >
-          <ChevronLeft size={18} color={hasPrev ? Colors.dark : Colors.textMuted} />
-          <Text style={[styles.navBtnText, !hasPrev && { color: Colors.textMuted }]}>Sebelumnya</Text>
+          <ChevronLeft size={18} color={hasPrev ? colors.dark : colors.textMuted} />
+          <Text style={[styles.navBtnText, !hasPrev && { color: colors.textMuted }]}>Sebelumnya</Text>
         </TouchableOpacity>
         <View style={styles.navCounter}>
           <Text style={styles.navCounterText}>
@@ -377,8 +381,8 @@ export default function MaterialFullView() {
           disabled={!hasNext}
           activeOpacity={0.8}
         >
-          <Text style={[styles.navBtnText, !hasNext && { color: Colors.textMuted }]}>Selanjutnya</Text>
-          <ChevronRight size={18} color={hasNext ? Colors.dark : Colors.textMuted} />
+          <Text style={[styles.navBtnText, !hasNext && { color: colors.textMuted }]}>Selanjutnya</Text>
+          <ChevronRight size={18} color={hasNext ? colors.dark : colors.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -390,7 +394,7 @@ export default function MaterialFullView() {
           onPress={() => setZoomImage(null)}
         >
           <TouchableOpacity onPress={() => setZoomImage(null)} style={styles.zoomCloseBtn}>
-            <X size={22} color={Colors.white} />
+            <X size={22} color={colors.white} />
           </TouchableOpacity>
           {zoomImage ? (
             <Image source={{ uri: zoomImage }} style={styles.zoomImage} resizeMode="contain" />
@@ -401,8 +405,8 @@ export default function MaterialFullView() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (c: ColorScheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -419,33 +423,33 @@ const styles = StyleSheet.create({
     fontSize: 11, color: "rgba(255,255,255,0.7)",
     fontWeight: "700", textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 18, fontWeight: "900", color: Colors.white },
+  headerTitle: { fontSize: 18, fontWeight: "900", color: c.white },
   editBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 8,
   },
-  editBtnText: { fontSize: 12, fontWeight: "800", color: Colors.white },
+  editBtnText: { fontSize: 12, fontWeight: "800", color: c.white },
   body: { padding: 16, gap: 14 },
   metaRow: {
     flexDirection: "row", alignItems: "center", gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
   },
   metaText: { fontSize: 12, fontWeight: "800" },
-  metaDate: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
-  bodyText: { fontSize: 16, color: Colors.dark, lineHeight: 26, fontWeight: "500" },
+  metaDate: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+  bodyText: { fontSize: 16, color: c.dark, lineHeight: 26, fontWeight: "500" },
   fileBox: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: Colors.amberLight, borderRadius: 14, padding: 16,
+    backgroundColor: c.amberLight, borderRadius: 14, padding: 16,
   },
-  fileName: { fontSize: 14, fontWeight: "800", color: Colors.dark },
-  fileSize: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  fileName: { fontSize: 14, fontWeight: "800", color: c.dark },
+  fileSize: { fontSize: 12, color: c.textMuted, marginTop: 2 },
   openFileBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.amber, borderRadius: 10,
+    backgroundColor: c.amber, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 10,
   },
-  openFileBtnText: { fontSize: 12, fontWeight: "800", color: Colors.white },
+  openFileBtnText: { fontSize: 12, fontWeight: "800", color: c.white },
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: "#FFF0F0", borderRadius: 12, padding: 14,
@@ -453,27 +457,27 @@ const styles = StyleSheet.create({
   heroImage: { width: "100%", aspectRatio: 4 / 3, borderRadius: 14, backgroundColor: "#f0f0f0" },
   attachSection: { gap: 10, marginTop: 8 },
   attachLabel: {
-    fontSize: 11, fontWeight: "800", color: Colors.textSecondary,
+    fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 0.8,
   },
   attachImage: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: "#f0f0f0" },
   navBar: {
     flexDirection: "row", alignItems: "center", gap: 10,
     paddingHorizontal: 12, paddingTop: 10,
-    backgroundColor: Colors.white, borderTopWidth: 1, borderTopColor: Colors.border,
+    backgroundColor: c.white, borderTopWidth: 1, borderTopColor: c.border,
   },
   navBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 4, backgroundColor: Colors.background, borderWidth: 1.5, borderColor: Colors.border,
+    gap: 4, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border,
     borderRadius: 12, paddingVertical: 12,
   },
   navBtnDisabled: { opacity: 0.5 },
-  navBtnText: { fontSize: 13, fontWeight: "800", color: Colors.dark },
+  navBtnText: { fontSize: 13, fontWeight: "800", color: c.dark },
   navCounter: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  navCounterText: { fontSize: 12, fontWeight: "800", color: Colors.textSecondary },
+  navCounterText: { fontSize: 12, fontWeight: "800", color: c.textSecondary },
   zoomOverlay: {
     flex: 1, backgroundColor: "rgba(0,0,0,0.95)",
     alignItems: "center", justifyContent: "center",

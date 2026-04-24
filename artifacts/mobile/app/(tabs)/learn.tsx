@@ -451,6 +451,8 @@ export default function LearnPage() {
 }
 
 function StatPill({ icon, value, label }: { icon: React.ComponentProps<typeof Feather>["name"]; value: number; label: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.statPill}>
       <Feather name={icon} size={10} color="rgba(255,255,255,0.75)" />

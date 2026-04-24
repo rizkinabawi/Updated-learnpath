@@ -381,6 +381,8 @@ export default function CourseDetailPage() {
 }
 
 function MetaChip({ label, color, bg }: { label: string; color?: string; bg?: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={[styles.metaChip, bg ? { backgroundColor: bg } : undefined]}>
       <Text style={[styles.metaChipText, color ? { color } : undefined]}>{label}</Text>
@@ -395,6 +397,8 @@ function ActionPill({
   bg: string; border?: string; textColor?: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <TouchableOpacity
       onPress={onPress}

@@ -241,6 +241,8 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
 }
 
 function StatChip({ icon, val, label }: { icon: string; val: number; label: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   if (val === 0) return null;
   return (
     <View style={styles.chip}>
@@ -259,6 +261,8 @@ interface ImportPreviewProps {
 }
 
 export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, onCancel }: ImportPreviewProps) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   if (!visible || !pack) return null;
 
   const totalItems =
@@ -365,6 +369,8 @@ export function CourseImportPreviewModal({ visible, pack, importing, onConfirm, 
 }
 
 function PreviewStat({ label, val, color }: { label: string; val: number; color: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={[styles.previewStat, { backgroundColor: color + "15" }]}>
       <Text style={[styles.previewStatVal, { color }]}>{val}</Text>
@@ -374,6 +380,8 @@ function PreviewStat({ label, val, color }: { label: string; val: number; color:
 }
 
 function AssetBadge({ icon, label, color }: { icon: string; label: string; color: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={[styles.assetBadge, { backgroundColor: color + "18", borderColor: color + "40" }]}>
       <Feather name={icon as any} size={11} color={color} />

@@ -397,37 +397,145 @@ export const deleteQuizPack = async (packId: string) => {
 };
 
 // ─── Flashcards ────────────────────────────────────────────────
-export const getFlashcards = async (lessonId?: string): Promise<Flashcard[]> => {
+// In-memory cache to avoid repeated giant JSON.parse on every read.
+// Invalidated on every write below. Safe because AsyncStorage is local
+// and single-threaded — the cache always reflects the latest write.
+let _flashcardsCache: Flashcard[] | null = null;
+
+const _readAllFlashcards = async (): Promise<Flashcard[]> => {
+  if (_flashcardsCache) return _flashcardsCache;
   const cards = await getFromStorage<Flashcard>(STORAGE_KEYS.FLASHCARDS);
+  _flashcardsCache = cards;
+  return cards;
+};
+
+const _writeAllFlashcards = async (cards: Flashcard[]) => {
+  _flashcardsCache = cards;
+  await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards);
+};
+
+/** Drop the in-memory flashcards cache. Call after external mutations. */
+export const invalidateFlashcardsCache = () => {
+  _flashcardsCache = null;
+};
+
+export const getFlashcards = async (lessonId?: string): Promise<Flashcard[]> => {
+  const cards = await _readAllFlashcards();
   return lessonId ? cards.filter((c) => c.lessonId === lessonId) : cards;
 };
 
+/**
+ * Paginated flashcard fetch. Equivalent to `SELECT * FROM cards WHERE lessonId=?
+ * LIMIT ? OFFSET ?`. Use this in list views that need to lazy-load thousands
+ * of cards instead of materializing the whole array into React state.
+ */
+export const getFlashcardsPaginated = async (
+  lessonId: string | undefined,
+  offset: number,
+  limit: number,
+): Promise<Flashcard[]> => {
+  const cards = await _readAllFlashcards();
+  const filtered = lessonId ? cards.filter((c) => c.lessonId === lessonId) : cards;
+  return filtered.slice(offset, offset + limit);
+};
+
+/** Returns the number of flashcards in a lesson (or total when omitted). */
+export const getFlashcardCount = async (lessonId?: string): Promise<number> => {
+  const cards = await _readAllFlashcards();
+  return lessonId ? cards.reduce((n, c) => (c.lessonId === lessonId ? n + 1 : n), 0) : cards.length;
+};
+
+/**
+ * Single-pass grouping of every flashcard by lessonId. Replaces the N+1
+ * pattern where callers loop over lessons and call getFlashcards(lessonId)
+ * for each one (which re-deserialized the entire blob every time).
+ */
+export const getAllFlashcardsGroupedByLesson = async (): Promise<Map<string, number>> => {
+  const cards = await _readAllFlashcards();
+  const counts = new Map<string, number>();
+  for (const c of cards) {
+    counts.set(c.lessonId, (counts.get(c.lessonId) ?? 0) + 1);
+  }
+  return counts;
+};
+
 export const getFlashcardsByPack = async (packId: string): Promise<Flashcard[]> => {
-  const cards = await getFromStorage<Flashcard>(STORAGE_KEYS.FLASHCARDS);
+  const cards = await _readAllFlashcards();
   return cards.filter((c) => c.packId === packId);
 };
 
 export const saveFlashcard = async (card: Flashcard) => {
-  const cards = await getFlashcards();
+  const cards = await _readAllFlashcards();
   const index = cards.findIndex((c) => c.id === card.id);
-  if (index >= 0) cards[index] = card;
-  else cards.push(card);
-  await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards);
+  const updated = [...cards];
+  if (index >= 0) updated[index] = card;
+  else updated.push(card);
+  await _writeAllFlashcards(updated);
 };
 
+/**
+ * O(n + m) bulk merge: builds an index map once, then a single pass over the
+ * existing cards. The previous implementation called `findIndex` inside a
+ * loop — O(n*m) — which froze the JS thread when importing thousands of
+ * cards from Anki.
+ */
 export const saveFlashcardsBulk = async (newCards: Flashcard[]) => {
-  const cards = await getFlashcards();
-  const updated = [...cards];
+  if (newCards.length === 0) return;
+  const cards = await _readAllFlashcards();
+  const indexById = new Map<string, number>();
+  for (let i = 0; i < cards.length; i++) indexById.set(cards[i].id, i);
+
+  const updated = cards.slice();
   for (const card of newCards) {
-    const idx = updated.findIndex((c) => c.id === card.id);
-    if (idx >= 0) updated[idx] = card;
-    else updated.push(card);
+    const idx = indexById.get(card.id);
+    if (idx !== undefined) {
+      updated[idx] = card;
+    } else {
+      indexById.set(card.id, updated.length);
+      updated.push(card);
+    }
   }
-  await saveToStorage(STORAGE_KEYS.FLASHCARDS, updated);
+  await _writeAllFlashcards(updated);
+};
+
+/**
+ * Chunked variant of saveFlashcardsBulk that yields back to the event loop
+ * between chunks so the UI thread can process touches / draw frames during
+ * a giant import. Use this when inserting hundreds or thousands of cards.
+ */
+export const saveFlashcardsBulkChunked = async (
+  newCards: Flashcard[],
+  chunkSize = 500,
+  onProgress?: (done: number, total: number) => void,
+) => {
+  if (newCards.length === 0) return;
+  const cards = await _readAllFlashcards();
+  const indexById = new Map<string, number>();
+  for (let i = 0; i < cards.length; i++) indexById.set(cards[i].id, i);
+  const updated = cards.slice();
+
+  for (let i = 0; i < newCards.length; i += chunkSize) {
+    const end = Math.min(i + chunkSize, newCards.length);
+    for (let j = i; j < end; j++) {
+      const card = newCards[j];
+      const idx = indexById.get(card.id);
+      if (idx !== undefined) {
+        updated[idx] = card;
+      } else {
+        indexById.set(card.id, updated.length);
+        updated.push(card);
+      }
+    }
+    onProgress?.(end, newCards.length);
+    // Yield to the event loop so the JS thread isn't blocked the whole time.
+    if (end < newCards.length) await new Promise<void>((r) => setTimeout(r, 0));
+  }
+
+  await _writeAllFlashcards(updated);
 };
 
 export const deleteFlashcard = async (id: string) => {
-  const cards = await getFlashcards();
+  const cards = await _readAllFlashcards();
   const card = cards.find((c) => c.id === id);
   if (card) {
     await deleteFileIfLocal(card.image);
@@ -437,7 +545,7 @@ export const deleteFlashcard = async (id: string) => {
     if (card.audios) for (const u of card.audios) await deleteFileIfLocal(u);
     if (card.audiosBack) for (const u of card.audiosBack) await deleteFileIfLocal(u);
   }
-  await saveToStorage(STORAGE_KEYS.FLASHCARDS, cards.filter((c) => c.id !== id));
+  await _writeAllFlashcards(cards.filter((c) => c.id !== id));
 };
 
 // ─── Quizzes ───────────────────────────────────────────────────
@@ -510,6 +618,7 @@ export const updateStats = async (updates: Partial<Stats>) => {
 };
 
 export const clearAllData = async () => {
+  _flashcardsCache = null;
   await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
 };
 

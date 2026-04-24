@@ -9,6 +9,8 @@ import {
   Animated,
   Image,
   ScrollView,
+  FlatList,
+  type ListRenderItem,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -362,107 +364,7 @@ export default function FlashcardScreen() {
 
       {/* Tag */}
       {viewMode === "table" ? (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.tableScroll}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.tableCard}>
-            <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={[styles.tableHeaderCell, styles.colNum]}>#</Text>
-              <Text style={[styles.tableHeaderCell, styles.colQ]}>
-                Pertanyaan
-              </Text>
-              <Text style={[styles.tableHeaderCell, styles.colA]}>
-                Jawaban
-              </Text>
-            </View>
-            {cards.map((c, i) => (
-              <View
-                key={c.id}
-                style={[
-                  styles.tableRow,
-                  i % 2 === 1 && styles.tableRowAlt,
-                  i === cards.length - 1 && styles.tableRowLast,
-                ]}
-              >
-                <Text style={[styles.tableCell, styles.colNum, styles.cellNum]}>
-                  {i + 1}
-                </Text>
-                <View style={styles.colQ}>
-                  {(() => {
-                    const imgs = (c.images && c.images.length > 0)
-                      ? c.images
-                      : (c.image ? [c.image] : []);
-                    if (imgs.length === 0) return null;
-                    return (
-                      <View style={styles.tableThumbRow}>
-                        {imgs.slice(0, 3).map((u, idx) => (
-                          <Image
-                            key={`${u}-${idx}`}
-                            source={{ uri: u }}
-                            style={styles.tableThumb}
-                            resizeMode="contain"
-                          />
-                        ))}
-                      </View>
-                    );
-                  })()}
-                  <Text
-                    style={[
-                      styles.tableCellQ,
-                      (c.question?.length ?? 0) > 80 && styles.tableCellQLong,
-                    ]}
-                  >
-                    {c.question}
-                  </Text>
-                  {(() => {
-                    const audCount = (c.audios?.length ?? 0) || (c.audio ? 1 : 0);
-                    if (audCount === 0) return null;
-                    return (
-                      <View style={styles.tableMediaRow}>
-                        <Volume2 size={14} color={colors.primary} />
-                        <Text style={styles.tableMediaText}>
-                          {audCount > 1 ? `${audCount} audio` : "audio"}
-                        </Text>
-                      </View>
-                    );
-                  })()}
-                </View>
-                <View style={styles.colA}>
-                  {c.imagesBack && c.imagesBack.length > 0 ? (
-                    <View style={styles.tableThumbRow}>
-                      {c.imagesBack.slice(0, 2).map((u, idx) => (
-                        <Image
-                          key={`${u}-${idx}`}
-                          source={{ uri: u }}
-                          style={styles.tableThumb}
-                          resizeMode="contain"
-                        />
-                      ))}
-                    </View>
-                  ) : null}
-                  <Text style={styles.tableCellA}>{c.answer}</Text>
-                  {c.audiosBack && c.audiosBack.length > 0 ? (
-                    <View style={styles.tableMediaRow}>
-                      <Volume2 size={14} color={colors.primary} />
-                      <Text style={styles.tableMediaText}>
-                        {c.audiosBack.length > 1
-                          ? `${c.audiosBack.length} audio`
-                          : "audio"}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-            ))}
-            {cards.length === 0 && (
-              <View style={styles.tableEmpty}>
-                <Text style={styles.tableEmptyText}>Belum ada kartu.</Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
+        <FlashcardTableList cards={cards} colors={colors} styles={styles} />
       ) : (
         <FlashcardCardView
           card={card}
@@ -481,6 +383,127 @@ export default function FlashcardScreen() {
         />
       )}
     </View>
+  );
+}
+
+// ─── Virtualized table view ────────────────────────────────────────
+// Replaces the previous ScrollView + cards.map() pattern that materialized
+// every row at once and crashed on decks with thousands of cards. FlatList
+// only mounts the visible window, so memory stays flat regardless of size.
+interface FlashcardTableListProps {
+  cards: Flashcard[];
+  colors: ColorScheme;
+  styles: ReturnType<typeof makeStyles>;
+}
+
+function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) {
+  const renderItem = React.useCallback<ListRenderItem<Flashcard>>(
+    ({ item: c, index: i }) => {
+      const isAlt = i % 2 === 1;
+      const isLast = i === cards.length - 1;
+      const frontImgs =
+        c.images && c.images.length > 0 ? c.images : c.image ? [c.image] : [];
+      const audCount = (c.audios?.length ?? 0) || (c.audio ? 1 : 0);
+      const backAudCount = c.audiosBack?.length ?? 0;
+      return (
+        <View
+          style={[
+            styles.tableRow,
+            isAlt && styles.tableRowAlt,
+            isLast && styles.tableRowLast,
+          ]}
+        >
+          <Text style={[styles.tableCell, styles.colNum, styles.cellNum]}>
+            {i + 1}
+          </Text>
+          <View style={styles.colQ}>
+            {frontImgs.length > 0 && (
+              <View style={styles.tableThumbRow}>
+                {frontImgs.slice(0, 3).map((u, idx) => (
+                  <Image
+                    key={`${u}-${idx}`}
+                    source={{ uri: u }}
+                    style={styles.tableThumb}
+                    resizeMode="contain"
+                  />
+                ))}
+              </View>
+            )}
+            <Text
+              style={[
+                styles.tableCellQ,
+                (c.question?.length ?? 0) > 80 && styles.tableCellQLong,
+              ]}
+            >
+              {c.question}
+            </Text>
+            {audCount > 0 && (
+              <View style={styles.tableMediaRow}>
+                <Volume2 size={14} color={colors.primary} />
+                <Text style={styles.tableMediaText}>
+                  {audCount > 1 ? `${audCount} audio` : "audio"}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.colA}>
+            {c.imagesBack && c.imagesBack.length > 0 && (
+              <View style={styles.tableThumbRow}>
+                {c.imagesBack.slice(0, 2).map((u, idx) => (
+                  <Image
+                    key={`${u}-${idx}`}
+                    source={{ uri: u }}
+                    style={styles.tableThumb}
+                    resizeMode="contain"
+                  />
+                ))}
+              </View>
+            )}
+            <Text style={styles.tableCellA}>{c.answer}</Text>
+            {backAudCount > 0 && (
+              <View style={styles.tableMediaRow}>
+                <Volume2 size={14} color={colors.primary} />
+                <Text style={styles.tableMediaText}>
+                  {backAudCount > 1 ? `${backAudCount} audio` : "audio"}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    },
+    [cards.length, colors.primary, styles],
+  );
+
+  const keyExtractor = React.useCallback((c: Flashcard) => c.id, []);
+
+  return (
+    <FlatList
+      data={cards}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      contentContainerStyle={styles.tableScroll}
+      style={{ flex: 1 }}
+      showsVerticalScrollIndicator={false}
+      // Virtualization tuning — keep memory flat even with 10k+ cards.
+      initialNumToRender={15}
+      maxToRenderPerBatch={20}
+      windowSize={7}
+      updateCellsBatchingPeriod={50}
+      removeClippedSubviews
+      ListHeaderComponent={
+        <View style={[styles.tableRow, styles.tableHeaderRow]}>
+          <Text style={[styles.tableHeaderCell, styles.colNum]}>#</Text>
+          <Text style={[styles.tableHeaderCell, styles.colQ]}>Pertanyaan</Text>
+          <Text style={[styles.tableHeaderCell, styles.colA]}>Jawaban</Text>
+        </View>
+      }
+      ListEmptyComponent={
+        <View style={styles.tableEmpty}>
+          <Text style={styles.tableEmptyText}>Belum ada kartu.</Text>
+        </View>
+      }
+    />
   );
 }
 

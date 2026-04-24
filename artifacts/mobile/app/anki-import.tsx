@@ -28,7 +28,7 @@ import {
   getLearningPaths,
   getUser,
   saveFlashcard,
-  saveFlashcardsBulk,
+  saveFlashcardsBulkChunked,
   saveLearningPath,
   saveLesson,
   saveModule,
@@ -380,7 +380,10 @@ export default function AnkiImportScreen() {
         allCards.push(buildFlashcardFromAnki(c, deck.name, colId, now));
       }
     }
-    await saveFlashcardsBulk(allCards);
+    // Chunked write: yields back to the event loop between batches so the
+    // UI thread can keep drawing the loading spinner during a giant import
+    // (Anki decks with 10k+ cards used to freeze the app for 30+ seconds).
+    await saveFlashcardsBulkChunked(allCards, 500);
     return { name: col.name, target: "/(tabs)/practice" as const };
   };
 
@@ -436,7 +439,8 @@ export default function AnkiImportScreen() {
         allCards.push(buildFlashcardFromAnki(c, deck.name, lesson.id, now));
       }
     }
-    await saveFlashcardsBulk(allCards);
+    // Chunked write — see importAsCollection for rationale.
+    await saveFlashcardsBulkChunked(allCards, 500);
     return { name: mod.name, target: `/course/${pathId}` as const };
   };
 

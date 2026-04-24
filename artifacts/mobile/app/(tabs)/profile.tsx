@@ -270,12 +270,6 @@ export default function ProfileTab() {
       onPress: () => router.push("/theme-settings" as any),
     },
     {
-      icon: "code" as const, label: t.profile.about_dev,
-      sub: t.profile.about_dev_sub,
-      color: colors.purple,
-      onPress: () => router.push("/about-developer"),
-    },
-    {
       icon: "refresh-cw" as const, label: t.profile.reset_profile,
       sub: t.profile.reset_profile_sub,
       color: colors.amber,
@@ -593,6 +587,7 @@ export default function ProfileTab() {
         </View>
 
         <Text style={styles.footer}>Mobile Learning · v1.0</Text>
+        <Text style={styles.footerCredit}>Developed by rizkinabawi</Text>
       </View>
     </ScrollView>
 
@@ -716,7 +711,8 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   menuTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
   menuSub: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 2 },
   menuDivider: { height: 1, backgroundColor: c.borderLight, marginHorizontal: 16 },
-  footer: { textAlign: "center", fontSize: 11, color: c.textMuted, fontWeight: "600", paddingTop: 8, paddingBottom: 12 },
+  footer: { textAlign: "center", fontSize: 11, color: c.textMuted, fontWeight: "600", paddingTop: 8, paddingBottom: 2 },
+  footerCredit: { textAlign: "center", fontSize: 11, color: c.textMuted, fontWeight: "700", paddingBottom: 12, opacity: 0.8 },
   importingBanner: {
     flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: c.primaryLight, borderRadius: 14,

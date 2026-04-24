@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import {
   getLearningPaths, getModules, getLessons, getFlashcards,
+  getAllFlashcardsGroupedByLesson,
   getStandaloneCollections, saveStandaloneCollection,
   deleteStandaloneCollection, assignStandaloneCollection,
   type LearningPath, type Module, type Lesson, type StandaloneCollection,
@@ -246,29 +247,34 @@ export default function FlashcardBrowseAll() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [paths, cols] = await Promise.all([
+    // Single pass: load courses + collections + ALL flashcard counts in one
+    // shot. The previous version called `getFlashcards(lesson.id)` inside a
+    // nested loop, which re-deserialized the entire AsyncStorage blob for
+    // every lesson/collection — N+1 read amplification that crashed on
+    // accounts with thousands of cards spread across many lessons.
+    const [paths, cols, cardCounts] = await Promise.all([
       getLearningPaths(),
       getStandaloneCollections("flashcard"),
+      getAllFlashcardsGroupedByLesson(),
     ]);
 
-    // Build collection rows with count
-    const colRows: CollectionRow[] = await Promise.all(
-      cols.map(async (col) => {
-        const cards = await getFlashcards(col.id);
-        return { col, count: cards.length };
-      })
-    );
+    // Build collection rows from the precomputed count map (O(1) per row).
+    const colRows: CollectionRow[] = cols.map((col) => ({
+      col,
+      count: cardCounts.get(col.id) ?? 0,
+    }));
     setCollections(colRows.sort((a, b) => b.col.createdAt.localeCompare(a.col.createdAt)));
 
-    // Build course-linked rows
+    // Build course-linked rows. Modules / lessons are still loaded per path
+    // because they live in their own (small) AsyncStorage keys; the heavy
+    // flashcard read no longer happens here.
     const result: LessonRow[] = [];
     for (const path of paths) {
       const mods = (await getModules(path.id)).sort((a, b) => a.order - b.order);
       for (const mod of mods) {
         const lessonList = (await getLessons(mod.id)).sort((a, b) => a.order - b.order);
         for (const lesson of lessonList) {
-          const cards = await getFlashcards(lesson.id);
-          result.push({ path, module: mod, lesson, count: cards.length });
+          result.push({ path, module: mod, lesson, count: cardCounts.get(lesson.id) ?? 0 });
         }
       }
     }

@@ -1,0 +1,95 @@
+Berikut prompt yang bisa langsung kamu pakai untuk AI agent atau dev assistant supaya layout table bagian kiri (soal) jadi lebih fleksibel, responsif, dan tidak sempit di mobile:
+
+⸻
+
+PROMPT:
+
+Perbaiki UI tampilan mode belajar pada bagian table/list kartu. Fokus utama pada kolom kiri (soal/question).
+
+Tujuan:
+
+* Kolom kiri harus lebih dominan dan fleksibel
+* Ukuran menyesuaikan panjang konten (text, gambar, audio)
+* Tidak fix width seperti sekarang
+* Optimized untuk mobile (iPhone)
+
+Perubahan yang diinginkan:
+
+1. Layout utama:
+
+* Gunakan flex row
+* Kolom kiri (soal): flex 2–3
+* Kolom kanan (jawaban/info): flex 1
+* Hindari fixed width
+
+2. Auto height:
+
+* Set height container menjadi dynamic (auto)
+* Jangan pakai height fixed
+* Gunakan minHeight saja jika perlu
+
+3. Conditional rendering ukuran berdasarkan konten:
+
+Jika TEXT PENDEK:
+
+* Font bisa lebih besar (16–18px)
+* Padding normal
+
+Jika TEXT PANJANG:
+
+* Font sedikit lebih kecil (14–15px)
+* Line height diperbesar
+* Auto wrap, jangan truncate
+
+Jika ADA GAMBAR:
+
+* Gambar full width di kolom kiri
+* maxWidth: 100%
+* borderRadius + objectFit: contain
+* Tambahkan margin bawah
+
+Jika ADA AUDIO:
+
+* Tampilkan audio player full width
+* Letakkan di atas atau bawah teks
+* Tambahkan spacing (gap)
+
+Jika CAMPURAN (text + image/audio):
+
+* Gunakan vertical stack (column)
+* Spacing konsisten (gap 8–12px)
+
+4. Responsiveness mobile:
+
+* Pastikan tidak overflow horizontal
+* Gunakan padding kecil (12–16px)
+* Text harus readable tanpa zoom
+
+5. UX improvement:
+
+* Kolom kiri lebih fokus (visual hierarchy)
+* Kolom kanan bisa collapse jika layar kecil
+* Tambahkan ellipsis hanya di kolom kanan, bukan kiri
+
+6. Optional enhancement:
+
+* Tambahkan expand/collapse untuk soal panjang
+* Tambahkan scroll internal jika konten sangat panjang
+
+Teknis (React Native / Expo):
+
+* Gunakan flexbox
+* Hindari absolute positioning
+* Gunakan conditional styling berdasarkan content type
+* Gunakan Dimensions atau useWindowDimensions untuk adaptasi layar
+
+Expected result:
+
+* Soal terlihat lebih besar dan nyaman dibaca
+* Tidak kepotong
+* Bisa handle text panjang, gambar, dan audio tanpa bug layout
+* Smooth di mobile tanpa crash atau overflow
+
+⸻
+
+Kalau mau, next step gue bisa bantu langsung jadiin kode React Native / Tailwind style biar tinggal paste ke project kamu.

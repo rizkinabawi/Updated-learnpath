@@ -360,18 +360,25 @@ export default function FlashcardScreen() {
                     <Image
                       source={{ uri: c.image }}
                       style={styles.tableThumb}
-                      resizeMode="cover"
+                      resizeMode="contain"
                     />
                   ) : null}
-                  <Text style={styles.tableCell}>{c.question}</Text>
+                  <Text
+                    style={[
+                      styles.tableCellQ,
+                      (c.question?.length ?? 0) > 80 && styles.tableCellQLong,
+                    ]}
+                  >
+                    {c.question}
+                  </Text>
                   {c.audio ? (
                     <View style={styles.tableMediaRow}>
-                      <Volume2 size={12} color={colors.primary} />
+                      <Volume2 size={14} color={colors.primary} />
                       <Text style={styles.tableMediaText}>audio</Text>
                     </View>
                   ) : null}
                 </View>
-                <Text style={[styles.tableCell, styles.colA]}>{c.answer}</Text>
+                <Text style={[styles.tableCellA, styles.colA]}>{c.answer}</Text>
               </View>
             ))}
             {cards.length === 0 && (
@@ -638,9 +645,9 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   tableRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 14,
     borderBottomWidth: 1,
     borderBottomColor: c.border ?? "#E6ECF8",
   },
@@ -659,30 +666,57 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     letterSpacing: 0.5,
   },
   tableCell: { fontSize: 13, color: c.text, lineHeight: 19 },
+  tableCellQ: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: c.text,
+    lineHeight: 24,
+    flexShrink: 1,
+    flexWrap: "wrap",
+  },
+  tableCellQLong: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  tableCellA: {
+    fontSize: 14,
+    color: c.textSecondary,
+    lineHeight: 21,
+    flexShrink: 1,
+    flexWrap: "wrap",
+  },
   cellNum: {
     fontWeight: "700",
     color: c.textMuted,
     fontVariant: ["tabular-nums"],
   },
-  colNum: { width: 28 },
-  colQ: { flex: 1.2, gap: 6 },
-  colA: { flex: 1 },
+  colNum: { width: 24 },
+  colQ: { flex: 2.5, gap: 8, minWidth: 0 },
+  colA: { flex: 1, minWidth: 0 },
   tableThumb: {
     width: "100%",
-    height: 80,
-    borderRadius: 8,
+    aspectRatio: 16 / 10,
+    borderRadius: 10,
     backgroundColor: "#0001",
+    marginBottom: 4,
   },
   tableMediaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: c.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginTop: 2,
   },
   tableMediaText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     color: c.primary,
     textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   tableEmpty: { padding: 24, alignItems: "center" },
   tableEmptyText: { color: c.textMuted, fontSize: 13 },

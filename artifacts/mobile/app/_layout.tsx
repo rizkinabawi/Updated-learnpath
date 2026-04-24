@@ -331,7 +331,13 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
+      <ErrorBoundary
+        onError={(error, stackTrace) => {
+          if (__DEV__) {
+            console.error("[App ErrorBoundary]", error?.message ?? error, "\n", stackTrace);
+          }
+        }}
+      >
         <ThemeProvider>
         <LanguageProvider>
           <QueryClientProvider client={queryClient}>

@@ -36,3 +36,33 @@ id = "BWt9nrSwfhhVGWHx-jBzw"
 uri = "file://activation_keys/activation_keys.json"
 type = "unspecified"
 title = "All Keys (combined)"
+
+[[outputs]]
+id = "Rls5Cdss7O509WJIqNUXq"
+uri = "file://activation_keys/activation-key-1.json"
+type = "unspecified"
+title = "Activation Key 1"
+
+[[outputs]]
+id = "xQA6K9I-7nqctqop0ZlaS"
+uri = "file://activation_keys/activation-key-2.json"
+type = "unspecified"
+title = "Activation Key 2"
+
+[[outputs]]
+id = "veqQd9BPH6B2TY9HRUxky"
+uri = "file://activation_keys/activation-key-3.json"
+type = "unspecified"
+title = "Activation Key 3"
+
+[[outputs]]
+id = "5PZq2EOUxE0UtUNTIpmMq"
+uri = "file://activation_keys/activation-key-4.json"
+type = "unspecified"
+title = "Activation Key 4"
+
+[[outputs]]
+id = "M7WXWUtC73TTm2OWLtwky"
+uri = "file://activation_keys/activation-key-5.json"
+type = "unspecified"
+title = "Activation Key 5"

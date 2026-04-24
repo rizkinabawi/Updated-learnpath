@@ -21,7 +21,7 @@
  * the app master.
  */
 export const APP_MASTER_PUBLIC_KEY_HEX =
-  "efdf8bd89c2e9c97ae3d7ee6bf3b8f7ef2345b077f8391f14e68212a7c78586d";
+  "37723ae657357fec92b0343ee7fc4fd912ba06f3aa258e5ce50b72174d12549b";
 
 /** App identity that signed activation keys must match (Section 1). */
 export const APP_ID = "learningpath";

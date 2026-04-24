@@ -61,6 +61,9 @@ export default function FlashcardScreen() {
   const [flipAnim] = useState(new Animated.Value(0));
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
+  const card = cards[currentIndex];
+  const audioPlayer = useAudioPlayer(card?.audio ?? null);
+
   useEffect(() => {
     (async () => {
       const rawData = await getFlashcards(lessonId);
@@ -246,9 +249,7 @@ export default function FlashcardScreen() {
     );
   }
 
-  const card = cards[currentIndex];
   const progress = (currentIndex / cards.length) * 100;
-  const audioPlayer = useAudioPlayer(card?.audio ?? null);
   const playAudio = () => {
     if (!card?.audio) return;
     try {
@@ -417,6 +418,9 @@ function FlashcardCardView({
   playAudio,
   t,
 }: FlashcardCardViewProps) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  if (!card) return null;
   return (
     <>
       {card.tag ? <Text style={styles.cardTag}>{card.tag}</Text> : null}

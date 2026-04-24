@@ -1,0 +1,215 @@
+Improve and fix flashcard learning app with focus on Anki import, media handling, UI/UX, and player features.
+
+====================
+1. ANKI (.apkg) IMPORT SYSTEM
+====================
+
+- Treat .apkg as zip file
+- Extract:
+  - collection.anki2 (SQLite)
+  - media (JSON mapping)
+  - media files (indexed filenames like 0,1,2,...)
+
+- Parse media JSON and build mapping:
+  filename -> actual file index
+
+- While parsing card HTML:
+  - Replace all src references (img/audio) using media mapping
+  - Ensure correct linking to actual files
+
+- Copy all media into local storage:
+  /app_data/decks/{deckId}/media/
+
+- Support:
+  - images (png, jpg, jpeg, webp)
+  - audio (mp3, wav, ogg, m4a)
+
+- Normalize HTML:
+  - handle <img>, <audio>, <br>, <div>
+  - clean inline styles
+
+====================
+2. LOCAL STORAGE STRUCTURE
+====================
+
+Use consistent structure:
+
+/app_data/
+  /decks/
+    /{deckId}/
+      data.json
+      /media/
+        all media files
+
+====================
+3. AUDIO PLAYER (LOCAL FILE SUPPORT)
+====================
+
+- Ensure all audio uses local URI
+- Fix playback using local file system path
+
+- Implement reusable audio player:
+  - play / pause
+  - loading indicator
+  - duration display
+  - progress bar (seekable)
+
+- Support multiple audio formats
+
+- Prevent multiple audio overlapping:
+  - stop previous audio before playing new one
+
+====================
+4. BUNDLE EXPORT & IMPORT SYSTEM
+====================
+
+- Bundle format must include:
+
+{
+  "deck": {...},
+  "cards": [...],
+  "media": [
+    {
+      "name": "file.png",
+      "path": "media/file.png",
+      "type": "image"
+    }
+  ]
+}
+
+- Export as ZIP:
+  bundle.zip
+    bundle.json
+    /media/
+
+- On import:
+  - restore media correctly
+  - rebuild paths
+
+- Add option:
+  - "Save to device storage"
+  - no forced sharing
+
+====================
+5. IMPORT PROGRESS UI
+====================
+
+- Show real-time progress screen:
+  Steps:
+  - Extracting file
+  - Reading database
+  - Processing cards
+  - Copying media (x/y)
+  - Finalizing
+
+- Include:
+  - progress bar (percentage)
+  - status text
+
+====================
+6. FLASHCARD TABLE VIEW FIX
+====================
+
+- Layout:
+  - front card: 40%
+  - back card: 60%
+
+- Use flex row layout (no fixed width)
+
+- Front content rules:
+
+  Detect:
+  - has image
+  - text length
+
+  Rendering:
+  - If image:
+    - render full width (contain)
+  - If short text (<20 chars):
+    - center align
+    - larger font
+    - fill space visually
+  - If long text:
+    - normal font
+    - left align
+
+- Ensure front area never looks empty:
+  - alignItems center
+  - justifyContent center
+
+- Maintain padding consistency
+
+- Dynamic height based on content
+
+- Proper HTML rendering support
+
+====================
+7. GLOBAL POMODORO TIMER
+====================
+
+- Move timer to global state (Zustand/Redux)
+
+- Features:
+  - start / pause / reset
+  - configurable duration
+  - alarm notification
+
+- Floating widget:
+  - visible on all screens
+  - draggable
+  - always on top
+
+====================
+8. FLOATING YOUTUBE PLAYER
+====================
+
+- Add mini floating player
+- Draggable overlay
+- Play YouTube while browsing content
+- Toggle minimize / expand
+
+====================
+9. PERFORMANCE OPTIMIZATION
+====================
+
+- Use FlatList with virtualization
+- Optimize large deck rendering
+- Lazy load images and audio
+
+====================
+10. DECK EDITOR
+====================
+
+- Allow editing cards after import
+- Edit:
+  - text
+  - image
+  - audio
+
+- Save changes to local storage
+
+- Allow re-export:
+  - internal bundle format (ZIP)
+
+====================
+11. OPTIONAL (.apkg EXPORT)
+====================
+
+- Provide export alternative:
+  - CSV (Anki compatible)
+
+- Advanced:
+  - support .apkg export using external library (Node/Python)
+
+====================
+12. UX IMPROVEMENTS
+====================
+
+- No silent processes
+- Always show feedback for:
+  - import
+  - export
+  - loading
+
+- Clean mobile-first UI
+- Avoid layout breaking on small screens

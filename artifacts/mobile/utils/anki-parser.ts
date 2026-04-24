@@ -37,6 +37,33 @@ export interface AnkiParseResult {
 export interface ParseOptions {
   /** When provided, media files are extracted to <mediaDir>/<importId>/ and referenced from cards. */
   importId?: string;
+  /** Number of times to retry transient failures (default 2). */
+  maxRetries?: number;
+}
+
+/** Error class with a user-friendly Indonesian message and a `retryable` flag. */
+export class AnkiImportError extends Error {
+  retryable: boolean;
+  code:
+    | "READ_FAILED"
+    | "NOT_ZIP"
+    | "ZIP_CORRUPT"
+    | "NO_DB"
+    | "DB_UNSUPPORTED"
+    | "DB_CORRUPT"
+    | "ENGINE_FAILED"
+    | "EMPTY"
+    | "UNKNOWN";
+  constructor(
+    code: AnkiImportError["code"],
+    message: string,
+    retryable = false,
+  ) {
+    super(message);
+    this.name = "AnkiImportError";
+    this.code = code;
+    this.retryable = retryable;
+  }
 }
 
 export interface ParseProgress {
@@ -222,15 +249,61 @@ export async function parseAnkiPackage(
   onProgress?: ProgressCb,
   options?: ParseOptions,
 ): Promise<AnkiParseResult> {
+  const maxRetries = Math.max(0, options?.maxRetries ?? 2);
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await parseAnkiPackageOnce(fileUri, onProgress, options);
+    } catch (e) {
+      lastErr = e;
+      // Only retry transient/unknown errors. User-facing AnkiImportError
+      // with retryable=false (corrupted file, unsupported format) bails out.
+      const isAnki = e instanceof AnkiImportError;
+      if (isAnki && !(e as AnkiImportError).retryable) throw e;
+      if (attempt === maxRetries) throw e;
+      // Small backoff: 200ms, 500ms
+      await new Promise((r) => setTimeout(r, 200 + attempt * 300));
+    }
+  }
+  throw lastErr ?? new AnkiImportError("UNKNOWN", "Gagal mengimpor file.");
+}
+
+async function parseAnkiPackageOnce(
+  fileUri: string,
+  onProgress?: ProgressCb,
+  options?: ParseOptions,
+): Promise<AnkiParseResult> {
   onProgress?.({ stage: "reading", message: "Membaca file..." });
-  const raw = await readFileAsUint8Array(fileUri);
+  let raw: Uint8Array;
+  try {
+    raw = await readFileAsUint8Array(fileUri);
+  } catch (e) {
+    throw new AnkiImportError(
+      "READ_FAILED",
+      `Gagal membaca file: ${e instanceof Error ? e.message : String(e)}`,
+      true, // file-read can be transient (cache eviction, etc.)
+    );
+  }
 
   if (!isZipSignature(raw)) {
-    throw new Error("File bukan paket Anki yang valid (signature ZIP tidak ditemukan).");
+    throw new AnkiImportError(
+      "NOT_ZIP",
+      "File bukan paket Anki yang valid (signature ZIP tidak ditemukan). File mungkin rusak atau bukan .apkg/.colpkg.",
+      false,
+    );
   }
 
   onProgress?.({ stage: "extracting", message: "Mengekstrak paket..." });
-  const zip = await JSZip.loadAsync(raw);
+  let zip: JSZip;
+  try {
+    zip = await JSZip.loadAsync(raw);
+  } catch (e) {
+    throw new AnkiImportError(
+      "ZIP_CORRUPT",
+      `Paket ZIP tampak rusak: ${e instanceof Error ? e.message : String(e)}`,
+      false,
+    );
+  }
 
   // Find the SQLite collection — Anki uses collection.anki21 (newer) or collection.anki2 (older)
   const candidates = [
@@ -251,13 +324,17 @@ export async function parseAnkiPackage(
     }
   }
   if (!sqliteBytes) {
-    throw new Error(
-      "Tidak menemukan database Anki yang valid (collection.anki2/anki21).",
+    throw new AnkiImportError(
+      "NO_DB",
+      "Tidak menemukan database Anki yang valid (collection.anki2/anki21). File mungkin rusak atau bukan paket Anki.",
+      false,
     );
   }
   if (!isSqliteSignature(sqliteBytes)) {
-    throw new Error(
-      `Database "${usedName}" bukan format SQLite yang didukung (mungkin dikompres zstd).`,
+    throw new AnkiImportError(
+      "DB_UNSUPPORTED",
+      `Database "${usedName}" bukan format SQLite yang didukung (mungkin dikompres zstd). Coba ekspor ulang dari Anki dengan opsi "Support older Anki versions".`,
+      false,
     );
   }
 
@@ -310,21 +387,50 @@ export async function parseAnkiPackage(
     const entry = zip.file(key);
     if (!entry) return null;
     try {
-      const bytes = await entry.async("uint8array");
       const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
       const targetUri = `${mediaDirUri}${safeName}`;
+      // Cache hit on disk — skip re-extraction (offline-first re-imports stay fast)
+      try {
+        const info = await fsCompat.getInfoAsync(targetUri);
+        if (info?.exists && (info as any).size && (info as any).size > 0) {
+          extractedCache.set(filename, targetUri);
+          return targetUri;
+        }
+      } catch {
+        // fall through to re-extract
+      }
+      const bytes = await entry.async("uint8array");
       // Native: write directly as bytes (Uint8Array) — MUCH more memory efficient than base64
       await fsCompat.writeAsBytesAsync(targetUri, bytes);
       extractedCache.set(filename, targetUri);
       return targetUri;
     } catch {
+      // Per-file failure should never abort the whole import
       return null;
     }
   }
 
   onProgress?.({ stage: "parsing-sqlite", message: "Memproses database..." });
-  const SQL = await loadSqlEngine(onProgress);
-  const db = new SQL.Database(sqliteBytes);
+  let SQL: any;
+  try {
+    SQL = await loadSqlEngine(onProgress);
+  } catch (e) {
+    throw new AnkiImportError(
+      "ENGINE_FAILED",
+      `Gagal memuat mesin SQLite: ${e instanceof Error ? e.message : String(e)}`,
+      true,
+    );
+  }
+  let db: any;
+  try {
+    db = new SQL.Database(sqliteBytes);
+  } catch (e) {
+    throw new AnkiImportError(
+      "DB_CORRUPT",
+      `Database Anki tidak bisa dibuka (kemungkinan rusak): ${e instanceof Error ? e.message : String(e)}`,
+      false,
+    );
+  }
 
   try {
     // Decks: stored as JSON in col.decks

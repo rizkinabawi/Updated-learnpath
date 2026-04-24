@@ -35,7 +35,7 @@ import {
   saveStandaloneCollection,
 } from "@/utils/storage";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
-import { parseAnkiPackage, ParseProgress } from "@/utils/anki-parser";
+import { parseAnkiPackage, ParseProgress, AnkiImportError } from "@/utils/anki-parser";
 
 interface ParsedDeck {
   name: string;
@@ -46,6 +46,8 @@ interface PickedFile {
   name: string;
   size?: number;
   kind: "apkg" | "text";
+  /** Cached URI used to re-run the parser on retry. */
+  uri?: string;
 }
 
 const generateId = () =>
@@ -233,35 +235,9 @@ export default function AnkiImportScreen() {
           });
         }
       } else if (name.endsWith(".apkg") || name.endsWith(".colpkg")) {
-        // 100% client-side parser — no backend, no upload limit
-        const importId = `imp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const data = await parseAnkiPackage(asset.uri, (p) => setProgress(p), { importId });
-        setProgress(null);
-        if (!data.decks || data.decks.length === 0) {
-          setStatus({ type: "err", msg: "Tidak ada kartu ditemukan dalam .apkg." });
-        } else {
-          setDecks(data.decks);
-          const isHier = looksHierarchical(data.decks);
-          setCollectionName(
-            data.decks.length === 1
-              ? data.decks[0]!.name
-              : `Anki Import (${data.totalCards} cards)`,
-          );
-          // Auto-pick a sensible Module name + default to Module mode when hierarchical
-          const prefix = commonDeckPrefix(data.decks.map((d) => d.name));
-          setModuleName(
-            prefix ||
-              (data.decks.length === 1
-                ? data.decks[0]!.name
-                : `Anki Import (${data.decks.length} pelajaran)`),
-          );
-          setNewPathName(prefix || "Anki Import");
-          setMode(isHier ? "module" : "collection");
-          setStatus({
-            type: "ok",
-            msg: `Berhasil parsing ${data.totalCards} kartu dari ${data.decks.length} deck (lokal, tanpa server).`,
-          });
-        }
+        setPickedFile((prev) => (prev ? { ...prev, uri: asset.uri } : prev));
+        await runApkgParse(asset.uri);
+        return;
       } else {
         setPickedFile(null);
         setStatus({
@@ -274,6 +250,65 @@ export default function AnkiImportScreen() {
       setStatus({ type: "err", msg: `Gagal: ${msg}` });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const runApkgParse = async (uri: string) => {
+    try {
+      setBusy(true);
+      setStatus(null);
+      // 100% client-side parser — no backend, no upload limit
+      const importId = `imp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const data = await parseAnkiPackage(uri, (p) => setProgress(p), {
+        importId,
+        maxRetries: 2,
+      });
+      setProgress(null);
+      if (!data.decks || data.decks.length === 0) {
+        setStatus({
+          type: "err",
+          msg: "Tidak ada kartu ditemukan dalam .apkg. Coba file lain atau ekspor ulang dari Anki.",
+        });
+        return;
+      }
+      setDecks(data.decks);
+      const isHier = looksHierarchical(data.decks);
+      setCollectionName(
+        data.decks.length === 1
+          ? data.decks[0]!.name
+          : `Anki Import (${data.totalCards} cards)`,
+      );
+      const prefix = commonDeckPrefix(data.decks.map((d) => d.name));
+      setModuleName(
+        prefix ||
+          (data.decks.length === 1
+            ? data.decks[0]!.name
+            : `Anki Import (${data.decks.length} pelajaran)`),
+      );
+      setNewPathName(prefix || "Anki Import");
+      setMode(isHier ? "module" : "collection");
+      setStatus({
+        type: "ok",
+        msg: `Berhasil parsing ${data.totalCards} kartu dari ${data.decks.length} deck (lokal, tanpa server).`,
+      });
+    } catch (e) {
+      setProgress(null);
+      const isAnki = e instanceof AnkiImportError;
+      const msg = e instanceof Error ? e.message : String(e);
+      setStatus({
+        type: "err",
+        msg: isAnki ? msg : `Gagal: ${msg}`,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const retryApkgParse = () => {
+    if (pickedFile?.kind === "apkg" && pickedFile.uri) {
+      runApkgParse(pickedFile.uri);
+    } else {
+      pickFile();
     }
   };
 
@@ -536,6 +571,16 @@ export default function AnkiImportScreen() {
               <View style={[styles.statusBox, { backgroundColor: statusBg }]}>
                 <Feather name={statusIcon as any} size={16} color={statusColor} />
                 <Text style={[styles.statusText, { color: statusColor }]}>{status.msg}</Text>
+                {status.type === "err" && pickedFile?.kind === "apkg" && !busy && (
+                  <TouchableOpacity
+                    onPress={retryApkgParse}
+                    style={[styles.retryBtn, { borderColor: statusColor }]}
+                    hitSlop={6}
+                  >
+                    <Feather name="refresh-cw" size={13} color={statusColor} />
+                    <Text style={[styles.retryBtnText, { color: statusColor }]}>Coba lagi</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </View>
@@ -1052,6 +1097,17 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderRadius: 12,
   },
   statusText: { fontSize: 13, flex: 1, lineHeight: 18, fontWeight: "500" },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: "transparent",
+  },
+  retryBtnText: { fontSize: 12, fontWeight: "700" },
 
   statsRow: { flexDirection: "row", gap: 8 },
   statPill: {

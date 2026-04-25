@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearningPath | Activation Key Manager</title>
     <meta name="description" content="Professional Activation Key Manager for LearningPath App - Offline Secure System." />
-    <!-- Vercel analytics / meta tags -->
-    <meta property="og:title" content="LearningPath Activation Manager" />
-    <meta property="og:description" content="100% Client-side cryptography for app activation and buyer tokens." />
-    <!-- CDN fallback for icons to prevent import crashes -->
+    <!-- Lucide CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Critical CSS for layout and nav */
+        #app { display: flex; height: 100vh; }
+        .sidebar { width: 260px; transition: width 0.3s; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        @media (max-width: 900px) { .sidebar { width: 70px; } }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -23,24 +28,24 @@
                 </div>
             </div>
             
-            <nav class="nav-links ">
-                <button class="nav-item active" data-tab="dashboard" id="nav-dashboard">
+            <nav class="nav-links">
+                <button class="nav-item active" data-tab="dashboard">
                     <i data-lucide="layout-dashboard"></i>
                     <span>Dashboard</span>
                 </button>
-                <button class="nav-item" data-tab="keypair" id="nav-keypair">
+                <button class="nav-item" data-tab="keypair">
                     <i data-lucide="key"></i>
                     <span>Keypair</span>
                 </button>
-                <button class="nav-item" data-tab="sign" id="nav-sign">
+                <button class="nav-item" data-tab="sign">
                     <i data-lucide="pen-tool"></i>
                     <span>Sign Key</span>
                 </button>
-                <button class="nav-item" data-tab="token" id="nav-token">
+                <button class="nav-item" data-tab="token">
                     <i data-lucide="ticket"></i>
                     <span>Buyer Token</span>
                 </button>
-                <button class="nav-item" data-tab="verify" id="nav-verify">
+                <button class="nav-item" data-tab="verify">
                     <i data-lucide="shield-check"></i>
                     <span>Verify</span>
                 </button>
@@ -111,7 +116,6 @@
                                     <input type="file" id="file-key-upload" class="hidden" accept=".hex,.txt" />
                                 </label>
                             </div>
-                            
                             <div class="keypair-preview hidden" id="keygen-result">
                                 <div class="key-field">
                                     <label>Private Key (SECRET)</label>
@@ -255,9 +259,51 @@
         </main>
     </div>
 
-    <!-- Toast Component -->
     <div id="toast-root"></div>
 
+    <!-- INLINE BOOTSTRAP SCRIPT: NAVIGATION AND ICONS (ZERO DEPENDENCY) -->
+    <script>
+        console.log('BOOTSTRAP: RUNNING');
+        
+        // 1. Navigation Logic
+        const navItems = document.querySelectorAll('.nav-item');
+        const panels = document.querySelectorAll('.tab-panel');
+        
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const tab = item.getAttribute('data-tab');
+                console.log('BOOTSTRAP: Switch to', tab);
+                navItems.forEach(i => i.classList.remove('active'));
+                panels.forEach(p => p.classList.remove('active'));
+                item.classList.add('active');
+                const panel = document.getElementById('tab-' + tab);
+                if (panel) panel.classList.add('active');
+            });
+        });
+
+        // 2. Lucide Icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+            console.log('BOOTSTRAP: Icons created');
+        }
+
+        // 3. Global Toast Helper
+        window.showToast = (msg, type = 'info') => {
+            const root = document.getElementById('toast-root');
+            if (!root) return alert(msg);
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            root.appendChild(t);
+            setTimeout(() => t.classList.add('show'), 10);
+            setTimeout(() => {
+                t.classList.remove('show');
+                setTimeout(() => t.remove(), 400);
+            }, 3000);
+        };
+    </script>
+    
+    <!-- MAIN MODULE (DEFERRED) -->
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

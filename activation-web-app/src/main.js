@@ -1,7 +1,6 @@
 console.log('MAIN.JS LOADED');
 
 import './style.css';
-import { createIcons, icons } from 'lucide';
 import * as ed from "@noble/ed25519";
 import { sha256, sha512 } from "@noble/hashes/sha2.js";
 import { randomBytes as nobleRandom } from "@noble/hashes/utils.js";
@@ -48,7 +47,9 @@ const utf8 = s => new TextEncoder().encode(s);
 // Initialize Lucide Icons
 const initIcons = () => {
     try {
-        createIcons({ icons });
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
     } catch (e) {
         console.warn('Lucide icons error:', e);
     }

@@ -65,6 +65,59 @@ function toText(v: unknown): string {
   try { return String(v); } catch { return ""; }
 }
 
+// ─── Error boundary ─────────────────────────────────────────────────
+// Last-resort safety net so any unexpected JS exception thrown during the
+// flashcard render shows a recoverable fallback instead of red-boxing /
+// reloading the entire app. The user can dismiss the card and go back.
+interface CardErrorBoundaryProps {
+  children: React.ReactNode;
+  onReset?: () => void;
+  styles: ReturnType<typeof makeStyles>;
+  colors: ColorScheme;
+}
+interface CardErrorBoundaryState {
+  error: Error | null;
+}
+class CardErrorBoundary extends React.Component<
+  CardErrorBoundaryProps,
+  CardErrorBoundaryState
+> {
+  state: CardErrorBoundaryState = { error: null };
+  static getDerivedStateFromError(error: Error): CardErrorBoundaryState {
+    return { error };
+  }
+  componentDidCatch(error: Error, info: { componentStack?: string | null }) {
+    if (typeof console !== "undefined") {
+      console.warn("[flashcard] render error", error, info?.componentStack);
+    }
+  }
+  reset = () => {
+    this.setState({ error: null });
+    this.props.onReset?.();
+  };
+  render() {
+    if (this.state.error) {
+      const { styles, colors } = this.props;
+      return (
+        <View style={styles.center}>
+          <Text style={styles.emptyTitle}>Kartu ini bermasalah</Text>
+          <Text
+            style={[styles.emptySub, { color: colors.danger }]}
+            numberOfLines={6}
+          >
+            {this.state.error.message || String(this.state.error)}
+          </Text>
+          <TouchableOpacity style={styles.addBtn} onPress={this.reset}>
+            <RotateCcw size={16} color={colors.white} />
+            <Text style={styles.addBtnText}>Coba lagi</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function FlashcardScreen() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -468,23 +521,38 @@ export default function FlashcardScreen() {
 
       {/* Tag */}
       {viewMode === "table" ? (
-        <FlashcardTableList cards={cards} colors={colors} styles={styles} />
+        <CardErrorBoundary styles={styles} colors={colors}>
+          <FlashcardTableList cards={cards} colors={colors} styles={styles} />
+        </CardErrorBoundary>
       ) : (
-        <FlashcardCardView
-          card={card}
-          flipped={flipped}
-          frontInterpolate={frontInterpolate}
-          backInterpolate={backInterpolate}
-          handleFlip={handleFlip}
-          handleAnswer={handleAnswer}
-          playAudio={playPrimaryAudio}
-          playAudioUri={playAudioUri}
-          frontImages={frontImagesAll}
-          backImages={backImagesAll}
-          frontAudios={frontAudiosAll}
-          backAudios={backAudiosAll}
-          t={t}
-        />
+        <CardErrorBoundary
+          styles={styles}
+          colors={colors}
+          onReset={() => {
+            // Skip the offending card on retry so the user can keep going.
+            if (currentIndex < cards.length - 1) {
+              setFlipped(false);
+              flipAnim.setValue(0);
+              setCurrentIndex((i) => i + 1);
+            }
+          }}
+        >
+          <FlashcardCardView
+            card={card}
+            flipped={flipped}
+            frontInterpolate={frontInterpolate}
+            backInterpolate={backInterpolate}
+            handleFlip={handleFlip}
+            handleAnswer={handleAnswer}
+            playAudio={playPrimaryAudio}
+            playAudioUri={playAudioUri}
+            frontImages={frontImagesAll}
+            backImages={backImagesAll}
+            frontAudios={frontAudiosAll}
+            backAudios={backAudiosAll}
+            t={t}
+          />
+        </CardErrorBoundary>
       )}
     </View>
   );

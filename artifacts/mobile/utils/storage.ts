@@ -713,7 +713,7 @@ export const saveFlashcardsBulk = async (newCards: Flashcard[]) => {
  *  can show the real failure message. */
 export const saveFlashcardsBulkChunked = async (
   newCards: Flashcard[],
-  chunkSize = 500,
+  chunkSize = 50,
   onProgress?: (done: number, total: number) => void,
 ) => {
   if (newCards.length === 0) return;

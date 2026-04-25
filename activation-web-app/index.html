@@ -97,11 +97,20 @@
                         <p>Generate App Master Ed25519 public/private keys.</p>
                     </div>
                     <div class="premium-card">
+                    <div class="premium-card">
                         <div class="card-body">
-                            <button class="btn btn-primary" id="btn-keygen">
-                                <i data-lucide="refresh-cw"></i>
-                                Generate New Keypair
-                            </button>
+                            <div class="flex-row gap-10">
+                                <button class="btn btn-primary" id="btn-keygen">
+                                    <i data-lucide="refresh-cw"></i>
+                                    New Keypair
+                                </button>
+                                <label class="btn btn-outline" for="file-key-upload">
+                                    <i data-lucide="upload"></i>
+                                    Load .hex
+                                    <input type="file" id="file-key-upload" class="hidden" accept=".hex,.txt" />
+                                </label>
+                            </div>
+                            
                             <div class="keypair-preview hidden" id="keygen-result">
                                 <div class="key-field">
                                     <label>Private Key (SECRET)</label>
@@ -120,6 +129,7 @@
                                 <p class="hint">Simpan private key di tempat aman. Public key digunakan di code app.</p>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </section>
 
@@ -149,6 +159,15 @@
                                 </select>
                             </div>
                             <div class="input-group">
+                                <label>Batch Count</label>
+                                <select id="sign-count">
+                                    <option value="1" selected>1 Key</option>
+                                    <option value="5">5 Keys</option>
+                                    <option value="10">10 Keys</option>
+                                    <option value="50">50 Keys</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
                                 <label>Device ID (Optional)</label>
                                 <input type="text" id="sign-device" placeholder="Unbound if empty" />
                             </div>
@@ -158,11 +177,11 @@
                             Issue Key
                         </button>
                         <div id="sign-result" class="mt-20 hidden">
-                            <div class="output-label">Produced Activation Key:</div>
-                            <div class="code-box">
-                                <code id="sign-output-json"></code>
-                                <button class="btn-icon" data-copy="sign-output-json"><i data-lucide="copy"></i></button>
+                            <div class="header-flex">
+                                <div class="output-label">Produced Keys:</div>
+                                <button class="btn btn-outline btn-sm" id="btn-copy-all-sign">Copy All</button>
                             </div>
+                            <div id="sign-keys-container" class="output-scroll-area"></div>
                         </div>
                     </div>
                 </section>

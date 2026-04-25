@@ -551,6 +551,16 @@ async function parseAnkiPackageOnce(
 
       if (!buckets.has(did)) buckets.set(did, []);
       buckets.get(did)!.push(card);
+
+      // Yield every 50 cards so the UI doesn't hang during heavy media extraction
+      if (buckets.get(did)!.length % 50 === 0) {
+        onProgress?.({
+          stage: "building-decks",
+          message: `Memproses kartu ${buckets.get(did)!.length}...`,
+          percent: Math.min(99, Math.round((buckets.get(did)!.length / (rows.length || 1)) * 100))
+        });
+        await new Promise(r => setTimeout(r, 0));
+      }
     }
 
     // ── Step 11: Assemble decks ────────────────────────────────────────────

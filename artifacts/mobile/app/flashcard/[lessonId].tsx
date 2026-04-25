@@ -659,49 +659,45 @@ function FlashcardTableList({ cards, colors, styles, onImagePress }: FlashcardTa
           <Text style={[styles.tableCell, styles.colNum, styles.cellNum]}>
             {i + 1}
           </Text>
-          <View style={[styles.colQ, frontImgs.length > 0 && { flexDirection: "row", alignItems: "center" }]}>
-            {frontImgs.length > 0 && (
-              <View style={styles.tableThumbCol}>
-                {frontImgs.slice(0, 1).map((u, idx) => (
+          <View style={[styles.colQ, (frontImgs.length > 0 || backImgs.length > 0) && { flexDirection: "column" }]}>
+            {(frontImgs.length > 0 || backImgs.length > 0) && (
+              <View style={styles.tableThumbRow}>
+                {/* Show front images first, then back images as context */}
+                {[...frontImgs, ...backImgs].slice(0, 3).map((u, idx) => (
                   <TouchableOpacity key={`${u}-${idx}`} onPress={() => onImagePress(u)} activeOpacity={0.8}>
                     <Image source={{ uri: u }} style={styles.tableThumb} resizeMode="cover" />
                   </TouchableOpacity>
                 ))}
               </View>
             )}
-            <View style={{ flex: 1, justifyContent: "center" }}>
-              <Text style={[styles.tableCellQ, { fontSize: qFontSizeTable, lineHeight: qFontSizeTable * 1.25 }]}>
+            <ScrollView 
+              style={{ maxHeight: 120 }} 
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text style={[styles.tableCellQ, { fontSize: qFontSizeTable, lineHeight: Math.round(qFontSizeTable * 1.25) }]}>
                 {qText}
               </Text>
-              {audCount > 0 && (
+              {(audCount > 0 || backAudCount > 0) && (
                 <View style={[styles.tableMediaRow, { marginTop: 4 }]}>
                   <Volume2 size={12} color={colors.primary} />
-                  <Text style={styles.tableMediaText}>{audCount > 1 ? `${audCount} audio` : "audio"}</Text>
+                  <Text style={styles.tableMediaText}>
+                    {(audCount + backAudCount) > 1 ? `${audCount + backAudCount} audio` : "audio"}
+                  </Text>
                 </View>
               )}
-            </View>
+            </ScrollView>
           </View>
-          <View style={[styles.colA, backImgs.length > 0 && { flexDirection: "row", alignItems: "center" }]}>
-            {backImgs.length > 0 && (
-              <View style={styles.tableThumbCol}>
-                {backImgs.slice(0, 1).map((u, idx) => (
-                  <TouchableOpacity key={`${u}-${idx}`} onPress={() => onImagePress(u)} activeOpacity={0.8}>
-                    <Image source={{ uri: u }} style={styles.tableThumb} resizeMode="cover" />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            <View style={{ flex: 1, justifyContent: "center" }}>
-              <Text style={[styles.tableCellA, { fontSize: aFontSizeTable, lineHeight: aFontSizeTable * 1.25 }]}>
+          <View style={styles.colA}>
+            <ScrollView 
+              style={{ maxHeight: 120 }} 
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text style={[styles.tableCellA, { fontSize: aFontSizeTable, lineHeight: Math.round(aFontSizeTable * 1.25) }]}>
                 {aText}
               </Text>
-              {backAudCount > 0 && (
-                <View style={[styles.tableMediaRow, { marginTop: 4 }]}>
-                  <Volume2 size={12} color={colors.primary} />
-                  <Text style={styles.tableMediaText}>{backAudCount > 1 ? `${backAudCount} audio` : "audio"}</Text>
-                </View>
-              )}
-            </View>
+            </ScrollView>
           </View>
         </View>
       );
@@ -871,7 +867,7 @@ function FlashcardCardView({
             >
               {!flipped && renderImageStrip(frontImages)}
               <Text style={styles.cardHint}>Pertanyaan</Text>
-              <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: qFontSize * 1.35 }]}>{questionText}</Text>
+              <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }]}>{questionText}</Text>
               {!flipped && renderAudioButtons(frontAudios)}
               <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
             </ScrollView>
@@ -892,7 +888,7 @@ function FlashcardCardView({
             >
               {flipped && renderImageStrip(backImages)}
               <Text style={styles.cardHint}>Jawaban</Text>
-              <Text style={[styles.cardText, { fontSize: aFontSize, lineHeight: aFontSize * 1.35 }]}>{answerText}</Text>
+              <Text style={[styles.cardText, { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }]}>{answerText}</Text>
               {flipped && renderAudioButtons(backAudios)}
             </ScrollView>
           </Animated.View>
@@ -1082,6 +1078,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     paddingVertical: 14,
     paddingHorizontal: 14,
     gap: 14,
+    maxHeight: 200,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -1125,8 +1122,8 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     fontVariant: ["tabular-nums"],
   },
   colNum: { width: 32 },
-  colQ: { flex: 1.5, gap: 10, minWidth: 0 },
-  colA: { flex: 2, gap: 10, minWidth: 0 },
+  colQ: { flex: 1.8, gap: 10, minWidth: 0 },
+  colA: { flex: 2.2, gap: 10, minWidth: 0 },
   tableThumb: {
     width: 80,
     height: 60,

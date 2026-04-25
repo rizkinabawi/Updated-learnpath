@@ -71,15 +71,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Toast Implementation
+    const showToast = (msg, type = 'info') => {
+        const root = document.getElementById('toast-root');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        root.appendChild(t);
+        setTimeout(() => t.classList.add('show'), 10);
+        setTimeout(() => {
+            t.classList.remove('show');
+            setTimeout(() => t.remove(), 400);
+        }, 3000);
+    };
+
     // Copy Implementation
-    document.querySelectorAll('[data-copy]').forEach(btn => {
-        btn.addEventListener('click', () => {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-copy]');
+        if (btn) {
             const elId = btn.getAttribute('data-copy');
             const text = document.getElementById(elId).textContent;
             navigator.clipboard.writeText(text).then(() => {
-                alert('Copied to clipboard!');
+                showToast('Copied to clipboard!', 'success');
             });
-        });
+        }
     });
 
     // ── Functional Cryptography Impl ──────────────────────────────────────────
@@ -94,36 +109,85 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('pk-val').textContent = toHex(pk);
             document.getElementById('keygen-result').classList.remove('hidden');
         } catch (e) {
-            alert('Gen failed: ' + e.message);
+            showToast('Gen failed: ' + e.message, 'error');
         }
     });
 
     // 2. Sign Activation Key
     const btnSign = document.getElementById('btn-sign');
+    const signContainer = document.getElementById('sign-keys-container');
+    
     btnSign.addEventListener('click', async () => {
         const skHex = document.getElementById('sign-sk').value.trim();
         const appId = document.getElementById('sign-appid').value.trim() || 'learningpath';
         const days = parseInt(document.getElementById('sign-days').value);
+        const count = parseInt(document.getElementById('sign-count').value) || 1;
         const device = document.getElementById('sign-device').value.trim();
 
-        if (!skHex) return alert('Secret Key required!');
+        if (!skHex) return showToast('Secret Key required!', 'error');
         
         try {
             const sk = fromHex(skHex);
             const issuedAt = Date.now();
             const expiry = issuedAt + days * 86400000;
-            const msg = utf8(`${appId}|${issuedAt}|${expiry}|${device}`);
-            const sig = await ed.signAsync(msg, sk);
             
-            const license = { appId, issuedAt, expiry };
-            if (device) license.deviceId = device;
-            license.signature = toBase64(sig);
+            signContainer.innerHTML = '';
+            const allKeys = [];
 
-            document.getElementById('sign-output-json').textContent = JSON.stringify(license, null, 2);
+            for (let i = 0; i < count; i++) {
+                const ia = issuedAt + i;
+                const ex = expiry + i;
+                const msg = utf8(`${appId}|${ia}|${ex}|${device}`);
+                const sig = await ed.signAsync(msg, sk);
+                
+                const license = { appId, issuedAt: ia, expiry: ex };
+                if (device) license.deviceId = device;
+                license.signature = toBase64(sig);
+                allKeys.push(license);
+
+                const div = document.createElement('div');
+                div.className = 'code-box mt-10';
+                const codeId = `sign-key-${i}`;
+                div.innerHTML = `
+                    <code id="${codeId}">${JSON.stringify(license)}</code>
+                    <button class="btn-icon" data-copy="${codeId}"><i data-lucide="copy"></i></button>
+                `;
+                signContainer.appendChild(div);
+            }
+            
+            window._lastBatch = allKeys;
             document.getElementById('sign-result').classList.remove('hidden');
+            initIcons();
+            showToast(`Generated ${count} keys!`, 'success');
         } catch (e) {
-            alert('Sign failed: ' + e.message);
+            showToast('Sign failed: ' + e.message, 'error');
         }
+    });
+
+    document.getElementById('btn-copy-all-sign')?.addEventListener('click', () => {
+        if (!window._lastBatch) return;
+        const text = window._lastBatch.map(k => JSON.stringify(k)).join('\n\n');
+        navigator.clipboard.writeText(text).then(() => showToast('All keys copied!', 'success'));
+    });
+
+    // File Upload for Key
+    document.getElementById('file-key-upload')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (re) => {
+            const hex = re.target.result.trim();
+            if (hex.length === 64) {
+                document.getElementById('sk-val').textContent = hex;
+                document.getElementById('sign-sk').value = hex;
+                document.getElementById('keygen-result').classList.remove('hidden');
+                showToast('Key loaded successfully!', 'success');
+                initIcons();
+            } else {
+                showToast('Invalid hex key file', 'error');
+            }
+        };
+        reader.readAsText(file);
     });
 
     // 3. Buyer Token
@@ -134,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const buyerId = document.getElementById('buyer-id').value.trim();
         const days = parseInt(document.getElementById('buyer-days').value);
 
-        if (!skHex || !bundleId || !buyerId) return alert('All fields required!');
+        if (!skHex || !bundleId || !buyerId) return showToast('All fields required!', 'error');
 
         try {
             const sk = fromHex(skHex);
@@ -157,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('token-output-json').textContent = JSON.stringify(token, null, 2);
             document.getElementById('token-result').classList.remove('hidden');
         } catch (e) {
-            alert('Token gen failed: ' + e.message);
+            showToast('Token gen failed: ' + e.message, 'error');
         }
     });
 
@@ -168,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pkHex = document.getElementById('verify-pk').value.trim();
         const statusEl = document.getElementById('verify-status');
 
-        if (!input || !pkHex) return alert('Input and PK required!');
+        if (!input || !pkHex) return showToast('Input and PK required!', 'error');
 
         try {
             const pk = fromHex(pkHex);

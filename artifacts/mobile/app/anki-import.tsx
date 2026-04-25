@@ -120,7 +120,7 @@ function looksHierarchical(decks: { name: string }[]): boolean {
  * room in the database for many lessons before hitting the (now 256 MB)
  * total cap. Tune lower if you see SQLITE_FULL on large overall libraries.
  */
-const MAX_CARDS_PER_LESSON = 500;
+const MAX_CARDS_PER_LESSON = 250;
 
 /** Split an array into fixed-size chunks (last chunk may be smaller). */
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -211,6 +211,7 @@ export default function AnkiImportScreen() {
   const [selectedPathId, setSelectedPathId] = useState<string>("__new__");
   const [newPathName, setNewPathName] = useState("");
   const [engineOk, setEngineOk] = useState<boolean | null>(null);
+  const [groupByTag, setGroupByTag] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -448,7 +449,7 @@ export default function AnkiImportScreen() {
       const cards = combined.map((x) =>
         buildFlashcardFromAnki(x.card, x.deckName, colId, now),
       );
-      await saveFlashcardsBulkChunked(cards, 500, (done, total) =>
+      await saveFlashcardsBulkChunked(cards, 50, (done, total) =>
         setProgress({ stage: "building-decks", message: `Menyimpan ${done}/${total}...`, percent: Math.round((done / total) * 100) }),
       );
       setProgress(null);
@@ -471,7 +472,7 @@ export default function AnkiImportScreen() {
       const cards = chunks[i].map((x) =>
         buildFlashcardFromAnki(x.card, x.deckName, colId, now),
       );
-      await saveFlashcardsBulkChunked(cards, 500);
+      await saveFlashcardsBulkChunked(cards, 50);
       savedTotal += chunks[i].length;
       setProgress({
         stage: "building-decks",
@@ -525,6 +526,51 @@ export default function AnkiImportScreen() {
     };
     await saveModule(mod);
 
+    if (groupByTag) {
+      // New: Logic to group cards by their FIRST tag across all decks.
+      // This is great for "One giant deck + many tags" Anki styles.
+      const tagGroups = new Map<string, ParsedDeck["cards"][number][]>();
+      for (const deck of decks) {
+        for (const card of deck.cards) {
+          const firstTag = (card.tags?.split(/\s+/)[0] || "No Tag").trim();
+          if (!tagGroups.has(firstTag)) tagGroups.set(firstTag, []);
+          tagGroups.get(firstTag)!.push(card);
+        }
+      }
+
+      let order = 0;
+      let savedTotal = 0;
+      let lessonCount = 0;
+
+      for (const [tagName, cards] of tagGroups) {
+        const chunks = chunkArray(cards, MAX_CARDS_PER_LESSON);
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const lesson: Lesson = {
+            id: generateId(),
+            name: chunks.length === 1 ? tagName : `${tagName} (${i + 1}/${chunks.length})`,
+            description: `${chunk.length} kartu (tag: ${tagName})`,
+            moduleId: mod.id,
+            order: order++,
+            createdAt: now,
+          };
+          await saveLesson(lesson);
+          const flashcards = chunk.map(c => buildFlashcardFromAnki(c, tagName, lesson.id, now));
+          await saveFlashcardsBulkChunked(flashcards, 50);
+          savedTotal += chunk.length;
+          lessonCount++;
+          setProgress({
+            stage: "building-decks",
+            message: `Tag "${tagName}" · ${savedTotal}/${totalCards} kartu`,
+            percent: Math.round((savedTotal / Math.max(1, totalCards)) * 100),
+          });
+        }
+      }
+      setProgress(null);
+      return { name: mod.name, target: `/course/${pathId}` as const };
+    }
+
+    // Default: Group by Anki Deck (existing logic)
     const prefix = commonDeckPrefix(decks.map((d) => d.name));
 
     let order = 0;
@@ -569,7 +615,7 @@ export default function AnkiImportScreen() {
         // Save THIS lesson's cards now, then drop the array. Doing it
         // per-lesson instead of building one global allCards[] keeps peak
         // memory bounded by the largest single lesson.
-        await saveFlashcardsBulkChunked(cards, 500);
+        await saveFlashcardsBulkChunked(cards, 50);
         savedTotal += chunk.length;
         lessonCount += 1;
         setProgress({
@@ -870,7 +916,7 @@ export default function AnkiImportScreen() {
                         mode === "module" && styles.modeTitleActive,
                       ]}
                     >
-                      Modul (deck → pelajaran)
+                      Modul (kelompokan)
                     </Text>
                     <Text
                       style={[
@@ -878,11 +924,23 @@ export default function AnkiImportScreen() {
                         mode === "module" && styles.modeDescActive,
                       ]}
                     >
-                      Tiap deck jadi pelajaran terpisah
+                      Tiap deck/tag jadi pelajaran
                     </Text>
                   </View>
                 </TouchableOpacity>
               </View>
+
+              {mode === "module" && (
+                <View style={[styles.optionRow, { marginTop: 12 }]}>
+                  <Text style={styles.optionLabel}>Otomatis kelompokan berdasarkan Tag?</Text>
+                  <TouchableOpacity 
+                    onPress={() => setGroupByTag(!groupByTag)}
+                    style={[styles.switchContainer, groupByTag && styles.switchActive]}
+                  >
+                    <View style={[styles.switchThumb, groupByTag && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {mode === "collection" ? (
                 <>
@@ -1515,5 +1573,39 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     color: c.textMuted,
     marginTop: 6,
     fontStyle: "italic",
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: c.background,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  optionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: c.textSecondary,
+  },
+  switchContainer: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: c.border,
+    padding: 2,
+  },
+  switchActive: {
+    backgroundColor: c.emerald,
+  },
+  switchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  switchThumbActive: {
+    transform: [{ translateX: 20 }],
   },
 });

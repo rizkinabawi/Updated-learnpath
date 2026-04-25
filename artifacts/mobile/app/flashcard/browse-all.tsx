@@ -78,27 +78,27 @@ function CollectionEditModal({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={em.overlay}>
-        <View style={em.sheet}>
-          <View style={em.handle} />
-          <View style={em.header}>
-            <Text style={em.title}>Edit Koleksi</Text>
-            <TouchableOpacity style={em.iconBtn} onPress={onClose}>
+      <View style={styles.emOverlay}>
+        <View style={styles.emSheet}>
+          <View style={styles.emHandle} />
+          <View style={styles.emHeader}>
+            <Text style={styles.emTitle}>Edit Koleksi</Text>
+            <TouchableOpacity style={styles.emIconBtn} onPress={onClose}>
               <Feather name="x" size={20} color={colors.dark} />
             </TouchableOpacity>
           </View>
-          <View style={em.body}>
-            <Text style={em.label}>Nama Koleksi *</Text>
+          <View style={styles.emBody}>
+            <Text style={styles.emLabel}>Nama Koleksi *</Text>
             <TextInput
-              style={em.input}
+              style={styles.emInput}
               value={name}
               onChangeText={setName}
               placeholder="Nama koleksi…"
               placeholderTextColor={colors.textMuted}
             />
-            <Text style={em.label}>Deskripsi <Text style={em.optional}>(opsional)</Text></Text>
+            <Text style={styles.emLabel}>Deskripsi <Text style={styles.emOptional}>(opsional)</Text></Text>
             <TextInput
-              style={[em.input, { minHeight: 76 }]}
+              style={[styles.emInput, { minHeight: 76 }]}
               value={desc}
               onChangeText={setDesc}
               placeholder="Deskripsi singkat…"
@@ -107,12 +107,12 @@ function CollectionEditModal({
               textAlignVertical="top"
             />
             <TouchableOpacity
-              style={[em.saveBtn, (!name.trim() || saving) && { opacity: 0.5 }]}
+              style={[styles.emSaveBtn, (!name.trim() || saving) && { opacity: 0.5 }]}
               onPress={handleSave}
               disabled={!name.trim() || saving}
             >
               {saving ? <ActivityIndicator color="#fff" size="small" /> : <Feather name="check" size={17} color="#fff" />}
-              <Text style={em.saveBtnText}>{saving ? "Menyimpan…" : "Simpan Perubahan"}</Text>
+              <Text style={styles.emSaveBtnText}>{saving ? "Menyimpan…" : "Simpan Perubahan"}</Text>
             </TouchableOpacity>
           </View>
         </View>

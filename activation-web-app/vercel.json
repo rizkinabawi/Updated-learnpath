@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "pnpm run build",
-  "devCommand": "pnpm run dev",
+  "buildCommand": "pnpm exec vite build",
+  "devCommand": "pnpm exec vite dev",
   "installCommand": "pnpm install",
   "framework": "vite",
-  "regions": ["syd1"]
+  "regions": ["sin1"]
 }

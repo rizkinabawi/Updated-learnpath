@@ -4,16 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearningPath | Activation Key Manager</title>
-    <meta name="description" content="Professional Activation Key Manager for LearningPath App - Offline Secure System." />
     <!-- Lucide CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Critical CSS for layout and nav */
         #app { display: flex; height: 100vh; }
         .sidebar { width: 260px; transition: width 0.3s; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
         @media (max-width: 900px) { .sidebar { width: 70px; } }
+        /* Prevent layout shift */
+        .premium-card { min-height: 100px; }
     </style>
 </head>
 <body>
@@ -77,23 +77,6 @@
                     <div class="welcome-hero">
                         <h2>Selamat Datang, <span>Creator</span></h2>
                         <p>Kelola aktivasi aplikasi dan token komersial secara aman dari mana saja.</p>
-                    </div>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <i data-lucide="shield"></i>
-                            <h3>Ed25519</h3>
-                            <p>Military Grade Signing</p>
-                        </div>
-                        <div class="stat-card">
-                            <i data-lucide="lock"></i>
-                            <h3>AES-256-GCM</h3>
-                            <p>Encrypted Bundles</p>
-                        </div>
-                        <div class="stat-card">
-                            <i data-lucide="zap"></i>
-                            <h3>Noble Crypto</h3>
-                            <p>Fast & Secure</p>
-                        </div>
                     </div>
                 </section>
 
@@ -245,7 +228,7 @@
                             <textarea id="verify-input" placeholder="Paste Activation Key or Buyer Token..."></textarea>
                         </div>
                         <div class="input-group mt-10">
-                            <label>Public Key (corresponding to issuer)</label>
+                            <label>Public Key</label>
                             <input type="text" id="verify-pk" placeholder="issuer hex public key" />
                         </div>
                         <button class="btn btn-outline mt-20" id="btn-verify">
@@ -261,36 +244,23 @@
 
     <div id="toast-root"></div>
 
-    <!-- INLINE BOOTSTRAP SCRIPT: NAVIGATION AND ICONS (ZERO DEPENDENCY) -->
+    <!-- BOOTSTRAP SCRIPT -->
     <script>
-        console.log('BOOTSTRAP: RUNNING');
-        
-        // 1. Navigation Logic
+        console.log('BOOTSTRAP: START');
         const navItems = document.querySelectorAll('.nav-item');
         const panels = document.querySelectorAll('.tab-panel');
-        
         navItems.forEach(item => {
             item.addEventListener('click', () => {
                 const tab = item.getAttribute('data-tab');
-                console.log('BOOTSTRAP: Switch to', tab);
                 navItems.forEach(i => i.classList.remove('active'));
                 panels.forEach(p => p.classList.remove('active'));
                 item.classList.add('active');
-                const panel = document.getElementById('tab-' + tab);
-                if (panel) panel.classList.add('active');
+                document.getElementById('tab-' + tab).classList.add('active');
             });
         });
-
-        // 2. Lucide Icons
-        if (window.lucide) {
-            window.lucide.createIcons();
-            console.log('BOOTSTRAP: Icons created');
-        }
-
-        // 3. Global Toast Helper
+        if (window.lucide) window.lucide.createIcons();
         window.showToast = (msg, type = 'info') => {
             const root = document.getElementById('toast-root');
-            if (!root) return alert(msg);
             const t = document.createElement('div');
             t.className = 'toast ' + type;
             t.textContent = msg;
@@ -303,7 +273,7 @@
         };
     </script>
     
-    <!-- MAIN MODULE (DEFERRED) -->
+    <!-- MAIN SCRIPT (ASYNC) -->
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

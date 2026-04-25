@@ -1,17 +1,27 @@
-console.log('CRYPTO_MODULE: V3 START');
+console.log('CRYPTO_MODULE: V3 INITIALIZING');
 
 import './style.css';
-// Unified v3.1.0 (Sync with Mobile App)
 import * as ed from "https://esm.sh/@noble/ed25519@3.1.0";
 import { sha512 } from "https://esm.sh/@noble/hashes@1.7.2/sha512";
-import { randomBytes } from "https://esm.sh/@noble/hashes@1.7.2/utils";
+import { concatBytes, randomBytes as nobleRandomBytes } from "https://esm.sh/@noble/hashes@1.7.2/utils";
 
-// Mandatory v3 configuration for synchronous/asynchronous signing
-// Note: Mobile app uses v3, so we must match its entropy and hashing behavior.
-ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
-ed.etc.sha512Async = async (...m) => sha512(ed.etc.concatBytes(...m));
-
-console.log('CRYPTO_MODULE: V3 LIB LOADED');
+// ── Noble v2/v3 compatibility (Synced with Mobile App's crypto.ts) ──
+try {
+    if (ed.etc) {
+        Object.assign(ed.etc, {
+            sha512Sync: (...m) => sha512(concatBytes(...m)),
+            sha512Async: async (...m) => sha512(concatBytes(...m)),
+        });
+        console.log('CRYPTO_MODULE: etc.sha512Sync configured');
+    }
+    // Backward compatibility handles
+    const edAny = ed;
+    edAny.hashes = edAny.hashes || {};
+    edAny.hashes.sha512 = sha512;
+    edAny.hashes.sha512Async = async (...m) => sha512(concatBytes(...m));
+} catch (e) {
+    console.warn('CRYPTO_MODULE: etc config warning:', e);
+}
 
 const toHex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
 const fromHex = h => {
@@ -40,12 +50,13 @@ document.addEventListener('click', (e) => {
 // Logic: Keypair
 document.getElementById('btn-keygen')?.addEventListener('click', async () => {
     try {
-        const sk = randomBytes(32);
-        const pk = await ed.getPublicKey(sk);
+        const sk = nobleRandomBytes(32);
+        // Try v3 method first, fallback to v2 async name
+        const pk = await (ed.getPublicKey ? ed.getPublicKey(sk) : ed.getPublicKeyAsync(sk));
         document.getElementById('sk-val').textContent = toHex(sk);
         document.getElementById('pk-val').textContent = toHex(pk);
         document.getElementById('keygen-result').classList.remove('hidden');
-        toast('New Keypair Created (v3)', 'success');
+        toast('New Keypair Created', 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
 
@@ -68,22 +79,23 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
         for (let i = 0; i < count; i++) {
             const ia = Date.now() + i;
             const ex = expiryDate + i;
-            // EXACT MESSAGE FORMAT: appId|issuedAt|expiry|deviceId
             const msg = utf8(`${appId}|${ia}|${ex}|${device}`);
-            const sig = await ed.sign(msg, sk);
+            // Try v3 method first, fallback to v2 async name
+            const sig = await (ed.sign ? ed.sign(msg, sk) : ed.signAsync(msg, sk));
             const key = { appId, issuedAt: ia, expiry: ex, signature: toBase64(sig) };
             if (device) key.deviceId = device;
             list.push(key);
             
             const box = document.createElement('div');
             box.className = 'code-box mt-10';
-            box.innerHTML = `<code id="key-${i}">${JSON.stringify(key)}</code><button class="btn-icon" data-copy="key-${i}"><i data-lucide="copy"></i></button>`;
+            const codeId = `key-${i}`;
+            box.innerHTML = `<code id="${codeId}">${JSON.stringify(key)}</code><button class="btn-icon" data-copy="${codeId}"><i data-lucide="copy"></i></button>`;
             container.appendChild(box);
         }
         window._lastBatch = list;
         document.getElementById('sign-result').classList.remove('hidden');
         if (window.lucide) window.lucide.createIcons();
-        toast(`Signed ${count} keys (v3)`, 'success');
+        toast(`Signed ${count} keys`, 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
 
@@ -100,14 +112,13 @@ document.getElementById('btn-token')?.addEventListener('click', async () => {
         const sk = fromHex(skHex);
         const ia = Date.now();
         const ex = ia + (days * 86400000);
-        const nonce = toHex(randomBytes(12));
-        // EXACT TOKEN FORMAT: bl1|bundleId|buyerId|nonce|issuedAt|expiry|creatorId
+        const nonce = toHex(nobleRandomBytes(12));
         const msg = utf8(`bl1|${bid}|${sid}|${nonce}|${ia}|${ex}|${cid}`);
-        const sig = await ed.sign(msg, sk);
+        const sig = await (ed.sign ? ed.sign(msg, sk) : ed.signAsync(msg, sk));
         const token = { v: 1, bundleId: bid, buyerId: sid, nonce, issuedAt: ia, expiry: ex, creatorId: cid, signature: toBase64(sig) };
         document.getElementById('token-output-json').textContent = JSON.stringify(token);
         document.getElementById('token-result').classList.remove('hidden');
-        toast('Buyer Token Created (v3)', 'success');
+        toast('Buyer Token Created', 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
 
@@ -123,8 +134,8 @@ document.getElementById('btn-verify')?.addEventListener('click', async () => {
             ? utf8(`bl1|${data.bundleId}|${data.buyerId}|${data.nonce}|${data.issuedAt}|${data.expiry}|${data.creatorId}`)
             : utf8(`${data.appId}|${data.issuedAt}|${data.expiry}|${data.deviceId || ""}`);
         const sig = fromBase64(data.signature);
-        const ok = await ed.verify(sig, msg, pk);
-        document.getElementById('verify-status').innerHTML = ok ? '<div class="alert success">✓ VALID V3</div>' : '<div class="alert danger">❌ INVALID V3</div>';
+        const ok = await (ed.verify ? ed.verify(sig, msg, pk) : ed.verifyAsync(sig, msg, pk));
+        document.getElementById('verify-status').innerHTML = ok ? '<div class="alert success" style="color:var(--success); font-weight:700; padding:12px; background:rgba(34,197,94,0.1); border-radius:8px; margin-top:10px;">✓ Cryptographically VALID</div>' : '<div class="alert danger" style="color:var(--danger); font-weight:700; padding:12px; background:rgba(239,68,68,0.1); border-radius:8px; margin-top:10px;">❌ INVALID Signature</div>';
     } catch(e) { toast(e.message, 'error'); }
 });
 

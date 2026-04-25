@@ -1,16 +1,17 @@
-console.log('CRYPTO_MODULE: START');
+console.log('CRYPTO_MODULE: V3 START');
 
 import './style.css';
-// Using ESM.sh for guaranteed browser compatibility
-import * as ed from "https://esm.sh/@noble/ed25519@2.2.3";
-import { sha256, sha512 } from "https://esm.sh/@noble/hashes@1.7.2/sha2.js";
-import { randomBytes as nobleRandom } from "https://esm.sh/@noble/hashes@1.7.2/utils.js";
+// Unified v3.1.0 (Sync with Mobile App)
+import * as ed from "https://esm.sh/@noble/ed25519@3.1.0";
+import { sha512 } from "https://esm.sh/@noble/hashes@1.7.2/sha512";
+import { randomBytes } from "https://esm.sh/@noble/hashes@1.7.2/utils";
 
-// Setup for v2 compatibility (matching the app's crypto requirement)
+// Mandatory v3 configuration for synchronous/asynchronous signing
+// Note: Mobile app uses v3, so we must match its entropy and hashing behavior.
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 ed.etc.sha512Async = async (...m) => sha512(ed.etc.concatBytes(...m));
 
-console.log('CRYPTO_MODULE: LIB LOADED');
+console.log('CRYPTO_MODULE: V3 LIB LOADED');
 
 const toHex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
 const fromHex = h => {
@@ -39,12 +40,12 @@ document.addEventListener('click', (e) => {
 // Logic: Keypair
 document.getElementById('btn-keygen')?.addEventListener('click', async () => {
     try {
-        const sk = nobleRandom(32);
+        const sk = randomBytes(32);
         const pk = await ed.getPublicKey(sk);
         document.getElementById('sk-val').textContent = toHex(sk);
         document.getElementById('pk-val').textContent = toHex(pk);
         document.getElementById('keygen-result').classList.remove('hidden');
-        toast('Generated!', 'success');
+        toast('New Keypair Created (v3)', 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
 
@@ -58,7 +59,7 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
         const days = parseInt(document.getElementById('sign-days').value);
         const count = parseInt(document.getElementById('sign-count').value);
         const device = document.getElementById('sign-device').value.trim();
-        const expiry = Date.now() + (days * 86400000);
+        const expiryDate = Date.now() + (days * 86400000);
         
         const container = document.getElementById('sign-keys-container');
         container.innerHTML = '';
@@ -66,7 +67,8 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
         
         for (let i = 0; i < count; i++) {
             const ia = Date.now() + i;
-            const ex = expiry + i;
+            const ex = expiryDate + i;
+            // EXACT MESSAGE FORMAT: appId|issuedAt|expiry|deviceId
             const msg = utf8(`${appId}|${ia}|${ex}|${device}`);
             const sig = await ed.sign(msg, sk);
             const key = { appId, issuedAt: ia, expiry: ex, signature: toBase64(sig) };
@@ -81,6 +83,7 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
         window._lastBatch = list;
         document.getElementById('sign-result').classList.remove('hidden');
         if (window.lucide) window.lucide.createIcons();
+        toast(`Signed ${count} keys (v3)`, 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
 
@@ -90,17 +93,21 @@ document.getElementById('btn-token')?.addEventListener('click', async () => {
     const bid = document.getElementById('buyer-bundle').value.trim();
     const sid = document.getElementById('buyer-id').value.trim();
     const cid = document.getElementById('buyer-creator').value.trim();
+    const days = parseInt(document.getElementById('buyer-days').value);
+
     if (!skHex || !bid || !sid || !cid) return toast('All Fields Required', 'error');
     try {
         const sk = fromHex(skHex);
         const ia = Date.now();
-        const ex = ia + (parseInt(document.getElementById('buyer-days').value) * 86400000);
-        const nonce = toHex(nobleRandom(12));
+        const ex = ia + (days * 86400000);
+        const nonce = toHex(randomBytes(12));
+        // EXACT TOKEN FORMAT: bl1|bundleId|buyerId|nonce|issuedAt|expiry|creatorId
         const msg = utf8(`bl1|${bid}|${sid}|${nonce}|${ia}|${ex}|${cid}`);
         const sig = await ed.sign(msg, sk);
         const token = { v: 1, bundleId: bid, buyerId: sid, nonce, issuedAt: ia, expiry: ex, creatorId: cid, signature: toBase64(sig) };
         document.getElementById('token-output-json').textContent = JSON.stringify(token);
         document.getElementById('token-result').classList.remove('hidden');
+        toast('Buyer Token Created (v3)', 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
 
@@ -115,9 +122,10 @@ document.getElementById('btn-verify')?.addEventListener('click', async () => {
         const msg = data.nonce 
             ? utf8(`bl1|${data.bundleId}|${data.buyerId}|${data.nonce}|${data.issuedAt}|${data.expiry}|${data.creatorId}`)
             : utf8(`${data.appId}|${data.issuedAt}|${data.expiry}|${data.deviceId || ""}`);
-        const ok = await ed.verify(fromBase64(data.signature), msg, pk);
-        document.getElementById('verify-status').innerHTML = ok ? '<div class="alert success">✓ VALID</div>' : '<div class="alert danger">❌ INVALID</div>';
+        const sig = fromBase64(data.signature);
+        const ok = await ed.verify(sig, msg, pk);
+        document.getElementById('verify-status').innerHTML = ok ? '<div class="alert success">✓ VALID V3</div>' : '<div class="alert danger">❌ INVALID V3</div>';
     } catch(e) { toast(e.message, 'error'); }
 });
 
-console.log('CRYPTO_MODULE: READY');
+console.log('CRYPTO_MODULE: V3 READY');

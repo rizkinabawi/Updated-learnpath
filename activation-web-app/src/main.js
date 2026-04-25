@@ -53,7 +53,11 @@ const initIcons = () => {
 
 // ── UI Logic ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    initIcons();
+    try {
+        initIcons();
+    } catch (e) {
+        console.warn('Lucide icons failed to init:', e);
+    }
 
     // Tab Switching
     const navItems = document.querySelectorAll('.nav-item');
@@ -104,12 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btnKeygen.addEventListener('click', async () => {
         try {
             const sk = ed.utils.randomPrivateKey();
-            const pk = await ed.getPublicKeyAsync(sk);
+            const pk = await ed.getPublicKey(sk);
             document.getElementById('sk-val').textContent = toHex(sk);
             document.getElementById('pk-val').textContent = toHex(pk);
             document.getElementById('keygen-result').classList.remove('hidden');
+            showToast('New keypair generated!', 'success');
         } catch (e) {
             showToast('Gen failed: ' + e.message, 'error');
+            console.error(e);
         }
     });
 
@@ -138,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ia = issuedAt + i;
                 const ex = expiry + i;
                 const msg = utf8(`${appId}|${ia}|${ex}|${device || ""}`);
-                const sig = await ed.signAsync(msg, sk);
+                const sig = await ed.sign(msg, sk);
                 
                 const license = { appId, issuedAt: ia, expiry: ex, signature: toBase64(sig) };
                 if (device) license.deviceId = device;
@@ -157,10 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             window._lastBatch = allKeys;
             document.getElementById('sign-result').classList.remove('hidden');
-            initIcons();
+            try { initIcons(); } catch(e) {}
             showToast(`Generated ${count} keys!`, 'success');
         } catch (e) {
             showToast('Sign failed: ' + e.message, 'error');
+            console.error(e);
         }
     });
 
@@ -182,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('sign-sk').value = hex;
                 document.getElementById('keygen-result').classList.remove('hidden');
                 showToast('Key loaded successfully!', 'success');
-                initIcons();
+                try { initIcons(); } catch(e) {}
             } else {
                 showToast('Invalid hex key file', 'error');
             }
@@ -207,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const expiry = issuedAt + days * 86400000;
             const nonce = toHex(nobleRandom(12));
             const msg = utf8(`bl1|${bundleId}|${buyerId}|${nonce}|${issuedAt}|${expiry}|${creatorId}`);
-            const sig = await ed.signAsync(msg, sk);
+            const sig = await ed.sign(msg, sk);
 
             const token = {
                 v: 1,
@@ -225,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Token generated!', 'success');
         } catch (e) {
             showToast('Token gen failed: ' + e.message, 'error');
+            console.error(e);
         }
     });
 
@@ -251,13 +259,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const sig = fromBase64(data.signature);
-            const isOk = await ed.verifyAsync(sig, utf8(msgText), pk);
+            const isOk = await ed.verify(sig, utf8(msgText), pk);
 
             statusEl.innerHTML = isOk 
-                ? '<div class="alert success" style="color:var(--success); font-weight:700">✓ Cryptographically VALID</div>' 
-                : '<div class="alert danger" style="color:var(--danger); font-weight:700">❌ INVALID Signature</div>';
+                ? '<div class="alert success" style="color:var(--success); font-weight:700; padding:12px; background:rgba(34,197,94,0.1); border-radius:8px; margin-top:10px;">✓ Cryptographically VALID</div>' 
+                : '<div class="alert danger" style="color:var(--danger); font-weight:700; padding:12px; background:rgba(239,68,68,0.1); border-radius:8px; margin-top:10px;">❌ INVALID Signature</div>';
         } catch (e) {
-            statusEl.innerHTML = `<div class="alert danger" style="color:var(--danger)">ERROR: ${e.message}</div>`;
+            statusEl.innerHTML = `<div class="alert danger" style="color:var(--danger); padding:10px;">ERROR: ${e.message}</div>`;
+            console.error(e);
         }
     });
+});
 });

@@ -32,6 +32,7 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
+import { resolveAssetUri } from "@/utils/path-resolver";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer } from "expo-audio";
@@ -1182,7 +1183,7 @@ export default function CreateQuizScreen() {
             <View key={q.id} style={styles.questionRow}>
               {!!q.image && (
                 <Image
-                  source={{ uri: q.image }}
+                  source={{ uri: resolveAssetUri(q.image) }}
                   style={styles.cardThumb}
                   resizeMode="cover"
                 />

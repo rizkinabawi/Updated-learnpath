@@ -25,6 +25,7 @@ import { verifyBundleSignature, describeVerifyError } from "@/utils/bundle-crypt
 import { isBundleUnlocked } from "@/utils/bundle-activation";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
+import { resolveAssetUri } from "@/utils/path-resolver";
 import {
   shouldShowBackupReminder,
   snoozeBackupReminder,
@@ -311,7 +312,7 @@ export default function ProfileTab() {
         <View style={styles.heroRow}>
           <TouchableOpacity style={styles.avatar} onPress={() => router.push("/edit-profile")} activeOpacity={0.85}>
             {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatarImg} />
+              <Image source={{ uri: resolveAssetUri(user.avatar) }} style={styles.avatarImg} />
             ) : (
               <Text style={styles.avatarText}>{initial}</Text>
             )}

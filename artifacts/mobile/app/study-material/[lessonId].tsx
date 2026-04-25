@@ -54,6 +54,7 @@ import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { resolveAssetUri } from "@/utils/path-resolver";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = Math.min(SCREEN_WIDTH - 32, 480);
@@ -833,7 +834,7 @@ export default function StudyMaterialScreen() {
                     {mat.type === "image" && mat.filePath && (
                       <View style={styles.imageBox}>
                         <Image
-                          source={{ uri: mat.filePath }}
+                          source={{ uri: resolveAssetUri(mat.filePath) }}
                           style={styles.materialImage}
                           resizeMode="contain"
                         />

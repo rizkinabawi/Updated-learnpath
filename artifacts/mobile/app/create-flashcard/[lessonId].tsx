@@ -22,6 +22,7 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
+import { resolveAssetUri } from "@/utils/path-resolver";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer } from "expo-audio";
@@ -1032,7 +1033,7 @@ export default function CreateFlashcardScreen() {
             .map((card) => (
             <View key={card.id} style={styles.cardRow}>
               {!!card.image && (
-                <Image source={{ uri: card.image }} style={styles.cardThumb} resizeMode="cover" />
+                <Image source={{ uri: resolveAssetUri(card.image) }} style={styles.cardThumb} resizeMode="cover" />
               )}
               <View style={{ flex: 1 }}>
                 {!!card.tag?.trim() && <Text style={styles.cardTag}>{card.tag}</Text>}

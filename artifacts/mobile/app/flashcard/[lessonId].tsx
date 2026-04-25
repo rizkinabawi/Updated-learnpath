@@ -10,6 +10,7 @@ import {
   Image,
   ScrollView,
   FlatList,
+  InteractionManager,
   type ListRenderItem,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -37,6 +38,7 @@ import { type ColorScheme } from "@/constants/colors";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { resolveAssetUri, resolveAssetUris } from "@/utils/path-resolver";
 
 export default function FlashcardScreen() {
   const colors = useColors();
@@ -79,8 +81,13 @@ export default function FlashcardScreen() {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    (async () => {
+    // Defer the heavy AsyncStorage read + JSON.parse + sortBySpacedRep until
+    // after the screen-open animation finishes. Otherwise on a 1k-2k card
+    // lesson the JS thread is blocked for ~1-2s and the tap into the lesson
+    // feels frozen. This trades a tiny extra spinner frame for a snappy nav.
+    const handle = InteractionManager.runAfterInteractions(async () => {
       try {
+        if (cancelled) return;
         // The new per-lesson sharded storage means this only deserializes
         // ONE lesson's cards (≈1 MB max) instead of the entire collection.
         const rawData = await getFlashcards(lessonId);
@@ -115,9 +122,10 @@ export default function FlashcardScreen() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    });
     return () => {
       cancelled = true;
+      handle?.cancel?.();
     };
   }, [lessonId, reloadKey]);
 
@@ -311,12 +319,13 @@ export default function FlashcardScreen() {
 
   const progress = (currentIndex / cards.length) * 100;
   const playAudioUri = (uri?: string | null) => {
-    if (!uri) return;
+    const resolved = resolveAssetUri(uri);
+    if (!resolved) return;
     try {
       // Swap source then play. expo-audio's `replace` accepts a URI string or
       // an AudioSource object — the string form matches what we did with
       // `useAudioPlayer(card.audio)` previously.
-      (audioPlayer as any).replace?.(uri);
+      (audioPlayer as any).replace?.(resolved);
       audioPlayer.seekTo(0);
       audioPlayer.play();
     } catch {
@@ -333,22 +342,22 @@ export default function FlashcardScreen() {
     const arr: string[] = [];
     if (card.images && card.images.length > 0) arr.push(...card.images);
     else if (card.image) arr.push(card.image);
-    return Array.from(new Set(arr.filter(Boolean)));
+    return Array.from(new Set(resolveAssetUris(arr)));
   }, [card]);
   const backImagesAll = useMemo(() => {
     if (!card) return [] as string[];
-    return Array.from(new Set((card.imagesBack ?? []).filter(Boolean)));
+    return Array.from(new Set(resolveAssetUris(card.imagesBack ?? [])));
   }, [card]);
   const frontAudiosAll = useMemo(() => {
     if (!card) return [] as string[];
     const arr: string[] = [];
     if (card.audios && card.audios.length > 0) arr.push(...card.audios);
     else if (card.audio) arr.push(card.audio);
-    return Array.from(new Set(arr.filter(Boolean)));
+    return Array.from(new Set(resolveAssetUris(arr)));
   }, [card]);
   const backAudiosAll = useMemo(() => {
     if (!card) return [] as string[];
-    return Array.from(new Set((card.audiosBack ?? []).filter(Boolean)));
+    return Array.from(new Set(resolveAssetUris(card.audiosBack ?? [])));
   }, [card]);
 
   const frontInterpolate = flipAnim.interpolate({
@@ -456,8 +465,10 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
     ({ item: c, index: i }) => {
       const isAlt = i % 2 === 1;
       const isLast = i === cards.length - 1;
-      const frontImgs =
-        c.images && c.images.length > 0 ? c.images : c.image ? [c.image] : [];
+      const frontImgs = resolveAssetUris(
+        c.images && c.images.length > 0 ? c.images : c.image ? [c.image] : [],
+      );
+      const backImgs = resolveAssetUris(c.imagesBack ?? []);
       const audCount = (c.audios?.length ?? 0) || (c.audio ? 1 : 0);
       const backAudCount = c.audiosBack?.length ?? 0;
       return (
@@ -502,9 +513,9 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
             )}
           </View>
           <View style={styles.colA}>
-            {c.imagesBack && c.imagesBack.length > 0 && (
+            {backImgs.length > 0 && (
               <View style={styles.tableThumbRow}>
-                {c.imagesBack.slice(0, 2).map((u, idx) => (
+                {backImgs.slice(0, 2).map((u, idx) => (
                   <Image
                     key={`${u}-${idx}`}
                     source={{ uri: u }}

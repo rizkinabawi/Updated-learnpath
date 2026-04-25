@@ -39,6 +39,7 @@ import {
 import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
+import { resolveAssetUri } from "@/utils/path-resolver";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = Math.min(SCREEN_WIDTH - 32, 720);
@@ -342,19 +343,23 @@ export default function MaterialFullView() {
         )}
 
         {current.type === "image" && current.filePath ? (
-          <TouchableOpacity activeOpacity={0.9} onPress={() => setZoomImage(current.filePath!)}>
-            <Image source={{ uri: current.filePath }} style={styles.heroImage} resizeMode="contain" />
+          <TouchableOpacity activeOpacity={0.9} onPress={() => setZoomImage(resolveAssetUri(current.filePath) ?? current.filePath!)}>
+            <Image source={{ uri: resolveAssetUri(current.filePath) }} style={styles.heroImage} resizeMode="contain" />
           </TouchableOpacity>
         ) : null}
 
         {current.images && current.images.length > 0 && (
           <View style={styles.attachSection}>
             <Text style={styles.attachLabel}>Lampiran Gambar ({current.images.length})</Text>
-            {current.images.map((uri, i) => (
-              <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => setZoomImage(uri)}>
-                <Image source={{ uri }} style={styles.attachImage} resizeMode="cover" />
-              </TouchableOpacity>
-            ))}
+            {current.images.map((rawUri, i) => {
+              const uri = resolveAssetUri(rawUri);
+              if (!uri) return null;
+              return (
+                <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => setZoomImage(uri)}>
+                  <Image source={{ uri }} style={styles.attachImage} resizeMode="cover" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>

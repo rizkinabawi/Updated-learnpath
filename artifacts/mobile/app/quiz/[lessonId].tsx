@@ -34,6 +34,7 @@ import { type ColorScheme } from "@/constants/colors";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { resolveAssetUri } from "@/utils/path-resolver";
 
 export default function QuizScreen() {
   const colors = useColors();
@@ -99,7 +100,7 @@ export default function QuizScreen() {
   };
 
   const currentQuiz = quizzes[currentIndex];
-  const audioPlayer = useAudioPlayer(currentQuiz?.audio ?? null);
+  const audioPlayer = useAudioPlayer(resolveAssetUri(currentQuiz?.audio) ?? null);
   const playQuestionAudio = () => {
     try {
       audioPlayer.seekTo(0);
@@ -288,7 +289,7 @@ export default function QuizScreen() {
           {/* Image above question */}
           {currentQuiz.image && (
             <Image
-              source={{ uri: currentQuiz.image }}
+              source={{ uri: resolveAssetUri(currentQuiz.image) }}
               style={styles.questionImage}
               resizeMode="cover"
             />

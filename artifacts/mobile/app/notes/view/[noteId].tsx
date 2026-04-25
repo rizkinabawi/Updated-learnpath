@@ -20,6 +20,7 @@ import {
   Clock,
 } from "lucide-react-native";
 import { getNotes, getLessons, type Note } from "@/utils/storage";
+import { resolveAssetUri } from "@/utils/path-resolver";
 import { type ColorScheme } from "@/constants/colors";
 
 const formatDateTime = (iso: string) =>
@@ -162,11 +163,15 @@ export default function NoteFullView() {
             <Text style={styles.attachLabel}>
               Gambar ({current.images.length})
             </Text>
-            {current.images.map((uri, i) => (
-              <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => setZoomImage(uri)}>
-                <Image source={{ uri }} style={styles.attachImage} resizeMode="cover" />
-              </TouchableOpacity>
-            ))}
+            {current.images.map((rawUri, i) => {
+              const uri = resolveAssetUri(rawUri);
+              if (!uri) return null;
+              return (
+                <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => setZoomImage(uri)}>
+                  <Image source={{ uri }} style={styles.attachImage} resizeMode="cover" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>

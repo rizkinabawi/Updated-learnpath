@@ -11,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import { getUser, saveUser, type User } from "@/utils/storage";
+import { resolveAssetUri } from "@/utils/path-resolver";
 import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 
@@ -132,7 +133,7 @@ export default function EditProfile() {
           {/* Avatar picker */}
           <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar} activeOpacity={0.85}>
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+              <Image source={{ uri: resolveAssetUri(avatarUri) }} style={styles.avatarImg} />
             ) : (
               <LinearGradient colors={[colors.purple, colors.primary]} style={styles.avatarFallback}>
                 <Text style={styles.avatarInitial}>{initial}</Text>

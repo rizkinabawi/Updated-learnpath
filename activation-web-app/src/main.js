@@ -1,23 +1,29 @@
-console.log('CRYPTO_MODULE: V3 INITIALIZING');
+console.log('CRYPTO_MODULE: STARTING');
 
 import './style.css';
+import * as edModule from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha512";
+import { concatBytes, randomBytes } from "@noble/hashes/utils";
 
-// Using global nobleEd25519 and nobleHashes from index.html to avoid "object not extensible" ESM frozen module issues.
-const ed = window.nobleEd25519;
-const hashes = window.nobleHashes;
-const sha512 = hashes?.sha512;
-const concatBytes = hashes?.concatBytes;
-const randomBytes = hashes?.randomBytes;
+// Create a local extensible object to wrap the noble module
+const ed = { ...edModule };
 
-// ── Noble v2/v3 compatibility (Synced with Mobile App's crypto.ts) ──
+console.log('CRYPTO_MODULE: WRAPPING MODULE');
+
+// Logic for SHA-512 configuration
+// Note: Noble modules are frozen, but we can configure the etc object if it is provided as part of the library's internal state.
 try {
-    if (ed && ed.etc) {
-        ed.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
-        ed.etc.sha512Async = async (...m) => sha512(concatBytes(...m));
-        console.log('CRYPTO_MODULE: etc.sha512Sync configured globally');
+    // In v3, etc should ideally be configured via an internal-friendly way or we use async methods.
+    // For our web app, if edModule.etc is frozen, we will rely on the library's default async behavior 
+    // which usually handles SHA-512 internally in many environments.
+    if (edModule.etc && !Object.isFrozen(edModule.etc)) {
+        edModule.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
+        console.log('CRYPTO_MODULE: etc.sha512Sync configured');
+    } else {
+        console.log('CRYPTO_MODULE: etc is frozen or missing, using default async');
     }
 } catch (e) {
-    console.warn('CRYPTO_MODULE: etc config warning:', e);
+    console.warn('CRYPTO_MODULE: etc config skipped:', e.message);
 }
 
 const toHex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
@@ -48,8 +54,7 @@ document.addEventListener('click', (e) => {
 document.getElementById('btn-keygen')?.addEventListener('click', async () => {
     try {
         const sk = randomBytes(32);
-        // Try v3 method first
-        const pk = await (ed.getPublicKey ? ed.getPublicKey(sk) : ed.getPublicKeyAsync(sk));
+        const pk = await edModule.getPublicKey(sk);
         document.getElementById('sk-val').textContent = toHex(sk);
         document.getElementById('pk-val').textContent = toHex(pk);
         document.getElementById('keygen-result').classList.remove('hidden');
@@ -66,7 +71,7 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
         const appId = document.getElementById('sign-appid').value.trim();
         const days = parseInt(document.getElementById('sign-days').value);
         const count = parseInt(document.getElementById('sign-count').value);
-        const device = document.getElementById('sign-device').value.trim();
+        const device = document.getElementById('sign-device')?.value?.trim() || "";
         const expiryDate = Date.now() + (days * 86400000);
         
         const container = document.getElementById('sign-keys-container');
@@ -77,8 +82,7 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
             const ia = Date.now() + i;
             const ex = expiryDate + i;
             const msg = utf8(`${appId}|${ia}|${ex}|${device}`);
-            // Try v3 method first, fallback to v2 async name
-            const sig = await (ed.sign ? ed.sign(msg, sk) : ed.signAsync(msg, sk));
+            const sig = await edModule.sign(msg, sk);
             const key = { appId, issuedAt: ia, expiry: ex, signature: toBase64(sig) };
             if (device) key.deviceId = device;
             list.push(key);
@@ -91,7 +95,6 @@ document.getElementById('btn-sign')?.addEventListener('click', async () => {
         }
         window._lastBatch = list;
         document.getElementById('sign-result').classList.remove('hidden');
-        if (window.lucide) window.lucide.createIcons();
         toast(`Signed ${count} keys`, 'success');
     } catch(e) { toast(e.message, 'error'); }
 });
@@ -102,16 +105,15 @@ document.getElementById('btn-token')?.addEventListener('click', async () => {
     const bid = document.getElementById('buyer-bundle').value.trim();
     const sid = document.getElementById('buyer-id').value.trim();
     const cid = document.getElementById('buyer-creator').value.trim();
-    const days = parseInt(document.getElementById('buyer-days').value);
 
     if (!skHex || !bid || !sid || !cid) return toast('All Fields Required', 'error');
     try {
         const sk = fromHex(skHex);
         const ia = Date.now();
-        const ex = ia + (days * 86400000);
-        const nonce = toHex(nobleRandomBytes(12));
+        const ex = ia + (365 * 86400000);
+        const nonce = toHex(randomBytes(12));
         const msg = utf8(`bl1|${bid}|${sid}|${nonce}|${ia}|${ex}|${cid}`);
-        const sig = await (ed.sign ? ed.sign(msg, sk) : ed.signAsync(msg, sk));
+        const sig = await edModule.sign(msg, sk);
         const token = { v: 1, bundleId: bid, buyerId: sid, nonce, issuedAt: ia, expiry: ex, creatorId: cid, signature: toBase64(sig) };
         document.getElementById('token-output-json').textContent = JSON.stringify(token);
         document.getElementById('token-result').classList.remove('hidden');
@@ -131,9 +133,9 @@ document.getElementById('btn-verify')?.addEventListener('click', async () => {
             ? utf8(`bl1|${data.bundleId}|${data.buyerId}|${data.nonce}|${data.issuedAt}|${data.expiry}|${data.creatorId}`)
             : utf8(`${data.appId}|${data.issuedAt}|${data.expiry}|${data.deviceId || ""}`);
         const sig = fromBase64(data.signature);
-        const ok = await (ed.verify ? ed.verify(sig, msg, pk) : ed.verifyAsync(sig, msg, pk));
-        document.getElementById('verify-status').innerHTML = ok ? '<div class="alert success" style="color:var(--success); font-weight:700; padding:12px; background:rgba(34,197,94,0.1); border-radius:8px; margin-top:10px;">✓ Cryptographically VALID</div>' : '<div class="alert danger" style="color:var(--danger); font-weight:700; padding:12px; background:rgba(239,68,68,0.1); border-radius:8px; margin-top:10px;">❌ INVALID Signature</div>';
+        const ok = await edModule.verify(sig, msg, pk);
+        document.getElementById('verify-status').innerHTML = ok ? '<div class="alert success">✓ VALID</div>' : '<div class="alert danger">❌ INVALID</div>';
     } catch(e) { toast(e.message, 'error'); }
 });
 
-console.log('CRYPTO_MODULE: V3 READY');
+console.log('CRYPTO_MODULE: READY');

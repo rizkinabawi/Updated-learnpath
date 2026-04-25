@@ -1,24 +1,21 @@
 console.log('CRYPTO_MODULE: V3 INITIALIZING');
 
 import './style.css';
-import * as ed from "https://esm.sh/@noble/ed25519@3.1.0";
-import { sha512 } from "https://esm.sh/@noble/hashes@1.7.2/sha512";
-import { concatBytes, randomBytes as nobleRandomBytes } from "https://esm.sh/@noble/hashes@1.7.2/utils";
+
+// Using global nobleEd25519 and nobleHashes from index.html to avoid "object not extensible" ESM frozen module issues.
+const ed = window.nobleEd25519;
+const hashes = window.nobleHashes;
+const sha512 = hashes?.sha512;
+const concatBytes = hashes?.concatBytes;
+const randomBytes = hashes?.randomBytes;
 
 // ── Noble v2/v3 compatibility (Synced with Mobile App's crypto.ts) ──
 try {
-    if (ed.etc) {
-        Object.assign(ed.etc, {
-            sha512Sync: (...m) => sha512(concatBytes(...m)),
-            sha512Async: async (...m) => sha512(concatBytes(...m)),
-        });
-        console.log('CRYPTO_MODULE: etc.sha512Sync configured');
+    if (ed && ed.etc) {
+        ed.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
+        ed.etc.sha512Async = async (...m) => sha512(concatBytes(...m));
+        console.log('CRYPTO_MODULE: etc.sha512Sync configured globally');
     }
-    // Backward compatibility handles
-    const edAny = ed;
-    edAny.hashes = edAny.hashes || {};
-    edAny.hashes.sha512 = sha512;
-    edAny.hashes.sha512Async = async (...m) => sha512(concatBytes(...m));
 } catch (e) {
     console.warn('CRYPTO_MODULE: etc config warning:', e);
 }
@@ -50,8 +47,8 @@ document.addEventListener('click', (e) => {
 // Logic: Keypair
 document.getElementById('btn-keygen')?.addEventListener('click', async () => {
     try {
-        const sk = nobleRandomBytes(32);
-        // Try v3 method first, fallback to v2 async name
+        const sk = randomBytes(32);
+        // Try v3 method first
         const pk = await (ed.getPublicKey ? ed.getPublicKey(sk) : ed.getPublicKeyAsync(sk));
         document.getElementById('sk-val').textContent = toHex(sk);
         document.getElementById('pk-val').textContent = toHex(pk);

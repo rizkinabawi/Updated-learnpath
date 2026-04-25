@@ -19,10 +19,27 @@ import { sha256, sha512 } from "@noble/hashes/sha2.js";
 import { concatBytes, randomBytes as nobleRandomBytes } from "@noble/hashes/utils.js";
 import { gcm } from "@noble/ciphers/aes.js";
 
-// ─── Noble Ed25519 v3 Wiring ────────────────────────────────────────────────
-// In v3, we must provide SHA-512 into ed.etc
-ed.etc.sha512Sync = (...m: Uint8Array[]) => sha512(concatBytes(...m));
-ed.etc.sha512Async = async (...m: Uint8Array[]) => sha512(concatBytes(...m));
+// ─── Noble Ed25519 Wiring ───────────────────────────────────────────────────
+// Noble v3 uses ed.etc, v2 uses ed.hashes. We support both.
+try {
+  if (ed.etc) {
+    Object.assign(ed.etc, {
+      sha512Sync: (...m: Uint8Array[]) => sha512(concatBytes(...m)),
+      sha512Async: async (...m: Uint8Array[]) => sha512(concatBytes(...m)),
+    });
+  }
+} catch (e) {
+  /* Some environments freeze the module object. v2 fallbacks or ignore. */
+}
+
+// v2 / early v3 compatibility fallback
+try {
+  (ed as any).hashes = (ed as any).hashes || {};
+  (ed as any).hashes.sha512 = sha512;
+  (ed as any).hashes.sha512Async = async (...m: Uint8Array[]) => sha512(concatBytes(...m));
+} catch (e) {
+  /* ignore */
+}
 
 // ─── Random bytes ────────────────────────────────────────────────────────────
 

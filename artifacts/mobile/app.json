@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "learningpath",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",

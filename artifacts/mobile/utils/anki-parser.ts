@@ -159,13 +159,19 @@ async function readFileAsBase64(uri: string): Promise<string> {
 }
 
 async function readFileAsUint8Array(uri: string): Promise<Uint8Array> {
-  if (Platform.OS === "web") {
+  // Efficient path: Use fetch to get an ArrayBuffer directly. 
+  // Works on Web and modern Expo Native (SDK 49+).
+  try {
     const resp = await fetch(uri);
-    return new Uint8Array(await resp.arrayBuffer());
+    const buf = await resp.arrayBuffer();
+    return new Uint8Array(buf);
+  } catch (e) {
+    // Fallback for older environments or specific URI types
+    if (Platform.OS === "web") throw e;
+    const b64 = await readFileAsBase64(uri);
+    if (!b64) throw new Error("File empty or unreadable as Base64.");
+    return base64ToUint8Array(b64);
   }
-  const b64 = await readFileAsBase64(uri);
-  if (!b64) throw new Error("File empty or unreadable as Base64.");
-  return base64ToUint8Array(b64);
 }
 
 function uint8ArrayToBase64(bytes: Uint8Array): string {
@@ -347,11 +353,13 @@ async function parseAnkiPackageOnce(
   // expo-sqlite needs a file path — it cannot open in-memory byte arrays
   onProgress?.({ stage: "loading-engine", message: "Menyiapkan database..." });
 
-  const docDir = FileSystem.documentDirectory;
+  // Support both old and new Expo FileSystem APIs for folder detection
+  const docDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+  
   if (!docDir) {
     throw new AnkiImportError(
       "ENGINE_FAILED",
-      "documentDirectory tidak tersedia di platform ini.",
+      "Tidak ada folder penyimpanan yang tersedia di perangkat ini (Document/Cache Directory null).",
       false,
     );
   }

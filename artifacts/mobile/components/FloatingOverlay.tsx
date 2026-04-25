@@ -7,9 +7,8 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import { PanGestureHandler, State } from "react-native-gesture-handler";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -29,18 +28,18 @@ export const FloatingOverlay: React.FC = () => {
 
   const translateX = useSharedValue(SCREEN_WIDTH - 100);
   const translateY = useSharedValue(120);
+  const context = useSharedValue({ x: 0, y: 0 });
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
-      ctx.startX = translateX.value;
-      ctx.startY = translateY.value;
-    },
-    onActive: (event, ctx: any) => {
-      translateX.value = ctx.startX + event.translationX;
-      translateY.value = ctx.startY + event.translationY;
-    },
-    onEnd: () => {
-      // Snap to edges if desired, or just keep it there
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      context.value = { x: translateX.value, y: translateY.value };
+    })
+    .onUpdate((event) => {
+      translateX.value = event.translationX + context.value.x;
+      translateY.value = event.translationY + context.value.y;
+    })
+    .onEnd(() => {
+      // Snap to edges
       if (translateX.value > SCREEN_WIDTH / 2) {
         translateX.value = withSpring(SCREEN_WIDTH - (video.videoId && minimizeVideo ? 170 : 80));
       } else {
@@ -49,8 +48,7 @@ export const FloatingOverlay: React.FC = () => {
       
       if (translateY.value < 50) translateY.value = withSpring(50);
       if (translateY.value > SCREEN_HEIGHT - 100) translateY.value = withSpring(SCREEN_HEIGHT - 150);
-    },
-  });
+    });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -71,7 +69,7 @@ export const FloatingOverlay: React.FC = () => {
   if (!showTimer && !showVideo) return null;
 
   return (
-    <PanGestureHandler onGestureEvent={gestureHandler}>
+    <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.container, animatedStyle]}>
         
         {/* --- Timer Badge --- */}
@@ -122,7 +120,7 @@ export const FloatingOverlay: React.FC = () => {
         )}
 
       </Animated.View>
-    </PanGestureHandler>
+    </GestureDetector>
   );
 };
 

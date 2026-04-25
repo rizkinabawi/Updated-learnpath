@@ -1,0 +1,15 @@
+{
+  "name": "LearningPath Key Manager",
+  "short_name": "KeyManager",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080a0f",
+  "theme_color": "#4f6ef7",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

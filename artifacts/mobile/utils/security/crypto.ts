@@ -19,15 +19,65 @@ import { sha256, sha512 } from "@noble/hashes/sha2.js";
 import { concatBytes, randomBytes as nobleRandomBytes } from "@noble/hashes/utils.js";
 import { gcm } from "@noble/ciphers/aes.js";
 
-// Wire SHA-512 into @noble/ed25519 (required by the library).
-ed.hashes.sha512 = sha512;
-ed.hashes.sha512Async = async (...m: Uint8Array[]) => sha512(concatBytes(...m));
+// ─── Noble Ed25519 v3 Wiring ────────────────────────────────────────────────
+// In v3, we must provide SHA-512 into ed.etc
+ed.etc.sha512Sync = (...m: Uint8Array[]) => sha512(concatBytes(...m));
+ed.etc.sha512Async = async (...m: Uint8Array[]) => sha512(concatBytes(...m));
 
 // ─── Random bytes ────────────────────────────────────────────────────────────
 
 export function randomBytes(n: number): Uint8Array {
+  // nobleRandomBytes will use crypto.getRandomValues if available.
+  // In RN/Expo Go, this is usually handled by the engine or polyfilled.
   return nobleRandomBytes(n);
 }
+
+// ─── UTF-8 (Robust with Fallback) ───────────────────────────────────────────
+
+let TE: { encode: (s: string) => Uint8Array };
+let TD: { decode: (b: Uint8Array) => string };
+
+try {
+  TE = new TextEncoder();
+  TD = new TextDecoder();
+} catch {
+  // Basic UTF-8 implementation for environments without TextEncoder/Decoder (some older RN engines)
+  TE = {
+    encode: (s: string) => {
+      const out = new Uint8Array(s.length * 3);
+      let p = 0;
+      for (let i = 0; i < s.length; i++) {
+        let c = s.charCodeAt(i);
+        if (c < 128) out[p++] = c;
+        else if (c < 2048) {
+          out[p++] = (c >> 6) | 192;
+          out[p++] = (c & 63) | 128;
+        } else {
+          out[p++] = (c >> 12) | 224;
+          out[p++] = ((c >> 6) & 63) | 128;
+          out[p++] = (c & 63) | 128;
+        }
+      }
+      return out.subarray(0, p);
+    }
+  };
+  TD = {
+    decode: (b: Uint8Array) => {
+      let out = "";
+      let i = 0;
+      while (i < b.length) {
+        const c = b[i++];
+        if (c < 128) out += String.fromCharCode(c);
+        else if (c > 191 && c < 224) out += String.fromCharCode(((c & 31) << 6) | (b[i++] & 63));
+        else out += String.fromCharCode(((c & 15) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63));
+      }
+      return out;
+    }
+  };
+}
+
+export const utf8 = (s: string) => TE.encode(s);
+export const fromUtf8 = (b: Uint8Array) => TD.decode(b);
 
 // ─── Hex codec ───────────────────────────────────────────────────────────────
 
@@ -49,8 +99,7 @@ export function fromHex(h: string): Uint8Array {
 
 // ─── Base64 codec (no Buffer dependency, works in RN) ───────────────────────
 
-const B64A =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const B64A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function toBase64(bytes: Uint8Array): string {
   let out = "";
@@ -85,13 +134,6 @@ export function fromBase64(b64: string): Uint8Array {
   }
   return out.slice(0, idx);
 }
-
-// ─── UTF-8 ───────────────────────────────────────────────────────────────────
-
-const TE = new TextEncoder();
-const TD = new TextDecoder();
-export const utf8 = (s: string) => TE.encode(s);
-export const fromUtf8 = (b: Uint8Array) => TD.decode(b);
 
 // ─── Canonical JSON (deterministic, recursively sorted keys) ────────────────
 

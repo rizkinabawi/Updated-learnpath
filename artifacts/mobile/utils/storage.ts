@@ -1023,23 +1023,6 @@ export const updateStreak = async () => {
   await updateStats({ streak: newStreak, lastStudyDate: today });
 };
 
-  // Remove every per-lesson flashcard row (`flashcards_l:<lessonId>`) in
-  // addition to the top-level keys — those don't appear in STORAGE_KEYS and
-  // would otherwise be orphaned across a wipe.
-  try {
-    const allKeys = await AsyncStorage.getAllKeys();
-    const perLessonKeys = allKeys.filter((k) =>
-      k.startsWith(STORAGE_KEYS.FLASHCARDS_LESSON_PREFIX),
-    );
-    if (perLessonKeys.length > 0) {
-      await AsyncStorage.multiRemove(perLessonKeys);
-    }
-  } catch {
-    // Best-effort — fall through to multiRemove of known keys below.
-  }
-
-  await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
-};
 
 // ─── Session Logs ──────────────────────────────────────────────
 export const getSessionLogs = async (): Promise<SessionLog[]> => {

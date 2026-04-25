@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearningPath | Activation Key Manager</title>
+    <meta name="description" content="Professional Activation Key Manager for LearningPath App - Offline Secure System." />
+    <!-- Vercel analytics / meta tags -->
+    <meta property="og:title" content="LearningPath Activation Manager" />
+    <meta property="og:description" content="100% Client-side cryptography for app activation and buyer tokens." />
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">🔐</div>
+                <div class="logo-text">
+                    <h1>LP<span>Key</span></h1>
+                    <p>Manager v2.0</p>
+                </div>
+            </div>
+            
+            <nav class="nav-links">
+                <button class="nav-item active" data-tab="dashboard" id="nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="keypair" id="nav-keypair">
+                    <i data-lucide="key"></i>
+                    <span>Keypair</span>
+                </button>
+                <button class="nav-item" data-tab="sign" id="nav-sign">
+                    <i data-lucide="pen-tool"></i>
+                    <span>Sign Key</span>
+                </button>
+                <button class="nav-item" data-tab="token" id="nav-token">
+                    <i data-lucide="ticket"></i>
+                    <span>Buyer Token</span>
+                </button>
+                <button class="nav-item" data-tab="verify" id="nav-verify">
+                    <i data-lucide="shield-check"></i>
+                    <span>Verify</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    Secure Shell
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-wrap">
+                    <i data-lucide="info"></i>
+                    <span>100% Client-side Cryptography</span>
+                </div>
+                <div class="user-pill">
+                    <span class="badge">Offline Verified</span>
+                </div>
+            </header>
+
+            <div class="content-viewport">
+                <!-- Dashboard Tab -->
+                <section id="tab-dashboard" class="tab-panel active">
+                    <div class="welcome-hero">
+                        <h2>Selamat Datang, <span>Creator</span></h2>
+                        <p>Kelola aktivasi aplikasi dan token komersial secara aman dari mana saja.</p>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i data-lucide="shield"></i>
+                            <h3>Ed25519</h3>
+                            <p>Military Grade Signing</p>
+                        </div>
+                        <div class="stat-card">
+                            <i data-lucide="lock"></i>
+                            <h3>AES-256-GCM</h3>
+                            <p>Encrypted Bundles</p>
+                        </div>
+                        <div class="stat-card">
+                            <i data-lucide="zap"></i>
+                            <h3>Noble Crypto</h3>
+                            <p>Fast & Secure</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Keypair Tab -->
+                <section id="tab-keypair" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Master Keypair</h2>
+                        <p>Generate App Master Ed25519 public/private keys.</p>
+                    </div>
+                    <div class="premium-card">
+                        <div class="card-body">
+                            <button class="btn btn-primary" id="btn-keygen">
+                                <i data-lucide="refresh-cw"></i>
+                                Generate New Keypair
+                            </button>
+                            <div class="keypair-preview hidden" id="keygen-result">
+                                <div class="key-field">
+                                    <label>Private Key (SECRET)</label>
+                                    <div class="code-box danger">
+                                        <code id="sk-val"></code>
+                                        <button class="btn-icon" data-copy="sk-val"><i data-lucide="copy"></i></button>
+                                    </div>
+                                </div>
+                                <div class="key-field">
+                                    <label>Public Key (Public)</label>
+                                    <div class="code-box success">
+                                        <code id="pk-val"></code>
+                                        <button class="btn-icon" data-copy="pk-val"><i data-lucide="copy"></i></button>
+                                    </div>
+                                </div>
+                                <p class="hint">Simpan private key di tempat aman. Public key digunakan di code app.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sign Tab -->
+                <section id="tab-sign" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Generate Activation Key</h2>
+                        <p>Issue activation keys for your users.</p>
+                    </div>
+                    <div class="premium-card">
+                        <div class="grid-2">
+                            <div class="input-group">
+                                <label>Master Private Key</label>
+                                <input type="password" id="sign-sk" placeholder="64-char hex private key" />
+                            </div>
+                            <div class="input-group">
+                                <label>App ID</label>
+                                <input type="text" id="sign-appid" value="learningpath" />
+                            </div>
+                            <div class="input-group">
+                                <label>Validity (Days)</label>
+                                <select id="sign-days">
+                                    <option value="30">30 Days</option>
+                                    <option value="90">90 Days</option>
+                                    <option value="365" selected>1 Year</option>
+                                    <option value="36500">Forever</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Device ID (Optional)</label>
+                                <input type="text" id="sign-device" placeholder="Unbound if empty" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-20" id="btn-sign">
+                            <i data-lucide="check-circle-2"></i>
+                            Issue Key
+                        </button>
+                        <div id="sign-result" class="mt-20 hidden">
+                            <div class="output-label">Produced Activation Key:</div>
+                            <div class="code-box">
+                                <code id="sign-output-json"></code>
+                                <button class="btn-icon" data-copy="sign-output-json"><i data-lucide="copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Buyer Token Tab -->
+                <section id="tab-token" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Buyer Token</h2>
+                        <p>Generate one-time tokens for bundle purchasers.</p>
+                    </div>
+                    <div class="premium-card">
+                        <div class="grid-2">
+                            <div class="input-group">
+                                <label>Creator Private Key</label>
+                                <input type="password" id="buyer-sk" placeholder="Creator private key" />
+                            </div>
+                            <div class="input-group">
+                                <label>Bundle ID</label>
+                                <input type="text" id="buyer-bundle" placeholder="e.g. course-physics-1" />
+                            </div>
+                            <div class="input-group">
+                                <label>Buyer Identity</label>
+                                <input type="text" id="buyer-id" placeholder="Name or Email" />
+                            </div>
+                            <div class="input-group">
+                                <label>Validity (Days)</label>
+                                <input type="number" id="buyer-days" value="365" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-20" id="btn-token">
+                            <i data-lucide="ticket"></i>
+                            Generate Token
+                        </button>
+                        <div id="token-result" class="mt-20 hidden">
+                            <div class="output-label">Buyer Token (JSON):</div>
+                            <div class="code-box">
+                                <code id="token-output-json"></code>
+                                <button class="btn-icon" data-copy="token-output-json"><i data-lucide="copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Verify Tab -->
+                <section id="tab-verify" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Integrity Check</h2>
+                        <p>Verifikasi kunci atau token yang sudah ada.</p>
+                    </div>
+                    <div class="premium-card">
+                        <div class="input-group">
+                            <label>Data to Verify (JSON)</label>
+                            <textarea id="verify-input" placeholder="Paste Activation Key or Buyer Token..."></textarea>
+                        </div>
+                        <div class="input-group mt-10">
+                            <label>Public Key (corresponding to issuer)</label>
+                            <input type="text" id="verify-pk" placeholder="issuer hex public key" />
+                        </div>
+                        <button class="btn btn-outline mt-20" id="btn-verify">
+                            <i data-lucide="search"></i>
+                            Verify Authentication
+                        </button>
+                        <div id="verify-status" class="mt-20"></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Component -->
+    <div id="toast-root"></div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

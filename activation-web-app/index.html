@@ -4,23 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearningPath | Activation Key Manager</title>
-    <!-- Noble Crypto v3.x (Sync with Mobile App) -->
-    <script type="importmap">
-    {
-      "imports": {
-        "lucide": "https://esm.sh/lucide@0.473.0",
-        "@noble/ed25519": "https://esm.sh/@noble/ed25519@3.1.0",
-        "@noble/hashes/sha512": "https://esm.sh/@noble/hashes@1.5.0/sha512",
-        "@noble/hashes/utils": "https://esm.sh/@noble/hashes@1.5.0/utils"
-      }
-    }
-    </script>
+    <!-- Lucide icons from CDN for reliability -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --p: #4f6ef7; --bg: #f8fafc; --card: #ffffff; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #1e293b; line-height: 1.5; }
-        #app { display: flex; height: 100vh; }
-        .sidebar { width: 260px; background: #0f172a; color: white; padding: 24px 0; }
+        #app { display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; background: #0f172a; color: white; padding: 24px 0; display: flex; flex-direction: column; }
         .sidebar-brand { padding: 0 24px 32px; font-size: 20px; font-weight: 800; color: var(--p); }
         .nav-item { padding: 12px 24px; cursor: pointer; transition: 0.2s; color: #94a3b8; font-weight: 500; border: none; background: none; text-align: left; width: 100%; font-size: 14px; }
         .nav-item:hover { color: white; background: #1e293b; }
@@ -49,8 +40,8 @@
 <body>
     <div id="app">
         <aside class="sidebar">
-            <div class="sidebar-brand">LP KeyManager v3</div>
-            <nav>
+            <div class="sidebar-brand">LP KeyManager</div>
+            <nav id="nav-root">
                 <button class="nav-item active" data-tab="keygen">Keypair Generator</button>
                 <button class="nav-item" data-tab="issue">Issue Activation</button>
                 <button class="nav-item" data-tab="token">Buyer Token</button>
@@ -63,7 +54,7 @@
             <section id="tab-keygen" class="tab-panel active">
                 <div class="card">
                     <h1>Keypair Generator</h1>
-                    <p>Create a new Ed25519 keypair. Public key goes into your app source code.</p>
+                    <p>Create a new Ed25519 keypair for your application.</p>
                     <button class="btn btn-p" id="btn-keygen">Generate New Keypair</button>
                     <div id="keygen-out" style="display:none">
                         <div class="code-box">
@@ -85,7 +76,7 @@
                     <p>Sign license keys for your application users.</p>
                     <div class="input-group">
                         <label>Master Private Key (HEX)</label>
-                        <input type="password" id="issue-sk" placeholder="64-char private key" />
+                        <input type="password" id="issue-sk" />
                     </div>
                     <div class="grid">
                         <div class="input-group">
@@ -117,7 +108,7 @@
                             <input type="text" id="token-bid" />
                         </div>
                         <div class="input-group">
-                            <label>Buyer Identity (Name/Email)</label>
+                            <label>Buyer Identity</label>
                             <input type="text" id="token-sid" />
                         </div>
                     </div>
@@ -158,23 +149,23 @@
 
     <div id="toast-root"></div>
 
-    <script type="module">
-        console.log('BOOTSTRAP: STARTING');
-        import { createIcons, Key, PenTool, Ticket, ShieldCheck, LayoutDashboard } from 'lucide';
-        
-        // Navigation Logic
-        const items = document.querySelectorAll('.nav-item');
-        const panels = document.querySelectorAll('.tab-panel');
-        items.forEach(item => {
-            item.addEventListener('click', () => {
-                items.forEach(i => i.classList.remove('active'));
-                panels.forEach(p => p.classList.remove('active'));
-                item.classList.add('active');
-                document.getElementById('tab-' + item.dataset.tab).classList.add('active');
+    <script>
+        // Use a simple bootstrap script specifically for navigation that runs even before modules load.
+        (function() {
+            const items = document.querySelectorAll('.nav-item');
+            const panels = document.querySelectorAll('.tab-panel');
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    items.forEach(i => i.classList.remove('active'));
+                    panels.forEach(p => p.classList.remove('active'));
+                    item.classList.add('active');
+                    document.getElementById('tab-' + item.dataset.tab).classList.add('active');
+                });
             });
-        });
+            if (window.lucide) window.lucide.createIcons();
+        })();
 
-        window.toast = (m) => {
+        window.showToast = (m) => {
             const r = document.getElementById('toast-root');
             const t = document.createElement('div');
             t.className = 'toast'; t.textContent = m;
@@ -183,6 +174,7 @@
             setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
         };
     </script>
+    
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

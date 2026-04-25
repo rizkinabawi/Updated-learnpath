@@ -18,7 +18,7 @@ import {
   getCompletedLessons,
   type User, type LearningPath, type Module, type Lesson, type Stats,
 } from "@/utils/storage";
-import { CARD_GRADIENTS, type ColorScheme } from "@/constants/colors";
+import { CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type ColorScheme } from "@/constants/colors";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AdBanner } from "@/components/AdBanner";
@@ -50,8 +50,16 @@ export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const colors = useColors();
-  const { isDark } = useTheme();
-  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  const { isDark, palette } = useTheme();
+   const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
+
+  // Dynamic gradients based on palette
+  const activeGradients = useMemo(() => {
+    if (palette === "minimal") return CARD_GRADIENTS_MINIMAL;
+    if (palette === "premium") return CARD_GRADIENTS_PREMIUM;
+    return CARD_GRADIENTS;
+  }, [palette, isDark]); // isDark triggering CARD_GRADIENTS mutation via ThemeContext
+
   const shadowLg = useMemo(
     () => ({
       shadowColor: colors.shadow,
@@ -105,8 +113,21 @@ export default function Dashboard() {
   const dateStr = t.home.date_format(t.home.days[now.getDay()], now.getDate(), t.home.months[now.getMonth()]);
   const todayQuote = QUOTES[(now.getDate() + now.getMonth() * 3) % QUOTES.length];
 
-  const headerGradient: [string, string] = [colors.primary, colors.purple];
-  const challengeGradient: [string, string] = [colors.accent, colors.amber];
+  // Fix hardcoded color dependencies by using palette-safe tokens
+  const headerGradient: [string, string] = (palette === "minimal" && isDark)
+    ? [colors.primaryLight, colors.background]
+    : [colors.primary, palette === "color" ? colors.purple : colors.primaryDark];
+
+  const challengeGradient: [string, string] = (palette === "minimal" && isDark)
+    ? [colors.primaryLight, colors.surface]
+    : [colors.accent, palette === "color" ? colors.amber : colors.accentLight];
+
+  // Hero Card text/icon inversion for Premium (Light Hero on Dark Bg)
+  const isPremiumDarkHero = palette === "premium" && isDark;
+  const heroContentColor = isPremiumDarkHero ? "#1A1A1A" : "#fff";
+  const heroDimColor = isPremiumDarkHero ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.75)";
+  const heroBarBg = isPremiumDarkHero ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.28)";
+  const heroBarFill = isPremiumDarkHero ? "#1A1A1A" : "#fff";
 
   return (
     <View style={styles.root}>
@@ -133,14 +154,14 @@ export default function Dashboard() {
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/external-screens" as any)}>
-                <Feather name="globe" size={18} color="#fff" />
+                <Feather name="globe" size={18} color={colors.white} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/search" as any)}>
-                <Feather name="search" size={18} color="#fff" />
+                <Feather name="search" size={18} color={colors.white} />
               </TouchableOpacity>
               {wrongCount > 0 && (
                 <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/mistakes-review" as any)}>
-                  <Feather name="bell" size={18} color="#fff" />
+                  <Feather name="bell" size={18} color={colors.white} />
                   <View style={styles.bellDot} />
                 </TouchableOpacity>
               )}
@@ -190,7 +211,7 @@ export default function Dashboard() {
               style={[styles.continueCard, shadowLg]}
             >
               <LinearGradient
-                colors={CARD_GRADIENTS[0]}
+                colors={activeGradients[0]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.continueGrad}
@@ -198,30 +219,31 @@ export default function Dashboard() {
                 <View style={styles.blob1} />
                 <View style={styles.blob2} />
                 <View style={styles.continueTop}>
-                  <View style={styles.continuePill}>
-                    <Feather name="play" size={10} color="#fff" />
-                    <Text style={styles.continuePillText}>Lanjutkan</Text>
+                  <View style={[styles.continuePill, isPremiumDarkHero && { backgroundColor: "rgba(0,0,0,0.08)" }]}>
+                    <Feather name="play" size={10} color={heroContentColor} />
+                    <Text style={[styles.continuePillText, { color: heroContentColor }]}>Lanjutkan</Text>
                   </View>
-                  <View style={styles.continueArrow}>
-                    <Feather name="arrow-right" size={15} color="#fff" />
+                  <View style={[styles.continueArrow, isPremiumDarkHero && { backgroundColor: "rgba(0,0,0,0.08)" }]}>
+                    <Feather name="arrow-right" size={15} color={heroContentColor} />
                   </View>
                 </View>
-                <Text style={styles.continueName} numberOfLines={2}>{paths[0].name}</Text>
-                <Text style={styles.continueSub} numberOfLines={1}>
+                <Text style={[styles.continueName, { color: heroContentColor }]} numberOfLines={2}>{paths[0].name}</Text>
+                <Text style={[styles.continueSub, { color: heroDimColor }]} numberOfLines={1}>
                   {paths[0].description || user?.topic || "Kursus aktif"}
                 </Text>
                 <View style={styles.continueFooter}>
-                  <View style={styles.continueBar}>
+                  <View style={[styles.continueBar, { backgroundColor: heroBarBg }]}>
                     <View 
                       style={[
                         styles.continueBarFill, 
                         { 
+                          backgroundColor: heroBarFill,
                           width: `${Math.round((allLessons.filter(l => completions.includes(l.id) && allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length / (allLessons.filter(l => allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length || 1)) * 100)}%` 
                         }
                       ]} 
                     />
                   </View>
-                  <Text style={styles.continueBarLabel}>
+                  <Text style={[styles.continueBarLabel, { color: heroDimColor }]}>
                     {Math.round((allLessons.filter(l => completions.includes(l.id) && allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length / (allLessons.filter(l => allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length || 1)) * 100)}% selesai
                   </Text>
                 </View>
@@ -267,7 +289,7 @@ export default function Dashboard() {
                 const pathMods = allModules.filter((m) => m.pathId === path.id);
                 const modIds = new Set(pathMods.map((m) => m.id));
                 const pathLessons = allLessons.filter((l) => modIds.has(l.moduleId));
-                const grad = CARD_GRADIENTS[i % CARD_GRADIENTS.length];
+                const grad = activeGradients[i % activeGradients.length];
                 const icon = (path.icon as React.ComponentProps<typeof Feather>["name"]) || COURSE_ICONS[i % COURSE_ICONS.length];
                 return (
                   <TouchableOpacity
@@ -277,7 +299,7 @@ export default function Dashboard() {
                     style={[styles.courseCard, shadowSm]}
                   >
                     <LinearGradient colors={grad} style={styles.courseCardGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                      <Feather name={icon} size={24} color="#fff" />
+                      <Feather name={icon} size={24} color={colors.white} />
                     </LinearGradient>
 
                     <View style={styles.courseCardBody}>
@@ -414,29 +436,29 @@ export default function Dashboard() {
   );
 }
 
-const makeStyles = (c: ColorScheme, isDark: boolean) =>
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
     scrollContent: { paddingBottom: 80 },
 
     blob1: {
       position: "absolute", width: 200, height: 200, borderRadius: 100,
-      backgroundColor: "rgba(255,255,255,0.07)", top: -60, right: -50,
+      backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)", top: -60, right: -50,
     },
     blob2: {
       position: "absolute", width: 120, height: 120, borderRadius: 60,
-      backgroundColor: "rgba(255,255,255,0.05)", bottom: -30, left: 10,
+      backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)", bottom: -30, left: 10,
     },
 
     header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
     headerRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 20 },
-    dateText: { fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: "600", marginBottom: 4 },
-    greetText: { fontSize: 14, color: "rgba(255,255,255,0.8)", fontWeight: "600" },
+    dateText: { fontSize: 12, color: "rgba(255,255,255,0.55)", fontWeight: "600", marginBottom: 4 },
+    greetText: { fontSize: 14, color: "rgba(255,255,255,0.75)", fontWeight: "600" },
     nameText: { fontSize: 26, fontWeight: "900", color: "#fff", letterSpacing: -0.5, marginTop: 2 },
     headerActions: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 },
     iconBtn: {
       width: 38, height: 38, borderRadius: 12,
-      backgroundColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "rgba(255,255,255,0.14)",
       alignItems: "center", justifyContent: "center",
     },
     bellDot: {
@@ -447,30 +469,30 @@ const makeStyles = (c: ColorScheme, isDark: boolean) =>
     },
     avatar: {
       width: 40, height: 40, borderRadius: 12,
-      backgroundColor: "rgba(255,255,255,0.22)",
+      backgroundColor: "rgba(255,255,255,0.18)",
       alignItems: "center", justifyContent: "center",
-      borderWidth: 1.5, borderColor: "rgba(255,255,255,0.35)",
+      borderWidth: 1.5, borderColor: "rgba(255,255,255,0.3)",
     },
     avatarText: { fontSize: 16, fontWeight: "900", color: "#fff" },
 
     statsRow: {
       flexDirection: "row",
-      backgroundColor: "rgba(255,255,255,0.14)",
+      backgroundColor: "rgba(255,255,255,0.1)",
       borderRadius: 14,
       overflow: "hidden",
       marginBottom: 14,
     },
     statItem: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 3 },
-    statItemBorder: { borderRightWidth: 1, borderRightColor: "rgba(255,255,255,0.14)" },
+    statItemBorder: { borderRightWidth: 1, borderRightColor: "rgba(255,255,255,0.1)" },
     statVal: { fontSize: 16, fontWeight: "900", color: "#fff", marginTop: 3 },
-    statLabel: { fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: "700", textTransform: "uppercase" },
+    statLabel: { fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: "700", textTransform: "uppercase" },
 
     tipStrip: {
       flexDirection: "row", alignItems: "flex-start", gap: 8,
-      backgroundColor: "rgba(255,255,255,0.12)",
+      backgroundColor: "rgba(255,255,255,0.08)",
       borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
     },
-    tipText: { flex: 1, fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: "500", lineHeight: 18 },
+    tipText: { flex: 1, fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: "500", lineHeight: 18 },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionFlat: { paddingHorizontal: 20, marginTop: 14 },
@@ -614,8 +636,8 @@ const makeStyles = (c: ColorScheme, isDark: boolean) =>
     challengeSub: { fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: "500", marginTop: 2 },
     challengeBtn: {
       flexDirection: "row", alignItems: "center", gap: 6,
-      backgroundColor: "#fff",
+      backgroundColor: (palette === "minimal" && isDark) ? c.primary : c.white,
       paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
     },
-    challengeBtnText: { fontSize: 13, fontWeight: "800", color: c.accent },
+    challengeBtnText: { fontSize: 13, fontWeight: "800", color: (palette === "minimal" && isDark) ? c.white : (palette === "premium" && isDark) ? "#1A1A1A" : c.accent },
   });

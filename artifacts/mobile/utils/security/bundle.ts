@@ -64,6 +64,8 @@ export interface BundleContent {
   cards: unknown[];
   /** Media files: name → base64 of bytes. Keys are sorted in canonical hashing. */
   media: Record<string, string>;
+  /** Complete course structure (Paths, Modules, Lessons, etc.) */
+  coursePack?: any; 
 }
 
 export interface SignedBundle {
@@ -121,19 +123,46 @@ function isSignedBundle(v: unknown): v is SignedBundle {
 export function parseBundleInput(raw: string): SignedBundle | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
+
+  const validate = (obj: any) => {
+    if (!obj || typeof obj !== "object") return false;
+    const missing = [];
+    if (typeof obj.bundleId !== "string") missing.push("bundleId");
+    if (typeof obj.creatorId !== "string") missing.push("creatorId");
+    if (typeof obj.creatorPublicKey !== "string") missing.push("creatorPublicKey");
+    if (typeof obj.contentHash !== "string") missing.push("contentHash");
+    if (typeof obj.signature !== "string") missing.push("signature");
+    if (typeof obj.passwordHash !== "string") missing.push("passwordHash");
+    if (typeof obj.encryptedContent !== "string") missing.push("encryptedContent");
+    
+    if (missing.length > 0 && __DEV__) {
+        console.warn("[parseBundleInput] Missing fields:", missing);
+    }
+    return missing.length === 0;
+  };
+
+  // 1. Direct JSON
   try {
     const obj = JSON.parse(trimmed);
-    if (isSignedBundle(obj)) return obj;
-  } catch {
-    /* not direct JSON */
-  }
+    if (validate(obj)) return obj;
+  } catch {}
+
+  // 2. Base64 encoded JSON
   try {
     const text = fromUtf8(fromBase64(trimmed));
     const obj = JSON.parse(text);
-    if (isSignedBundle(obj)) return obj;
-  } catch {
-    /* not base64 of JSON */
-  }
+    if (validate(obj)) return obj;
+  } catch {}
+
+  // 3. Extracted JSON from string (regex)
+  try {
+    const match = trimmed.match(/\{[\s\S]*\}/);
+    if (match) {
+      const obj = JSON.parse(match[0]);
+      if (validate(obj)) return obj;
+    }
+  } catch {}
+
   return null;
 }
 

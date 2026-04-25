@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
@@ -38,7 +38,8 @@ import { resolveAssetUri } from "@/utils/path-resolver";
 
 export default function QuizScreen() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
@@ -258,7 +259,7 @@ export default function QuizScreen() {
       {/* Nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <X size={20} color={colors.black} />
+          <X size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.navCount}>{currentIndex + 1} / {quizzes.length}</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
@@ -269,7 +270,7 @@ export default function QuizScreen() {
             onPress={() => router.push(`/create-quiz/${lessonId}`)}
             style={styles.navBtn}
           >
-            <Plus size={20} color={colors.black} />
+            <Plus size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -350,7 +351,7 @@ export default function QuizScreen() {
                     styles.optionText,
                     showCorrect && { color: colors.success },
                     showWrong && { color: colors.danger },
-                    isSelected && !isAnswered && { color: colors.black },
+                    isSelected && !isAnswered && { color: colors.text },
                   ]}
                 >
                   {opt}
@@ -383,7 +384,7 @@ export default function QuizScreen() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   center: {
     flex: 1,
@@ -393,19 +394,19 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     gap: 10,
     backgroundColor: c.background,
   },
-  emptyTitle: { fontSize: 22, fontWeight: "900", color: c.black },
+  emptyTitle: { fontSize: 22, fontWeight: "900", color: c.text },
   emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", fontWeight: "500" },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: c.black,
+    backgroundColor: c.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
     marginTop: 8,
   },
-  addBtnText: { color: c.white, fontWeight: "800", fontSize: 14 },
+  addBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
   backLink: { marginTop: 8 },
   backLinkText: { color: c.primary, fontWeight: "700", fontSize: 14 },
   nav: {
@@ -425,12 +426,12 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   navCount: { fontSize: 14, fontWeight: "800", color: c.textSecondary },
   questionCard: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: c.borderLight,
+    borderColor: c.border,
     gap: 10,
     overflow: "hidden",
   },
@@ -449,7 +450,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   questionText: {
     fontSize: 19,
     fontWeight: "800",
-    color: c.black,
+    color: c.text,
     lineHeight: 26,
   },
   questionAudioBtn: {
@@ -468,49 +469,49 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   option: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 14,
     gap: 14,
     borderWidth: 2,
-    borderColor: c.borderLight,
+    borderColor: c.border,
   },
-  optionSelected: { borderColor: c.black, backgroundColor: c.surface },
-  optionCorrect: { borderColor: c.success, backgroundColor: c.successLight },
-  optionWrong: { borderColor: c.danger, backgroundColor: c.dangerLight },
+  optionSelected: { borderColor: c.primary, backgroundColor: c.background },
+  optionCorrect: { borderColor: c.success, backgroundColor: isDark ? "rgba(34, 197, 94, 0.1)" : c.successLight },
+  optionWrong: { borderColor: c.danger, backgroundColor: isDark ? "rgba(239, 68, 68, 0.1)" : c.dangerLight },
   optionBadge: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: c.surface,
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: c.border,
   },
-  badgeSelected: { backgroundColor: c.black, borderColor: c.black },
+  badgeSelected: { backgroundColor: c.primary, borderColor: c.primary },
   badgeCorrect: { backgroundColor: c.success, borderColor: c.success },
   badgeWrong: { backgroundColor: c.danger, borderColor: c.danger },
   optionBadgeText: { fontSize: 13, fontWeight: "800", color: c.textSecondary },
-  optionBadgeTextActive: { color: c.white },
-  optionText: { flex: 1, fontSize: 15, fontWeight: "600", color: c.black },
+  optionBadgeTextActive: { color: "#fff" },
+  optionText: { flex: 1, fontSize: 15, fontWeight: "600", color: c.text },
   bottomBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
     backgroundColor: c.background,
     borderTopWidth: 1,
-    borderTopColor: c.borderLight,
+    borderTopColor: c.border,
   },
   nextBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: c.black,
+    backgroundColor: c.primary,
     paddingVertical: 18,
     borderRadius: 20,
   },
-  nextBtnText: { color: c.white, fontWeight: "800", fontSize: 16 },
+  nextBtnText: { color: "#fff", fontWeight: "800", fontSize: 16 },
   resultWrap: {
     flex: 1,
     paddingHorizontal: 28,
@@ -520,8 +521,8 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: c.background,
   },
   resultEmoji: { fontSize: 64 },
-  resultTitle: { fontSize: 26, fontWeight: "900", color: c.black },
-  resultScore: { fontSize: 64, fontWeight: "900", color: c.black },
+  resultTitle: { fontSize: 26, fontWeight: "900", color: c.text },
+  resultScore: { fontSize: 64, fontWeight: "900", color: c.text },
   resultSub: { fontSize: 16, color: c.textMuted, fontWeight: "600" },
   resultBtns: { flexDirection: "row", gap: 12, marginTop: 16, width: "100%" },
   restartBtn: {
@@ -530,11 +531,11 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: c.black,
+    backgroundColor: c.primary,
     paddingVertical: 16,
     borderRadius: 18,
   },
-  restartBtnText: { color: c.white, fontWeight: "800", fontSize: 15 },
+  restartBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
   doneBtn: {
     flex: 1,
     alignItems: "center",
@@ -545,7 +546,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
   },
-  doneBtnText: { color: c.black, fontWeight: "800", fontSize: 15 },
+  doneBtnText: { color: c.text, fontWeight: "800", fontSize: 15 },
   nextLessonBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 8, backgroundColor: c.primaryLight,

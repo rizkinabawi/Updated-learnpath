@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
@@ -52,10 +52,12 @@ const makeColGrads = (colors: ColorScheme): [string, string][] => [
 // ─── Collection Edit Modal ───────────────────────────────────────
 function CollectionEditModal({
   col,
+  styles,
   onClose,
   onSaved,
 }: {
   col: StandaloneCollection;
+  styles: any;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -123,11 +125,13 @@ function CollectionEditModal({
 function CollectionAssignModal({
   col,
   count,
+  styles,
   onClose,
   onAssigned,
 }: {
   col: StandaloneCollection;
   count: number;
+  styles: any;
   onClose: () => void;
   onAssigned: () => void;
 }) {
@@ -168,41 +172,41 @@ function CollectionAssignModal({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={am.overlay}>
-        <View style={am.sheet}>
-          <View style={am.handle} />
-          <View style={am.header}>
+      <View style={styles.amOverlay}>
+        <View style={styles.amSheet}>
+          <View style={styles.amHandle} />
+          <View style={styles.amHeader}>
             {step !== "course" ? (
-              <TouchableOpacity style={am.backBtn} onPress={() => setStep(step === "module" ? "course" : "module")}>
-                <Feather name="arrow-left" size={18} color={colors.dark} />
+              <TouchableOpacity style={styles.amBackBtn} onPress={() => setStep(step === "module" ? "course" : "module")}>
+                <Feather name="arrow-left" size={18} color={colors.text} />
               </TouchableOpacity>
             ) : <View style={{ width: 34 }} />}
-            <Text style={am.title} numberOfLines={1}>{stepTitle}</Text>
-            <TouchableOpacity style={am.backBtn} onPress={onClose}>
-              <Feather name="x" size={18} color={colors.dark} />
+            <Text style={styles.amTitle} numberOfLines={1}>{stepTitle}</Text>
+            <TouchableOpacity style={styles.amBackBtn} onPress={onClose}>
+              <Feather name="x" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <Text style={am.colPreview} numberOfLines={2}>
+          <Text style={styles.amColPreview} numberOfLines={2}>
             Assign "{col.name}" ({count} kartu) ke pelajaran tujuan
           </Text>
 
           {saving ? (
-            <View style={am.loadingWrap}>
+            <View style={styles.amLoadingWrap}>
               <ActivityIndicator color={colors.primary} />
               <Text style={{ color: colors.textMuted, fontSize: 13 }}>Memindahkan…</Text>
             </View>
           ) : items.length === 0 ? (
-            <View style={am.empty}>
+            <View style={styles.amEmpty}>
               <Feather name="inbox" size={28} color={colors.textMuted} />
-              <Text style={am.emptyText}>Tidak ada data</Text>
+              <Text style={styles.amEmptyText}>Tidak ada data</Text>
             </View>
           ) : (
-            <ScrollView contentContainerStyle={am.list}>
+            <ScrollView contentContainerStyle={styles.amList}>
               {items.map((item: any) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={[am.item, shadowSm]}
+                  style={[styles.amItem, shadowSm]}
                   onPress={() => {
                     if (step === "course") { setSelCourse(item); setStep("module"); }
                     else if (step === "module") { setSelModule(item); setStep("lesson"); }
@@ -210,8 +214,8 @@ function CollectionAssignModal({
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={am.itemLabel}>{getLabel(item)}</Text>
-                    {getSub(item) ? <Text style={am.itemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
+                    <Text style={styles.amItemLabel}>{getLabel(item)}</Text>
+                    {getSub(item) ? <Text style={styles.amItemSub} numberOfLines={1}>{getSub(item)}</Text> : null}
                   </View>
                   <Feather name={step === "lesson" ? "check-circle" : "chevron-right"} size={16} color={step === "lesson" ? colors.success : colors.textMuted} />
                 </TouchableOpacity>
@@ -227,13 +231,15 @@ function CollectionAssignModal({
 // ─── Main Screen ────────────────────────────────────────────────
 export default function FlashcardBrowseAll() {
   const colors = useColors();
-  const GRAD = useMemo(() => makeGrad(colors), [colors]);
-  const COL_GRADS = useMemo(() => makeColGrads(colors), [colors]);
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+
+  const GRAD = makeGrad(colors);
+  const COL_GRADS = makeColGrads(colors);
   const [rows, setRows] = useState<LessonRow[]>([]);
   const [collections, setCollections] = useState<CollectionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -350,6 +356,7 @@ export default function FlashcardBrowseAll() {
       {editCol && (
         <CollectionEditModal
           col={editCol}
+          styles={styles}
           onClose={() => setEditCol(null)}
           onSaved={loadAll}
         />
@@ -358,6 +365,7 @@ export default function FlashcardBrowseAll() {
         <CollectionAssignModal
           col={assignCol.col}
           count={assignCol.count}
+          styles={styles}
           onClose={() => setAssignCol(null)}
           onAssigned={loadAll}
         />
@@ -599,7 +607,7 @@ export default function FlashcardBrowseAll() {
                                 <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count} kartu</Text>
                               </View>
                               <View style={[styles.startBtn, { backgroundColor: grad[0] }]}>
-                                <Feather name="play" size={11} color="#fff" />
+                                <Feather name="play" size={12} color="#fff" />
                               </View>
                             </>
                           ) : (
@@ -619,25 +627,25 @@ export default function FlashcardBrowseAll() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
-  blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(74,158,255,0.1)", top: -50, right: -40 },
-  blob2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(108,99,255,0.08)", bottom: -20, left: 20 },
+  blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: isDark ? "rgba(74,158,255,0.05)" : "rgba(74,158,255,0.1)", top: -50, right: -40 },
+  blob2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: isDark ? "rgba(108,99,255,0.04)" : "rgba(108,99,255,0.08)", bottom: -20, left: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   headerSub: { fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: "#fff", letterSpacing: -0.3 },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: c.white, letterSpacing: -0.3 },
   countBadge: { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center" },
   countBadgeText: { fontSize: 20, fontWeight: "900", color: "#fff" },
   countBadgeSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "700" },
-  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11 },
-  searchInput: { flex: 1, fontSize: 14, color: c.dark, fontWeight: "500" },
+  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, borderWidth: 1, borderColor: c.border },
+  searchInput: { flex: 1, fontSize: 14, color: c.text, fontWeight: "500" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.dark, textAlign: "center" },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.text, textAlign: "center" },
   emptySub: { fontSize: 14, color: c.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
   emptyFabHint: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, backgroundColor: c.primary, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
   emptyFabHintText: { fontSize: 14, fontWeight: "800", color: "#fff" },
@@ -648,7 +656,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   sectionWrap: { gap: 10 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 4 },
   sectionIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  sectionTitle: { fontSize: 16, fontWeight: "900", color: c.dark },
+  sectionTitle: { fontSize: 16, fontWeight: "900", color: c.text },
   sectionMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2 },
   collectionGrid: { gap: 10 },
 
@@ -659,8 +667,8 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   colCardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   colCardIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   colBadge: { backgroundColor: c.background, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  colBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
-  colCardName: { fontSize: 16, fontWeight: "800", color: c.dark, lineHeight: 22 },
+  colBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5, color: c.textMuted },
+  colCardName: { fontSize: 16, fontWeight: "800", color: c.text, lineHeight: 22 },
   colCardDesc: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   colCardMeta: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
   countPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
@@ -677,7 +685,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   courseCard: { backgroundColor: c.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: c.border },
   courseHeader: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   courseIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  courseName: { fontSize: 15, fontWeight: "800", color: c.dark },
+  courseName: { fontSize: 15, fontWeight: "800", color: c.text },
   courseMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2 },
   moduleWrap: { borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   moduleLabel: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
@@ -686,45 +694,39 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   lessonRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingLeft: 16, paddingRight: 4, borderRadius: 12, marginBottom: 4, backgroundColor: c.background },
   lessonLeft: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 10, minWidth: 0 },
   lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border, flexShrink: 0, marginTop: 5 },
-  lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
-  lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
-  lessonRight: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 },
+  lessonName: { fontSize: 13, fontWeight: "700", color: c.text, lineHeight: 18 },
+  lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 2 },
+  lessonRight: { flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: 12 },
   countChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   countChipText: { fontSize: 11, fontWeight: "800" },
   startBtn: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   emptyChip: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
-});
 
-// ─── Edit Modal Styles ──────────────────────────────────────────
-const em = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 28 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  title: { flex: 1, fontSize: 16, fontWeight: "800", color: Colors.dark },
-  iconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
-  body: { paddingHorizontal: 20, gap: 6 },
-  label: { fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 10 },
-  optional: { fontSize: 12, fontWeight: "500", color: Colors.textMuted },
-  input: { borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: Colors.dark, backgroundColor: Colors.background },
-  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Colors.success, borderRadius: 14, paddingVertical: 14, marginTop: 16 },
-  saveBtnText: { fontSize: 15, fontWeight: "800", color: Colors.white },
-});
+  emOverlay: { flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  emSheet: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 28 },
+  emHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
+  emHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
+  emTitle: { flex: 1, fontSize: 16, fontWeight: "800", color: c.text },
+  emIconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
+  emBody: { paddingHorizontal: 20, gap: 6 },
+  emLabel: { fontSize: 13, fontWeight: "700", color: c.text, marginTop: 10 },
+  emOptional: { fontSize: 12, fontWeight: "500", color: c.textMuted },
+  emInput: { borderWidth: 1.5, borderColor: c.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: c.text, backgroundColor: c.background },
+  emSaveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.success, borderRadius: 14, paddingVertical: 14, marginTop: 16 },
+  emSaveBtnText: { fontSize: 15, fontWeight: "800", color: c.white },
 
-// ─── Assign Modal Styles ────────────────────────────────────────
-const am = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: Colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "80%", paddingBottom: 28 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" },
-  title: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: Colors.dark },
-  colPreview: { marginHorizontal: 20, marginBottom: 12, fontSize: 13, fontWeight: "600", color: Colors.textSecondary, fontStyle: "italic", backgroundColor: Colors.background, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderLeftWidth: 3, borderLeftColor: Colors.success },
-  loadingWrap: { alignItems: "center", justifyContent: "center", padding: 32, gap: 10 },
-  list: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
-  item: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: Colors.border },
-  itemLabel: { fontSize: 14, fontWeight: "800", color: Colors.dark, marginBottom: 2 },
-  itemSub: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
-  empty: { alignItems: "center", paddingVertical: 36, gap: 10 },
-  emptyText: { fontSize: 14, color: Colors.textMuted, fontWeight: "600" },
+  amOverlay: { flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  amSheet: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "80%", paddingBottom: 28 },
+  amHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: "center", marginTop: 12, marginBottom: 4 },
+  amHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
+  amBackBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
+  amTitle: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "800", color: c.text },
+  amColPreview: { marginHorizontal: 20, marginBottom: 12, fontSize: 13, fontWeight: "600", color: c.textSecondary, fontStyle: "italic", backgroundColor: c.background, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderLeftWidth: 3, borderLeftColor: c.success },
+  amLoadingWrap: { alignItems: "center", justifyContent: "center", padding: 32, gap: 10 },
+  amList: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
+  amItem: { flexDirection: "row", alignItems: "center", backgroundColor: c.surface, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: c.border },
+  amItemLabel: { fontSize: 14, fontWeight: "800", color: c.text, marginBottom: 2 },
+  amItemSub: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
+  amEmpty: { alignItems: "center", paddingVertical: 36, gap: 10 },
+  amEmptyText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
 });

@@ -104,8 +104,8 @@ export interface GenerateTokenInput {
    *  This is embedded in the token (visible on decoding) so forgers cannot
    *  claim the token is theirs without revealing the original buyer's info. */
   buyerId: string;
-  /** Validity in days from now. Default: 365. */
-  days?: number;
+  /** Validity in milliseconds from now. Default: 365 days. */
+  durationMs?: number;
 }
 
 /**
@@ -125,8 +125,8 @@ export async function generateBuyerToken(
   }
 
   const now = Date.now();
-  const days = Math.max(1, input.days ?? 365);
-  const expiry = now + days * 86400_000;
+  const duration = input.durationMs ?? 365 * 86400_000;
+  const expiry = now + duration;
   const nonce = toHex(randomBytes(12));
 
   const partial: Omit<BuyerLicenseToken, "signature"> = {

@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -11,6 +11,7 @@ import {
   Dimensions,
   Linking,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -41,6 +42,7 @@ import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { resolveAssetUri } from "@/utils/path-resolver";
+import * as FileSystem from "@/utils/fs-compat";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = Math.min(SCREEN_WIDTH - 32, 720);
@@ -58,6 +60,20 @@ const extractYoutubeId = (url: string): string | null => {
   } catch {
     return null;
   }
+};
+
+/** Transform Google Docs/Sheets URLs for better in-app embedding */
+const transformDocUrl = (url: string): string => {
+  if (!url.includes("docs.google.com")) return url;
+  // Handle Sheets
+  if (url.includes("/spreadsheets/")) {
+    if (url.includes("/edit")) return url.split("/edit")[0] + "/preview";
+    return url;
+  }
+  // Handle Docs
+  if (url.includes("/edit")) return url.replace("/edit", "/preview");
+  if (url.includes("/view")) return url.replace("/view", "/preview");
+  return url;
 };
 
 const formatBytes = (bytes: number) => {
@@ -161,8 +177,8 @@ function YoutubePlayer({
           toast.success("Video melayang! Kamu bisa navigasi ke layar lain.");
         }}
       >
-        <Feather name="external-link" size={16} color="#FF0000" />
-        <Text style={{ flex: 1, fontWeight: "700", color: "#FF0000" }}>
+        <Feather name="external-link" size={16} color={mutedColor} />
+        <Text style={{ flex: 1, fontWeight: "700", color: mutedColor }}>
           Aktifkan Video Melayang (PIP)
         </Text>
       </TouchableOpacity>
@@ -171,8 +187,9 @@ function YoutubePlayer({
 }
 
 export default function MaterialFullView() {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const { matId, lessonId } = useLocalSearchParams<{
     matId: string;
@@ -184,6 +201,9 @@ export default function MaterialFullView() {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [lessonName, setLessonName] = useState("");
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [csvData, setCsvData] = useState<string[][] | null>(null);
+  const [isBookMode, setIsBookMode] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const safeMatId = Array.isArray(matId) ? matId[0] : matId ?? "";
 
@@ -208,6 +228,51 @@ export default function MaterialFullView() {
       if (lesson) setLessonName(lesson.name);
     })();
   }, [safeMatId, lessonId]);
+
+  // Handle CSV parsing when the material is a CSV
+  useEffect(() => {
+    const isCsv = 
+      current?.type === "file" && 
+      current.filePath && 
+      (
+        current.fileMime?.toLowerCase().includes("csv") || 
+        current.fileName?.toLowerCase().endsWith(".csv") ||
+        current.fileMime === "text/comma-separated-values" ||
+        current.fileMime === "text/plain" && current.fileName?.toLowerCase().endsWith(".csv")
+      );
+
+    if (isCsv) {
+      (async () => {
+        try {
+          let text = "";
+          if (Platform.OS === "web") {
+            const res = await fetch(current.filePath!);
+            text = await res.text();
+          } else {
+            text = await FileSystem.readAsStringAsync(current.filePath!);
+          }
+          if (!text || !text.trim()) {
+            setCsvData([]);
+            return;
+          }
+          // Detect separator (comma or semicolon)
+          const firstLine = text.split(/\r?\n/)[0] || "";
+          const sep = firstLine.includes(";") && !firstLine.includes(",") ? ";" : ",";
+          
+          const rows = text.split(/\r?\n/)
+            .filter(r => r.trim())
+            .map(r => r.split(sep).map(c => c.trim().replace(/^["']|["']$/g, "")));
+          setCsvData(rows);
+        } catch (e: any) {
+          console.warn("CSV parse failed", e);
+          toast.error("Gagal membaca file CSV: " + (e?.message || "Format tidak didukung"));
+          setCsvData(null);
+        }
+      })();
+    } else {
+      setCsvData(null);
+    }
+  }, [current]);
 
   const idx = useMemo(
     () => materials.findIndex((m) => m.id === safeMatId),
@@ -286,7 +351,7 @@ export default function MaterialFullView() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={colors.white} />
+          <X size={20} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -297,9 +362,17 @@ export default function MaterialFullView() {
           </Text>
         </View>
         <TouchableOpacity onPress={goEdit} style={styles.editBtn}>
-          <PencilLine size={16} color={colors.white} />
+          <PencilLine size={16} color="#fff" />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
+        {(current.type === "text" || current.type === "html") && (
+          <TouchableOpacity 
+            onPress={() => setIsBookMode(!isBookMode)} 
+            style={[styles.backBtn, { marginLeft: 0, backgroundColor: isBookMode ? "#fff" : "rgba(255,255,255,0.2)" }]}
+          >
+            <BookOpen size={18} color={isBookMode ? meta.color : "#fff"} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
@@ -310,46 +383,156 @@ export default function MaterialFullView() {
           <Icon size={14} color={meta.color} />
           <Text style={[styles.metaText, { color: meta.color }]}>{meta.label}</Text>
           <View style={{ flex: 1 }} />
+          {isBookMode && (
+            <Text style={[styles.metaText, { color: meta.color, marginRight: 8 }]}>
+              Hal. {currentPage + 1}
+            </Text>
+          )}
           <Clock size={11} color={colors.textMuted} />
           <Text style={styles.metaDate}>{formatDate(current.createdAt)}</Text>
         </View>
 
-        {current.type === "text" && (
-          <Text style={styles.bodyText} selectable>
-            {current.content}
-          </Text>
-        )}
-
-        {current.type === "html" && (
-          <View>
-            {Platform.OS === "web" ? (
-              // @ts-ignore
-              <iframe
-                srcDoc={current.content}
-                style={{ width: "100%", minHeight: 400, border: "1px solid " + colors.border, borderRadius: 12 }}
-              />
-            ) : (
-              <WebView
-                originWhitelist={["*"]}
-                source={{ html: current.content }}
-                style={{ minHeight: 400, borderRadius: 12 }}
-              />
-            )}
+        {(current.type === "text" || current.type === "html") && isBookMode ? (
+          <View style={{ height: 500 }}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const page = Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 32));
+                setCurrentPage(page);
+              }}
+            >
+              {(current.type === "text" 
+                ? (current.content.match(/[\s\S]{1,1500}(?:\n\n|$)/g) || [current.content])
+                : (current.content.split(/<hr\s*\/?>/i))
+              ).map((pageContent, pidx) => (
+                <View key={pidx} style={{ width: SCREEN_WIDTH - 32, paddingRight: 16 }}>
+                  {current.type === "text" ? (
+                    <Text style={styles.bodyText} selectable>{pageContent}</Text>
+                  ) : (
+                    <WebView
+                      originWhitelist={["*"]}
+                      source={{ html: `<style>body{font-family:sans-serif;font-size:16px;line-height:1.6;color:${colors.dark};background:transparent;}</style>${pageContent}` }}
+                      style={{ height: 440, backgroundColor: "transparent" }}
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 4, marginTop: 12 }}>
+              {(current.type === "text" 
+                ? (current.content.match(/[\s\S]{1,1500}(?:\n\n|$)/g) || [current.content]) 
+                : (current.content.split(/<hr\s*\/?>/i))
+              ).map((_, i) => (
+                <View 
+                  key={i} 
+                  style={{ 
+                    width: i === currentPage ? 16 : 6, 
+                    height: 6, 
+                    borderRadius: 3, 
+                    backgroundColor: i === currentPage ? meta.color : colors.border 
+                  }} 
+                />
+              ))}
+            </View>
           </View>
+        ) : (
+          <>
+            {current.type === "text" && (
+              <Text style={styles.bodyText} selectable>
+                {current.content}
+              </Text>
+            )}
+
+            {current.type === "html" && (
+              <View>
+                {Platform.OS === "web" ? (
+                  // @ts-ignore
+                  <iframe
+                    srcDoc={current.content}
+                    style={{ width: "100%", minHeight: 400, border: "1px solid " + colors.border, borderRadius: 12 }}
+                  />
+                ) : (
+                  <WebView
+                    originWhitelist={["*"]}
+                    source={{ html: current.content }}
+                    style={{ minHeight: 400, borderRadius: 12 }}
+                  />
+                )}
+              </View>
+            )}
+          </>
         )}
 
         {current.type === "file" && (
-          <View style={styles.fileBox}>
-            <Paperclip size={28} color={colors.amber} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fileName}>{current.fileName}</Text>
-              {current.fileSize ? (
-                <Text style={styles.fileSize}>{formatBytes(current.fileSize)}</Text>
-              ) : null}
-            </View>
-            <TouchableOpacity style={styles.openFileBtn} onPress={() => openFile(current)}>
-              <ExternalLink size={14} color={colors.white} />
-              <Text style={styles.openFileBtnText}>Buka</Text>
+          <View style={{ gap: 12 }}>
+            {csvData && csvData.length > 0 ? (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                style={{ marginHorizontal: -16 }}
+                nestedScrollEnabled
+              >
+                <View style={{ paddingHorizontal: 16 }}>
+                  <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, overflow: "hidden", backgroundColor: colors.surface }}>
+                    {csvData.map((row, ri) => (
+                      <View key={ri} style={{ flexDirection: "row", borderBottomWidth: ri === csvData.length - 1 ? 0 : 1, borderBottomColor: colors.border, backgroundColor: ri === 0 ? colors.primaryLight : "transparent" }}>
+                        {row.map((cell, ci) => (
+                          <View key={ci} style={{ padding: 12, minWidth: 100, borderRightWidth: ci === row.length - 1 ? 0 : 1, borderRightColor: colors.border }}>
+                            <Text style={{ fontSize: 13, fontWeight: ri === 0 ? "800" : "500", color: ri === 0 ? colors.primary : colors.text }} numberOfLines={2}>
+                              {cell}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+            ) : csvData && csvData.length === 0 ? (
+              <View style={[styles.fileBox, { padding: 30, alignItems: "center" }]}>
+                <FileText size={40} color={colors.textMuted} />
+                <Text style={{ color: colors.textMuted, marginTop: 8 }}>File CSV kosong</Text>
+              </View>
+            ) : (current.fileMime?.includes("pdf") || 
+              current.fileMime?.includes("msword") ||
+              current.fileMime?.includes("officedocument") ||
+              current.fileName?.toLowerCase().endsWith(".pdf") ||
+              current.fileName?.toLowerCase().endsWith(".docx") ||
+              current.fileName?.toLowerCase().endsWith(".xlsx") ||
+              current.fileName?.toLowerCase().endsWith(".pptx")
+            ) ? (
+              <WebView
+                source={{ uri: current.filePath! }}
+                style={{
+                  width: "100%",
+                  height: 500,
+                  borderRadius: 16,
+                  backgroundColor: colors.surface,
+                }}
+                startInLoadingState
+                originWhitelist={["*"]}
+                allowFileAccess
+              />
+            ) : (
+              <View style={styles.fileBox}>
+                <Paperclip size={28} color={colors.amber} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fileName}>{current.fileName}</Text>
+                  {current.fileSize ? (
+                    <Text style={styles.fileSize}>{formatBytes(current.fileSize)}</Text>
+                  ) : null}
+                </View>
+              </View>
+            )}
+            
+            <TouchableOpacity 
+              style={[styles.openFileBtn, { backgroundColor: colors.amber, paddingVertical: 14 }]} 
+              onPress={() => openFile(current)}
+            >
+              <ExternalLink size={16} color={colors.white} />
+              <Text style={[styles.openFileBtnText, { fontSize: 14 }]}>Buka di Aplikasi Eksternal</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -359,23 +542,42 @@ export default function MaterialFullView() {
             <YoutubePlayer 
               url={current.videoUrl || current.content} 
               title={current.title}
-              linkBoxStyle={styles.linkBox} 
-              mutedColor={colors.textMuted} 
+              linkBoxStyle={[styles.linkBox, { backgroundColor: isDark ? "rgba(255,0,0,0.1)" : "#FFF0F0" }]} 
+              mutedColor={isDark ? "#FF6B6B" : "#FF0000"} 
             />
           </View>
         )}
 
         {current.type === "googledoc" && (
-          <TouchableOpacity
-            style={[styles.linkBox, { backgroundColor: "#E8F0FE" }]}
-            onPress={() => Linking.openURL(current.content).catch(() => {})}
-          >
-            <Globe size={20} color="#1967D2" />
-            <Text style={{ flex: 1, fontWeight: "700", color: "#1967D2" }} numberOfLines={2}>
-              {current.content}
-            </Text>
-            <ExternalLink size={14} color="#1967D2" />
-          </TouchableOpacity>
+          <View style={{ gap: 12 }}>
+            <WebView
+              source={{ uri: transformDocUrl(current.content) }}
+              style={{
+                width: "100%",
+                height: 500,
+                borderRadius: 16,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+              startInLoadingState
+              renderLoading={() => (
+                <View style={{ position: "absolute", inset: 0, justifyContent: "center", alignItems: "center" }}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              )}
+            />
+            <TouchableOpacity
+              style={[styles.linkBox, { backgroundColor: colors.primaryLight, borderStyle: "dashed", borderWidth: 1 }]}
+              onPress={() => Linking.openURL(current.content).catch(() => {})}
+            >
+              <Globe size={18} color={colors.primary} />
+              <Text style={{ flex: 1, fontWeight: "700", color: colors.primary }}>
+                Buka di Aplikasi Google Docs
+              </Text>
+              <ExternalLink size={14} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         )}
 
         {current.type === "image" && current.filePath ? (
@@ -435,7 +637,7 @@ export default function MaterialFullView() {
           onPress={() => setZoomImage(null)}
         >
           <TouchableOpacity onPress={() => setZoomImage(null)} style={styles.zoomCloseBtn}>
-            <X size={22} color={colors.white} />
+            <X size={22} color="#fff" />
           </TouchableOpacity>
           {zoomImage ? (
             <Image source={{ uri: zoomImage }} style={styles.zoomImage} resizeMode="contain" />
@@ -446,7 +648,7 @@ export default function MaterialFullView() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   header: {
     paddingHorizontal: 16,
@@ -464,13 +666,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     fontSize: 11, color: "rgba(255,255,255,0.7)",
     fontWeight: "700", textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 18, fontWeight: "900", color: c.white },
+  headerTitle: { fontSize: 18, fontWeight: "900", color: "#fff" },
   editBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 8,
   },
-  editBtnText: { fontSize: 12, fontWeight: "800", color: c.white },
+  editBtnText: { fontSize: 12, fontWeight: "800", color: "#fff" },
   body: { padding: 16, gap: 14 },
   metaRow: {
     flexDirection: "row", alignItems: "center", gap: 6,
@@ -490,7 +692,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: c.amber, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 10,
   },
-  openFileBtnText: { fontSize: 12, fontWeight: "800", color: c.white },
+  openFileBtnText: { fontSize: 12, fontWeight: "800", color: "#fff" },
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: "#FFF0F0", borderRadius: 12, padding: 14,

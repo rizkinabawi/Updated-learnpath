@@ -123,7 +123,7 @@ export default function NoteFullView() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={colors.white} />
+          <X size={20} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -211,7 +211,7 @@ export default function NoteFullView() {
           onPress={() => setZoomImage(null)}
         >
           <TouchableOpacity onPress={() => setZoomImage(null)} style={styles.zoomCloseBtn}>
-            <X size={22} color={colors.white} />
+            <X size={22} color="#fff" />
           </TouchableOpacity>
           {zoomImage ? (
             <Image source={{ uri: zoomImage }} style={styles.zoomImage} resizeMode="contain" />
@@ -241,13 +241,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     fontSize: 11, color: "rgba(255,255,255,0.7)",
     fontWeight: "700", textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 18, fontWeight: "900", color: c.white },
+  headerTitle: { fontSize: 18, fontWeight: "900", color: "#fff" },
   editBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 8,
   },
-  editBtnText: { fontSize: 12, fontWeight: "800", color: c.white },
+  editBtnText: { fontSize: 12, fontWeight: "800", color: "#fff" },
   body: { padding: 16, gap: 14 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   metaDate: { fontSize: 11, color: c.textMuted, fontWeight: "600" },

@@ -43,6 +43,8 @@ export interface LearningPath {
   completedLessons?: number;
   totalLessons?: number;
   createdAt: string;
+  /** If true, this course was imported from a secured bundle and cannot be exported/shared again. */
+  isLocked?: boolean;
 }
 
 export interface Module {
@@ -246,7 +248,18 @@ const STORAGE_KEYS = {
   THEME: "theme",
   STANDALONE_COLLECTIONS: "standalone_collections",
   COMPLETED_LESSONS: "completed_lessons",
+  ISSUED_TOKENS: "issued_tokens",
 };
+
+export interface IssuedTokenRecord {
+  id: string;
+  bundleId: string;
+  buyerId: string;
+  durationMs: number;
+  expiryIso: string;
+  tokenJson: string;
+  issuedAt: string;
+}
 
 export const generateId = () =>
   `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1191,42 +1204,6 @@ export const deleteStudyMaterial = async (id: string) => {
 };
 
 // ─── Course Pack Export / Import ───────────────────────────────
-export const exportCourse = async (pathId?: string): Promise<CoursePack> => {
-  const [paths, modules, lessons, flashcardPacks, quizPacks, flashcards, quizzes, materials, notes] =
-    await Promise.all([
-      getLearningPaths(),
-      getModules(),
-      getLessons(),
-      getFlashcardPacks(),
-      getQuizPacks(),
-      getFlashcards(),
-      getQuizzes(),
-      getStudyMaterials(),
-      getNotes(),
-    ]);
-
-  const filteredPaths = pathId ? paths.filter((p) => p.id === pathId) : paths;
-  const pathIds = new Set(filteredPaths.map((p) => p.id));
-  const filteredModules = modules.filter((m) => pathIds.has(m.pathId));
-  const moduleIds = new Set(filteredModules.map((m) => m.id));
-  const filteredLessons = lessons.filter((l) => moduleIds.has(l.moduleId));
-  const lessonIds = new Set(filteredLessons.map((l) => l.id));
-
-  return {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    paths: filteredPaths,
-    modules: filteredModules,
-    lessons: filteredLessons,
-    flashcardPacks: flashcardPacks.filter((p) => lessonIds.has(p.lessonId)),
-    quizPacks: quizPacks.filter((p) => lessonIds.has(p.lessonId)),
-    flashcards: flashcards.filter((c) => lessonIds.has(c.lessonId)),
-    quizzes: quizzes.filter((q) => lessonIds.has(q.lessonId)),
-    materials: materials.filter((m) => lessonIds.has(m.lessonId)),
-    notes: notes.filter((n) => lessonIds.has(n.lessonId)),
-  };
-};
-
 // ─── Standalone Collections ────────────────────────────────────
 export const getStandaloneCollections = async (
   type?: "flashcard" | "quiz"
@@ -1293,18 +1270,86 @@ export const assignStandaloneCollection = async (
 export const importCourse = async (pack: CoursePack): Promise<number> => {
   let imported = 0;
 
-  for (const p of pack.paths ?? []) { await saveLearningPath(p); imported++; }
+  // 1. Core Structure
+  for (const p of pack.paths ?? []) { 
+    await saveLearningPath({ ...p, isLocked: true }); 
+    imported++; 
+  }
   for (const m of pack.modules ?? []) { await saveModule(m); imported++; }
   for (const l of pack.lessons ?? []) { await saveLesson(l); imported++; }
   for (const p of pack.flashcardPacks ?? []) { await saveFlashcardPack(p); }
   for (const p of pack.quizPacks ?? []) { await saveQuizPack(p); }
-  for (const c of pack.flashcards ?? []) { await saveFlashcard(c); imported++; }
-  for (const q of pack.quizzes ?? []) { await saveQuiz(q); imported++; }
+
+  // 2. High-volume items (Bulk)
+  if ((pack.flashcards ?? []).length > 0) {
+    await saveFlashcardsBulkChunked(pack.flashcards!);
+    imported += pack.flashcards!.length;
+  }
+  if ((pack.quizzes ?? []).length > 0) {
+    await saveQuizzesBulk(pack.quizzes!);
+    imported += pack.quizzes!.length;
+  }
+
+  // 3. Supporting content
   for (const m of pack.materials ?? []) { await saveStudyMaterial(m); imported++; }
   for (const n of pack.notes ?? []) { await saveNote(n); imported++; }
 
   return imported;
 };
+
+export const exportCourse = async (pathId: string): Promise<CoursePack> => {
+  const allPaths = await getLearningPaths();
+  const path = allPaths.find((p) => p.id === pathId);
+  if (!path) throw new Error("Kursus tidak ditemukan.");
+  
+  if (path.isLocked) {
+    throw new Error("Pelajaran ini terkunci (DRM Protected) dan tidak dapat disebarkan ulang.");
+  }
+
+  const modules = await getModules(pathId);
+  const modIds = modules.map((m) => m.id);
+
+  const allLessons = await getLessons();
+  const lessons = allLessons.filter((l) => modIds.includes(l.moduleId));
+  const lessonIds = lessons.map((l) => l.id);
+
+  const flashcardPacks = (await getFlashcardPacks()).filter((p) =>
+    lessonIds.includes(p.lessonId)
+  );
+  const quizPacks = (await getQuizPacks()).filter((p) =>
+    lessonIds.includes(p.lessonId)
+  );
+
+  const flashcards = await getFlashcards();
+  const filteredFlashcards = flashcards.filter((c) =>
+    lessonIds.includes(c.lessonId)
+  );
+
+  const quizzes = (await getFromStorage<Quiz>(STORAGE_KEYS.QUIZZES)).filter(
+    (q) => lessonIds.includes(q.lessonId)
+  );
+  const materials = (
+    await getFromStorage<StudyMaterial>(STORAGE_KEYS.STUDY_MATERIALS)
+  ).filter((m) => lessonIds.includes(m.lessonId));
+  const notes = (await getFromStorage<Note>(STORAGE_KEYS.NOTES)).filter((n) =>
+    lessonIds.includes(n.lessonId)
+  );
+
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    paths: [path],
+    modules,
+    lessons,
+    flashcardPacks,
+    quizPacks,
+    flashcards: filteredFlashcards,
+    quizzes,
+    materials,
+    notes,
+  };
+};
+
 // ─── Lesson Progress & Completion ──────────────────────────────
 export const getCompletedLessons = async (): Promise<string[]> => {
   return getFromStorage<string>(STORAGE_KEYS.COMPLETED_LESSONS);
@@ -1354,4 +1399,20 @@ export const getCourseProgress = async (pathId: string): Promise<{
     completed,
     percentage: total > 0 ? (completed / total) * 100 : 0
   };
+};
+
+// ─── Token History ─────────────────────────────────────────────
+export const getIssuedTokens = async (): Promise<IssuedTokenRecord[]> => {
+  return getFromStorage<IssuedTokenRecord>(STORAGE_KEYS.ISSUED_TOKENS);
+};
+
+export const saveIssuedToken = async (record: IssuedTokenRecord) => {
+  const all = await getIssuedTokens();
+  all.unshift(record);
+  await saveToStorage(STORAGE_KEYS.ISSUED_TOKENS, all);
+};
+
+export const deleteIssuedToken = async (id: string) => {
+  const all = await getIssuedTokens();
+  await saveToStorage(STORAGE_KEYS.ISSUED_TOKENS, all.filter(t => t.id !== id));
 };

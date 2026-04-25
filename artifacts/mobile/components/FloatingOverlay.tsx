@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,56 +6,77 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  Animated,
+  PanResponder,
 } from "react-native";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
 import { useOverlay } from "@/contexts/OverlayContext";
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
+import { type ColorScheme } from "@/constants/colors";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+const extractYoutubeId = (input: string): string | null => {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (trimmed.length === 11) return trimmed; // already an ID
+  const m =
+    trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
+    trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/) ||
+    trimmed.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/) ||
+    trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+};
 
 export const FloatingOverlay: React.FC = () => {
   const { timer, stopTimer, video, closeVideo, minimizeTimer, setMinimizeTimer, setMinimizeVideo, minimizeVideo } = useOverlay();
   const colors = useColors();
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const router = useRouter();
 
-  const translateX = useSharedValue(SCREEN_WIDTH - 100);
-  const translateY = useSharedValue(120);
-  const context = useSharedValue({ x: 0, y: 0 });
+  const vId = useMemo(() => extractYoutubeId(video.videoId || ""), [video.videoId]);
 
-  const panGesture = Gesture.Pan()
-    .onStart(() => {
-      context.value = { x: translateX.value, y: translateY.value };
-    })
-    .onUpdate((event) => {
-      translateX.value = event.translationX + context.value.x;
-      translateY.value = event.translationY + context.value.y;
-    })
-    .onEnd(() => {
-      // Snap to edges
-      if (translateX.value > SCREEN_WIDTH / 2) {
-        translateX.value = withSpring(SCREEN_WIDTH - (video.videoId && minimizeVideo ? 170 : 80));
-      } else {
-        translateX.value = withSpring(20);
-      }
-      
-      if (translateY.value < 50) translateY.value = withSpring(50);
-      if (translateY.value > SCREEN_HEIGHT - 100) translateY.value = withSpring(SCREEN_HEIGHT - 150);
+  // Size cycling: 0=40%, 1=60%, 2=80%, 3=100%
+  const [sizeIdx, setSizeIdx] = useState(1);
+  const widths = [SCREEN_WIDTH * 0.4, SCREEN_WIDTH * 0.6, SCREEN_WIDTH * 0.8, SCREEN_WIDTH - 40];
+  const currentWidth = widths[sizeIdx];
+
+  const pan = useRef(new Animated.ValueXY({ x: SCREEN_WIDTH - 80, y: 120 })).current;
+  const lastOffset = useRef({ x: SCREEN_WIDTH - 80, y: 120 });
+
+  useEffect(() => {
+    const id = pan.addListener((value) => {
+      lastOffset.current = value;
     });
+    return () => pan.removeListener(id);
+  }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-    ],
-  }));
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (e, g) => Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5,
+      onStartShouldSetPanResponder: () => false, // Don't steal initial taps
+      onPanResponderGrant: () => {
+        pan.setOffset({ x: lastOffset.current.x, y: lastOffset.current.y });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderRelease: (e, gesture) => {
+        pan.flattenOffset();
+        const finalX = Math.max(20, Math.min(SCREEN_WIDTH - currentWidth - 20, lastOffset.current.x + gesture.dx));
+        const finalY = Math.max(50, Math.min(SCREEN_HEIGHT - 220, lastOffset.current.y + gesture.dy));
+        
+        Animated.spring(pan, {
+          toValue: { x: finalX, y: finalY },
+          useNativeDriver: false,
+          friction: 8,
+          tension: 40,
+        }).start();
+      },
+    })
+  ).current;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -64,17 +85,46 @@ export const FloatingOverlay: React.FC = () => {
   };
 
   const showTimer = timer.isActive && minimizeTimer;
-  const showVideo = video.videoId && minimizeVideo;
+  const showVideo = !!vId && minimizeVideo;
+  
+  const webViewRef = useRef<any>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMusicMode, setIsMusicMode] = useState(false);
+
+  const togglePlay = () => {
+    if (!webViewRef.current) return;
+    const cmd = isPlaying ? 'pauseVideo' : 'playVideo';
+    webViewRef.current.injectJavaScript(`
+      (function() {
+        const ifr = document.getElementsByTagName('iframe')[0];
+        if (ifr && ifr.contentWindow) {
+          ifr.contentWindow.postMessage('{"event":"command","func":"${cmd}","args":""}', '*');
+        }
+      })()
+    `);
+    setIsPlaying(!isPlaying);
+  };
 
   if (!showTimer && !showVideo) return null;
 
   return (
-    <GestureDetector gesture={panGesture}>
-      <Animated.View style={[styles.container, animatedStyle]}>
+    <Animated.View 
+      style={[
+        styles.container, 
+        { 
+          transform: [
+            { translateX: pan.x },
+            { translateY: pan.y }
+          ] 
+        }
+      ]}
+    >
         
         {/* --- Timer Badge --- */}
         {showTimer && (
           <TouchableOpacity 
+            {...panResponder.panHandlers}
+            activeOpacity={0.8}
             style={[styles.timerBadge, { backgroundColor: colors.primary }]}
             onPress={() => {
               setMinimizeTimer(false);
@@ -93,38 +143,72 @@ export const FloatingOverlay: React.FC = () => {
 
         {/* --- Video Card --- */}
         {showVideo && (
-          <View style={[styles.videoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.videoHeader}>
-              <Text style={[styles.videoTitle, { color: colors.text }]} numberOfLines={1}>
-                {video.title}
-              </Text>
-              <TouchableOpacity onPress={closeVideo}>
-                <Feather name="x" size={14} color={colors.textSecondary} />
-              </TouchableOpacity>
+          <View style={[
+            styles.videoCard, 
+            { 
+              width: isMusicMode ? 180 : currentWidth, 
+              backgroundColor: colors.surface, 
+              borderColor: colors.border 
+            }
+          ]}>
+            <View style={styles.videoHeader} {...panResponder.panHandlers}>
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 4 }}>
+                <Feather name={isMusicMode ? "music" : "move"} size={12} color={colors.textSecondary} />
+                <Text style={[styles.videoTitle, { color: colors.text }]} numberOfLines={1}>
+                  {video.title || "Video Player"}
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                 <TouchableOpacity onPress={togglePlay} style={{ padding: 4 }}>
+                   <Feather name={isPlaying ? "pause" : "play"} size={16} color={colors.primary} />
+                 </TouchableOpacity>
+                 <TouchableOpacity onPress={() => setIsMusicMode(!isMusicMode)} style={{ padding: 4 }}>
+                   <Feather name={isMusicMode ? "video" : "music"} size={16} color={colors.textSecondary} />
+                 </TouchableOpacity>
+                 {!isMusicMode && (
+                   <TouchableOpacity onPress={() => setSizeIdx((sizeIdx + 1) % 4)} style={{ padding: 4 }}>
+                     <Feather name="maximize-2" size={16} color={colors.textSecondary} />
+                   </TouchableOpacity>
+                 )}
+                 <TouchableOpacity onPress={closeVideo} style={{ padding: 4 }}>
+                   <Feather name="x" size={16} color={colors.textSecondary} />
+                 </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.videoPlaceholder}>
+
+            <View style={[styles.videoPlaceholder, isMusicMode && { height: 0, opacity: 0 }]}>
               <WebView
-                source={{ uri: `https://www.youtube-nocookie.com/embed/${video.videoId}?playsinline=1&modestbranding=1` }}
+                ref={webViewRef}
+                source={{ 
+                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><iframe src="https://www.youtube-nocookie.com/embed/${vId}?autoplay=1&playsinline=1&enablejsapi=1&modestbranding=1" allow="autoplay;encrypted-media;picture-in-picture" allowfullscreen="0"></iframe></body></html>`,
+                  baseUrl: "https://www.youtube-nocookie.com"
+                }}
                 style={{ flex: 1 }}
                 scrollEnabled={false}
+                mediaPlaybackRequiresUserAction={false}
+                allowsInlineMediaPlayback={true}
                 allowsFullscreenVideo={false}
               />
             </View>
-            <TouchableOpacity 
-              style={styles.expandBtn}
-              onPress={() => setMinimizeVideo(false)}
-            >
-              <Feather name="maximize" size={12} color={colors.textSecondary} />
-            </TouchableOpacity>
+            
+            {!isMusicMode && (
+              <TouchableOpacity 
+                style={styles.expandBtn}
+                onPress={() => {
+                  setMinimizeVideo(false);
+                  router.push(`/study-material/view/${video.videoId}`);
+                }}
+              >
+                <Feather name="external-link" size={16} color={colors.text} />
+              </TouchableOpacity>
+            )}
           </View>
         )}
-
       </Animated.View>
-    </GestureDetector>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: {
     position: "absolute",
     top: 0,
@@ -160,18 +244,17 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "rgba(0,0,0,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
   videoCard: {
-    width: 160,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 1.2,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
   },
@@ -179,14 +262,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    borderBottomColor: c.border,
   },
   videoTitle: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "800",
     flex: 1,
   },
   videoPlaceholder: {
@@ -196,10 +279,15 @@ const styles = StyleSheet.create({
   },
   expandBtn: {
     position: "absolute",
-    bottom: 4,
-    right: 4,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 4,
-    padding: 2,
+    top: 30,
+    right: 8,
+    backgroundColor: c.surface,
+    borderRadius: 6,
+    padding: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
   }
 });

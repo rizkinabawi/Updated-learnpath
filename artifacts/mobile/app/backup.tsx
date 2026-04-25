@@ -31,40 +31,34 @@ export default function BackupScreen() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string>("");
 
-  const handleExport = async () => {
+  const handleExport = async (mode: "share" | "download") => {
     if (busy) return;
     setBusy(true);
     setProgress("Mengumpulkan data...");
     try {
       const backup = await buildBackup((m) => setProgress(m));
       setProgress("Menulis file backup...");
-      const { uri, filename, sizeBytes } = await writeBackupToFile(backup);
-      const sizeMb = (sizeBytes / (1024 * 1024)).toFixed(2);
-      const mediaCount = Object.keys(backup.media).length;
+      const { uri, filename } = await writeBackupToFile(backup);
       setProgress("");
 
-      const canShare = await Sharing.isAvailableAsync().catch(() => false);
-      if (canShare) {
-        try {
+      if (mode === "download") {
+        const ok = await FileSystem.downloadToFile(uri, filename);
+        if (ok) Alert.alert("Berhasil", "File backup telah disimpan.");
+      } else {
+        const canShare = await Sharing.isAvailableAsync().catch(() => false);
+        if (canShare) {
           await Sharing.shareAsync(uri, {
             mimeType: "application/json",
-            dialogTitle: "Simpan Backup LearningPath",
+            dialogTitle: "Bagikan Backup LearningPath",
             UTI: "public.json",
           });
-        } catch (e) {
-          if (!isCancellationError(e)) {
-            console.warn("[backup] share error", e);
-          }
+        } else {
+          Alert.alert("Lokasi Backup", `File tersimpan di:\n${uri}`);
         }
-      } else {
-        Alert.alert(
-          "Backup tersimpan",
-          `File: ${filename}\nLokasi: ${uri}\nUkuran: ${sizeMb} MB\nMedia: ${mediaCount} file`
-        );
       }
     } catch (e) {
       console.error("[backup] export failed", e);
-      Alert.alert("Backup Gagal", "Tidak dapat membuat file backup.");
+      Alert.alert("Gagal", "Tidak dapat mengekspor backup.");
     } finally {
       setBusy(false);
       setProgress("");
@@ -93,9 +87,7 @@ export default function BackupScreen() {
         throw new Error("File bukan JSON yang valid.");
       }
       if (parsed?.kind !== "learnpath-backup" || parsed?.version !== 1) {
-        throw new Error(
-          "File ini bukan backup LearningPath yang valid."
-        );
+        throw new Error("File ini bukan backup LearningPath yang valid.");
       }
 
       setBusy(false);
@@ -121,22 +113,12 @@ export default function BackupScreen() {
                 );
                 Alert.alert(
                   "Pulih Berhasil",
-                  `${keysRestored} kategori data & ${mediaRestored} file media dipulihkan. Aplikasi akan dimuat ulang.`,
-                  [
-                    {
-                      text: "OK",
-                      onPress: () => router.replace("/(tabs)"),
-                    },
-                  ]
+                  `${keysRestored} kategori data & ${mediaRestored} file media dipulihkan.`,
+                  [{ text: "Selesai", onPress: () => router.replace("/(tabs)") }]
                 );
               } catch (err) {
                 console.error("[backup] restore failed", err);
-                Alert.alert(
-                  "Pulih Gagal",
-                  err instanceof Error
-                    ? err.message
-                    : "Tidak dapat memulihkan backup."
-                );
+                Alert.alert("Pulih Gagal", "Gagal memulihkan backup.");
               } finally {
                 setBusy(false);
                 setProgress("");
@@ -148,9 +130,7 @@ export default function BackupScreen() {
     } catch (e) {
       setBusy(false);
       setProgress("");
-      const msg =
-        e instanceof Error ? e.message : "Tidak dapat membaca file backup.";
-      Alert.alert("Import Gagal", msg);
+      Alert.alert("Import Gagal", e instanceof Error ? e.message : "Terjadi kesalahan.");
     }
   };
 
@@ -161,34 +141,60 @@ export default function BackupScreen() {
           title: "Backup & Pulih",
           headerStyle: { backgroundColor: colors.background },
           headerTitleStyle: { color: colors.text },
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={{ paddingRight: 16 }}>
+              <Feather name="chevron-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.replace("/(tabs)")} style={{ paddingLeft: 16 }}>
+              <Feather name="home" size={22} color={colors.text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.intro}>
           <Feather name="hard-drive" size={28} color={colors.primary} />
-          <Text style={styles.title}>Backup Lengkap</Text>
+          <Text style={styles.title}>Data & Recovery</Text>
           <Text style={styles.sub}>
-            Simpan semua data belajarmu (kursus, modul, flashcard, quiz, catatan,
-            materi, statistik) beserta gambar & audio yang menempel ke dalam
-            satu file backup. File ini bisa kamu simpan, bagikan, dan pulihkan
-            kapan saja — sepenuhnya offline.
+            Amankan seluruh kursus, modul, flashcard, dan progres belajarmu dalam satu file.
           </Text>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>EKSPOR DATA</Text>
         </View>
 
         <TouchableOpacity
           style={[styles.action, styles.actionPrimary]}
-          onPress={handleExport}
+          onPress={() => handleExport("share")}
           disabled={busy}
           activeOpacity={0.85}
         >
-          <Feather name="upload" size={22} color={colors.white} />
+          <Feather name="share-2" size={20} color={colors.white} />
           <View style={styles.actionTextWrap}>
-            <Text style={styles.actionTitle}>Buat & Bagikan Backup</Text>
-            <Text style={styles.actionSub}>
-              Hasilkan file .json berisi seluruh data + media
-            </Text>
+            <Text style={styles.actionTitle}>Bagikan Backup</Text>
+            <Text style={styles.actionSub}>Kirim file backup (.json) ke aplikasi lain</Text>
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.action, styles.actionSecondary]}
+          onPress={() => handleExport("download")}
+          disabled={busy}
+          activeOpacity={0.85}
+        >
+          <Feather name="download-cloud" size={20} color={colors.primary} />
+          <View style={styles.actionTextWrap}>
+            <Text style={[styles.actionTitle, { color: colors.primary }]}>Simpan ke Perangkat</Text>
+            <Text style={[styles.actionSub, { color: colors.textMuted }]}>Download langsung ke folder lokal</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>IMPOR DATA</Text>
+        </View>
 
         <TouchableOpacity
           style={[styles.action, styles.actionSecondary]}
@@ -196,86 +202,76 @@ export default function BackupScreen() {
           disabled={busy}
           activeOpacity={0.85}
         >
-          <Feather name="download" size={22} color={colors.primary} />
+          <Feather name="refresh-cw" size={20} color={colors.text} />
           <View style={styles.actionTextWrap}>
-            <Text style={[styles.actionTitle, { color: colors.primary }]}>
-              Pulihkan dari File
-            </Text>
-            <Text style={[styles.actionSub, { color: colors.textMuted }]}>
-              Pilih file backup .json untuk memulihkan
-            </Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Pulihkan dari File</Text>
+            <Text style={[styles.actionSub, { color: colors.textMuted }]}>Ganti data saat ini dengan file backup</Text>
           </View>
         </TouchableOpacity>
 
         {busy && (
           <View style={styles.progressBox}>
             <ActivityIndicator color={colors.primary} />
-            <Text style={styles.progressText}>
-              {progress || "Memproses..."}
-            </Text>
+            <Text style={styles.progressText}>{progress || "Memproses..."}</Text>
           </View>
         )}
-
-        <View style={styles.note}>
-          <Feather name="info" size={14} color={colors.textMuted} />
-          <Text style={styles.noteText}>
-            Memulihkan akan menimpa data saat ini. Disarankan membuat backup
-            terlebih dahulu sebelum memulihkan.
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  scroll: { padding: 20, gap: 16 },
-  intro: {
-    backgroundColor: c.white,
-    borderRadius: 16,
-    padding: 18,
-    gap: 8,
-    ...shadow,
-  },
-  title: { fontSize: 20, fontWeight: "800", color: c.text },
-  sub: { fontSize: 13, color: c.textMuted, lineHeight: 19 },
-  action: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: 16,
-    borderRadius: 14,
-    ...shadow,
-  },
-  actionPrimary: { backgroundColor: c.primary },
-  actionSecondary: {
-    backgroundColor: c.white,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  actionTextWrap: { flex: 1 },
-  actionTitle: { fontSize: 15, fontWeight: "700", color: c.white },
-  actionSub: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 2,
-  },
-  progressBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: c.white,
-    borderRadius: 12,
-    padding: 14,
-    ...shadow,
-  },
-  progressText: { fontSize: 13, color: c.text, flex: 1 },
-  note: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingHorizontal: 4,
-  },
-  noteText: { fontSize: 12, color: c.textMuted, flex: 1, lineHeight: 17 },
-});
+const makeStyles = (c: ColorScheme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    scroll: { padding: 20, gap: 12 },
+    intro: {
+      backgroundColor: c.white,
+      borderRadius: 16,
+      padding: 18,
+      gap: 6,
+      ...shadow,
+    },
+    title: { fontSize: 20, fontWeight: "800", color: c.text },
+    sub: { fontSize: 13, color: c.textMuted, lineHeight: 18 },
+    sectionHeader: {
+      marginTop: 10,
+      paddingHorizontal: 4,
+    },
+    sectionTitle: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: c.textMuted,
+      letterSpacing: 0.5,
+    },
+    action: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+      padding: 18,
+      borderRadius: 16,
+      ...shadow,
+    },
+    actionPrimary: { backgroundColor: c.primary },
+    actionSecondary: {
+      backgroundColor: c.white,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    actionTextWrap: { flex: 1 },
+    actionTitle: { fontSize: 15, fontWeight: "700", color: c.white },
+    actionSub: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.85)",
+      marginTop: 2,
+    },
+    progressBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: c.white,
+      borderRadius: 12,
+      padding: 14,
+      ...shadow,
+    },
+    progressText: { fontSize: 13, color: c.text, flex: 1 },
+  });

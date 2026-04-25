@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useState, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
@@ -30,8 +30,9 @@ interface EnrichedPack {
 }
 
 export default function PackManager() {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -259,7 +260,7 @@ export default function PackManager() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   backBtn: {
@@ -283,13 +284,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   filterTextActive: { color: c.primary },
   packCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
-    backgroundColor: c.white, borderRadius: 18, padding: 14,
+    backgroundColor: c.surface, borderRadius: 18, padding: 14,
     borderWidth: 1, borderColor: c.border,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   packIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  packName: { fontSize: 15, fontWeight: "800", color: c.dark },
+  packName: { fontSize: 15, fontWeight: "800", color: c.text },
   packLesson: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   packMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   packTypeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
@@ -306,17 +307,17 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     justifyContent: "center", alignItems: "center", paddingHorizontal: 24,
   },
   modalCard: {
-    backgroundColor: c.white, borderRadius: 20, padding: 24,
+    backgroundColor: c.surface, borderRadius: 20, padding: 24,
     width: "100%", gap: 12,
     shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18, shadowRadius: 24, elevation: 12,
   },
-  modalTitle: { fontSize: 18, fontWeight: "900", color: c.dark },
+  modalTitle: { fontSize: 18, fontWeight: "900", color: c.text },
   modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500" },
   modalInput: {
     backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, fontWeight: "700", color: c.dark,
+    fontSize: 15, fontWeight: "700", color: c.text,
     borderWidth: 1.5, borderColor: c.border,
     marginTop: 4,
   },
@@ -324,7 +325,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: c.primary, borderRadius: 14,
     paddingVertical: 13, alignItems: "center",
   },
-  modalSaveText: { fontSize: 15, fontWeight: "900", color: c.white },
+  modalSaveText: { fontSize: 15, fontWeight: "900", color: "#fff" },
   modalCancel: { alignItems: "center", paddingVertical: 6 },
   modalCancelText: { fontSize: 14, fontWeight: "700", color: c.textMuted },
 });

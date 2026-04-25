@@ -36,14 +36,14 @@ import { useTheme, useColors } from "@/contexts/ThemeContext";
 
 export default function ProfileTab() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette, toggleTheme: toggleDark } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isTablet = width >= 720;
   const { t, language, setLanguage } = useTranslation();
-  const { isDark, toggleTheme: toggleDark } = useTheme();
   const [user, setUser] = useState<UserType | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [pathCount, setPathCount] = useState(0);
@@ -116,7 +116,7 @@ export default function ProfileTab() {
       const result = await DocumentPicker.getDocumentAsync({ type: ["application/json", "*/*"], copyToCacheDirectory: true });
       if (result.canceled) return;
       const asset = result.assets[0];
-      const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
       const pack = JSON.parse(text) as CoursePack;
       if (!pack.version || !Array.isArray(pack.paths) || pack.paths.length === 0) {
         Alert.alert("Format Tidak Valid", "File bukan bundle kursus yang valid. Pastikan file dibuat dari fitur 'Bagikan Bundle Kursus'.");
@@ -173,156 +173,75 @@ export default function ProfileTab() {
     ? Math.round((stats.correctAnswers / stats.totalAnswers) * 100) : 0;
   const wrong = (stats?.totalAnswers ?? 0) - (stats?.correctAnswers ?? 0);
 
-  const MENU = [
+  const SECTIONS = [
     {
-      icon: "user" as const, label: "Edit Profil",
-      sub: "Ubah nama, foto, level & target belajar",
-      color: colors.primary,
-      onPress: () => router.push("/edit-profile"),
+      title: "Akun & Keamanan",
+      items: [
+        { icon: "user" as const, label: "Edit Profil", sub: "Ubah nama, foto & level", color: colors.primary, onPress: () => router.push("/edit-profile") },
+        { icon: "key" as const, label: "AI Keys", sub: "API key OpenAI & Gemini", color: colors.success, onPress: () => router.push("/ai-keys") },
+        { icon: "shield" as const, label: "Creator Studio", sub: "Buat bundle terenkripsi", color: colors.primary, onPress: () => router.push("/creator" as any) },
+        { icon: "lock" as const, label: "Buka Bundle", sub: "Dekripsi bundle kursus", color: colors.teal, onPress: () => router.push("/bundle/open" as any) },
+      ]
     },
     {
-      icon: "key" as const, label: "AI Keys",
-      sub: "Simpan API key OpenAI & Gemini untuk Ask Your AI",
-      color: colors.success,
-      onPress: () => router.push("/ai-keys"),
+      title: "Materi & Koleksi",
+      items: [
+        { icon: "package" as const, label: "Pack Manager", sub: "Kelola pack flashcard", color: colors.purple, onPress: () => router.push("/pack-manager") },
+        { icon: "image" as const, label: "Image Manager", sub: "Kelola media tersimpan", color: colors.teal, onPress: () => router.push("/image-manager") },
+        { icon: "bookmark" as const, label: "Soal Tersimpan", sub: "Review bookmark", color: colors.purple, onPress: () => router.push("/bookmarks") },
+        { icon: "share-2" as const, label: t.profile.share_bundle, sub: t.profile.share_bundle_sub, color: colors.teal, onPress: () => setShowShareModal(true) },
+        { icon: "download" as const, label: t.profile.import_bundle, sub: t.profile.import_bundle_sub, color: colors.primary, onPress: handleImportCourse },
+      ]
     },
     {
-      icon: "package" as const, label: "Pack Manager",
-      sub: "Kelola pack flashcard & quiz kamu",
-      color: colors.purple,
-      onPress: () => router.push("/pack-manager"),
-    },
-    {
-      icon: "shield" as const, label: "Creator (Bundle Aman)",
-      sub: "Generate creator key & buat bundle terenkripsi",
-      color: colors.primary,
-      onPress: () => router.push("/creator" as any),
-    },
-    {
-      icon: "lock" as const, label: "Buka Bundle Terkunci",
-      sub: "Verifikasi tanda tangan + dekripsi bundle",
-      color: colors.teal,
-      onPress: () => router.push("/bundle/open" as any),
-    },
-    {
-      icon: "image" as const, label: "Image Manager",
-      sub: "Lihat & hapus gambar tersimpan",
-      color: colors.teal,
-      onPress: () => router.push("/image-manager"),
-    },
-    {
-      icon: "share-2" as const, label: t.profile.share_bundle,
-      sub: t.profile.share_bundle_sub,
-      color: colors.teal,
-      onPress: () => setShowShareModal(true),
-    },
-    {
-      icon: "download" as const, label: t.profile.import_bundle,
-      sub: t.profile.import_bundle_sub,
-      color: colors.primary,
-      onPress: handleImportCourse,
-    },
-    {
-      icon: "hard-drive" as const, label: "Backup & Pulih",
-      sub: "Simpan / pulihkan semua data + media (offline)",
-      color: colors.teal,
-      onPress: () => router.push("/backup" as any),
-    },
-    {
-      icon: "share-2" as const, label: t.profile.share_progress,
-      sub: t.profile.share_progress_sub,
-      color: colors.amber,
-      onPress: async () => {
-        try {
-          await Share.share({ message: `Akurasi saya ${accuracy}% dengan ${stats?.totalAnswers ?? 0} jawaban di Mobile Learning! 🎓` });
-        } catch (e) {
-          if (!isCancellationError(e)) console.warn("[profile] share error", e);
-        }
-      },
-    },
-    {
-      icon: "star" as const, label: "Tantangan Harian",
-      sub: "Coba soal challenge hari ini",
-      color: colors.warning,
-      onPress: () => router.push("/daily-challenge"),
-    },
-    {
-      icon: "clock" as const, label: "Timer Pomodoro",
-      sub: "Sesi belajar terstruktur 25/5 menit",
-      color: colors.danger,
-      onPress: () => router.push("/pomodoro"),
-    },
-    {
-      icon: "bookmark" as const, label: "Soal Tersimpan",
-      sub: "Review flashcard & quiz yang di-bookmark",
-      color: colors.purple,
-      onPress: () => router.push("/bookmarks"),
-    },
-    {
-      icon: "list" as const, label: "Riwayat Sesi",
-      sub: "Lihat semua sesi belajar yang lalu",
-      color: colors.teal,
-      onPress: () => router.push("/session-history"),
-    },
-    {
-      icon: "droplet" as const, label: "Tema",
-      sub: "Pilih palet warna & mode terang/gelap",
-      color: colors.dark,
-      onPress: () => router.push("/theme-settings" as any),
-    },
-    {
-      icon: "refresh-cw" as const, label: t.profile.reset_profile,
-      sub: t.profile.reset_profile_sub,
-      color: colors.amber,
-      onPress: () => Alert.alert(t.profile.reset_profile, "Reset profil pengguna?", [
-        { text: t.common.cancel, style: "cancel" },
-        { text: "Reset", onPress: async () => { const AS = (await import("@react-native-async-storage/async-storage")).default; await AS.removeItem("user"); router.replace("/onboarding"); } },
-      ]),
-    },
-    {
-      icon: "tool" as const, label: "Perbaiki Penyimpanan",
-      sub: "Pindai & susun ulang index flashcard jika ada crash sebelumnya",
-      color: colors.teal,
-      onPress: () => Alert.alert(
-        "Perbaiki Penyimpanan Flashcard",
-        "Akan memindai semua kartu, menyusun ulang index, dan mencoba memperbaiki sisa data lama dari sebelum pembaruan. Aman — tidak menghapus kartu apa pun.",
-        [
-          { text: t.common.cancel, style: "cancel" },
-          {
-            text: "Mulai", onPress: async () => {
-              try {
-                const r = await repairFlashcardStorage();
-                const lines: string[] = [
-                  `${r.lessonsScanned} pelajaran dipindai`,
-                  `${r.totalCards} kartu ditemukan`,
-                ];
-                if (r.legacyBlobMigrated) lines.push("Data lama berhasil dipisah ke per-pelajaran");
-                if (r.legacyBlobUnreadable) lines.push("⚠ Data lama belum bisa dibaca di perangkat ini");
-                if (r.reindexedLessons > 0) lines.push(`${r.reindexedLessons} pelajaran ditambahkan ke index`);
-                if (r.removedStaleIndexEntries > 0) lines.push(`${r.removedStaleIndexEntries} entri index basi dihapus`);
-                if (r.corruptedLessons.length > 0) lines.push(`⚠ ${r.corruptedLessons.length} pelajaran rusak (tidak terbaca)`);
-                Alert.alert("Selesai", lines.join("\n"));
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                Alert.alert("Gagal memperbaiki", msg);
-              }
-            },
+      title: "Sesi & Aktivitas",
+      items: [
+        { icon: "star" as const, label: "Tantangan Harian", sub: "Review soal hari ini", color: colors.warning, onPress: () => router.push("/daily-challenge") },
+        { icon: "clock" as const, label: "Timer Pomodoro", sub: "Sesi belajar fokus", color: colors.danger, onPress: () => router.push("/pomodoro") },
+        { icon: "list" as const, label: "Riwayat Sesi", sub: "Track kemajuanmu", color: colors.teal, onPress: () => router.push("/session-history") },
+        {
+          icon: "share-2" as const, label: t.profile.share_progress, sub: t.profile.share_progress_sub, color: colors.amber,
+          onPress: async () => {
+            try { await Share.share({ message: `Akurasi saya ${accuracy}% dengan ${stats?.totalAnswers ?? 0} jawaban di Mobile Learning! 🎓` }); }
+            catch (e) { if (!isCancellationError(e)) console.warn("[profile] share error", e); }
           },
-        ],
-      ),
+        },
+      ]
     },
     {
-      icon: "trash-2" as const, label: t.profile.delete_all,
-      sub: t.profile.delete_all_sub,
-      color: colors.danger,
-      onPress: () => Alert.alert(t.profile.delete_all, "Semua data akan dihapus permanen.", [
-        { text: t.common.cancel, style: "cancel" },
-        { text: t.common.delete, style: "destructive", onPress: async () => { await clearAllData(); router.replace("/onboarding"); } },
-      ]),
+      title: "Data & Sinkronisasi",
+      items: [
+        { icon: "hard-drive" as const, label: "Backup & Pulih", sub: "Amankan semua data", color: colors.teal, onPress: () => router.push("/backup" as any) },
+        {
+          icon: "refresh-cw" as const, label: "Perbaiki Index", sub: "Scan data flashcard", color: colors.teal,
+          onPress: () => Alert.alert("Scan Ulang?", "Pindai data untuk memperbaiki error index.", [
+            { text: t.common.cancel, style: "cancel" },
+            { text: "Mulai", onPress: async () => { try { await repairFlashcardStorage(); Alert.alert("Selesai", "Penyimpanan berhasil diperbaiki"); } catch (e) { Alert.alert("Gagal", String(e)); } } },
+          ]),
+        },
+      ]
     },
+    {
+      title: "Sistem & Tampilan",
+      items: [
+        { icon: "droplet" as const, label: "Tema & Tampilan", sub: "Ganti palet warna", color: colors.dark, onPress: () => router.push("/theme-settings" as any) },
+        { icon: "globe" as const, label: "Bahasa", sub: language === "id" ? "Bahasa Indonesia" : "English", color: colors.primary, onPress: () => router.push("/language" as any) },
+        {
+          icon: "trash-2" as const, label: t.profile.delete_all, sub: t.profile.delete_all_sub, color: colors.danger,
+          onPress: () => Alert.alert(t.profile.delete_all, "Semua data akan dihapus.", [
+            { text: t.common.cancel, style: "cancel" },
+            { text: t.common.delete, style: "destructive", onPress: async () => { await clearAllData(); router.replace("/onboarding"); } },
+          ]),
+        },
+      ]
+    }
   ];
 
   const initial = (user?.name ?? "L").charAt(0).toUpperCase();
+
+  const headerGradient: [string, string] = (palette === "minimal" && isDark)
+    ? [colors.primaryLight, colors.background]
+    : [colors.primary, colors.purple];
 
   return (
     <View style={{ flex: 1 }}>
@@ -333,7 +252,7 @@ export default function ProfileTab() {
     >
       {/* ── HEADER ── */}
       <LinearGradient
-        colors={[colors.primary, colors.purple]}
+        colors={headerGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
@@ -366,7 +285,7 @@ export default function ProfileTab() {
             </View>
           </View>
           <TouchableOpacity style={styles.editBtn} onPress={() => router.push("/edit-profile")}>
-            <Feather name="edit-2" size={16} color="rgba(255,255,255,0.8)" />
+            <Feather name="edit-2" size={16} color={colors.white} />
           </TouchableOpacity>
         </View>
 
@@ -438,97 +357,46 @@ export default function ProfileTab() {
 
         {/* Progress summary */}
         <View style={[styles.progressCard, shadowSm]}>
-          <Text style={styles.cardSectionLabel}>Ringkasan Progress</Text>
+          <View style={styles.cardHeader}>
+            <LinearGradient colors={[colors.accent, colors.primary]} style={styles.cardHeaderIndicator} />
+            <Text style={styles.cardSectionLabel}>Ringkasan Progres</Text>
+          </View>
+          
           <View style={styles.progressRow}>
             {[
-              { val: stats?.correctAnswers ?? 0, lbl: t.profile.correct, color: colors.teal },
-              { val: wrong, lbl: t.profile.wrong, color: colors.danger },
-              { val: `${accuracy}%`, lbl: t.profile.accuracy, color: colors.primary },
+              { val: stats?.correctAnswers ?? 0, lbl: t.profile.correct, color: colors.teal, bg: colors.tealLight, icon: "check-circle" as const },
+              { val: wrong, lbl: t.profile.wrong, color: colors.danger, bg: colors.dangerLight, icon: "x-circle" as const },
+              { val: `${accuracy}%`, lbl: t.profile.accuracy, color: colors.primary, bg: colors.primaryLight, icon: "target" as const },
             ].map((p, i) => (
-              <View key={i} style={[styles.progressChip, { backgroundColor: p.color + "15" }]}>
+              <View key={i} style={[styles.progressChip, { backgroundColor: p.bg }]}>
+                <View style={[styles.progressIconWrap, { backgroundColor: p.color + "15" }]}>
+                  <Feather name={p.icon} size={14} color={p.color} />
+                </View>
                 <Text style={[styles.progressChipVal, { color: p.color }]}>{p.val}</Text>
-                <Text style={[styles.progressChipLbl, { color: p.color }]}>{p.lbl}</Text>
+                <Text style={[styles.progressChipLbl, { color: colors.textSecondary }]}>{p.lbl}</Text>
               </View>
             ))}
           </View>
-          <View style={styles.barTrack}>
-            <View style={[styles.barFill, {
-              width: `${accuracy}%` as any,
-              backgroundColor: accuracy >= 70 ? colors.teal : accuracy >= 40 ? colors.amber : colors.danger,
-            }]} />
-          </View>
-          <Text style={styles.barSub}>{stats?.totalAnswers ?? 0} total jawaban</Text>
-        </View>
-
-        {/* Quick actions */}
-        <View style={styles.quickRow}>
-          <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: colors.primaryLight }, shadowSm]}
-            onPress={() => router.push("/(tabs)/progress")}
-          >
-            <Feather name="bar-chart-2" size={20} color={colors.primary} />
-            <Text style={[styles.quickLbl, { color: colors.primary }]}>Progress{"\n"}Detail</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: colors.amberLight }, shadowSm]}
-            onPress={() => router.push("/(tabs)/practice")}
-          >
-            <Feather name="zap" size={20} color={colors.amber} />
-            <Text style={[styles.quickLbl, { color: colors.amber }]}>Mulai{"\n"}Latihan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: colors.tealLight }, shadowSm]}
-            onPress={() => router.push("/(tabs)/learn")}
-          >
-            <Feather name="book-open" size={20} color={colors.teal} />
-            <Text style={[styles.quickLbl, { color: colors.teal }]}>Semua{"\n"}Kursus</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Bahasa / Language toggle */}
-        <Text style={styles.menuLabel}>{t.profile.section_language}</Text>
-        <View style={[styles.menuCard, shadowSm, { marginBottom: 4 }]}>
-          <View style={{ flexDirection: "row", padding: 4, gap: 8 }}>
-            {(["id", "en"] as const).map((lang) => {
-              const active = language === lang;
-              const label = lang === "id" ? `🇮🇩  ${t.profile.lang_id}` : `🇬🇧  ${t.profile.lang_en}`;
-              return (
-                <TouchableOpacity
-                  key={lang}
-                  onPress={() => setLanguage(lang)}
-                  style={{
-                    flex: 1, paddingVertical: 12, borderRadius: 14, alignItems: "center",
-                    backgroundColor: active ? colors.primary : colors.background,
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 14, fontWeight: "800",
-                    color: active ? "#fff" : colors.textMuted,
-                  }}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Dark Mode */}
-        <Text style={styles.menuLabel}>Tampilan</Text>
-        <View style={[styles.menuCard, shadowSm, { marginBottom: 4 }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", padding: 16, gap: 14 }}>
-            <View style={[styles.menuIconWrap, { backgroundColor: isDark ? colors.darkMed : colors.background }]}>
-              <Feather name={isDark ? "moon" : "sun"} size={18} color={isDark ? colors.teal : colors.warning} />
+          
+          <View style={styles.barSection}>
+            <View style={styles.barHeader}>
+              <Text style={styles.barTitle}>Target Akurasi</Text>
+              <Text style={[styles.barPercent, { color: accuracy >= 75 ? colors.teal : colors.primary }]}>{accuracy}%</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.menuTitle]}>Dark Mode</Text>
-              <Text style={styles.menuSub}>{isDark ? "Mode gelap aktif" : "Mode terang aktif"}</Text>
+            <View style={styles.barTrack}>
+              <LinearGradient 
+                colors={[colors.primary, colors.accent]} 
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={[styles.barFill, { width: `${accuracy}%` as any }]} 
+              />
             </View>
-            <Switch value={isDark} onValueChange={toggleDark} trackColor={{ true: colors.primary, false: colors.border }} thumbColor={colors.white} />
           </View>
         </View>
 
-        {/* Pengingat Belajar */}
+        {/* Dark Mode, Language, Reminders are now items within SECTIONS or dedicated cards above sections */}
+        <View style={styles.sectionGap} />
+
+        {/* Pengingat Belajar (Special card with picker) */}
         <Text style={styles.menuLabel}>{t.profile.section_reminder}</Text>
         <View style={[styles.reminderCard, shadowSm]}>
           <View style={styles.reminderRow}>
@@ -581,43 +449,41 @@ export default function ProfileTab() {
                   ))}
                 </View>
               </View>
-              <View style={[styles.reminderHint, { backgroundColor: colors.primaryLight }]}>
-                <Feather name="info" size={12} color={colors.primary} />
-                <Text style={[styles.reminderHintText, { color: colors.primary }]}>
-                  Notifikasi motivasi harian juga aktif setiap jam 08:00
-                </Text>
-              </View>
             </>
           )}
         </View>
 
-        {/* Settings menu */}
-        <Text style={styles.menuLabel}>{t.profile.section_menu}</Text>
         {importing && (
           <View style={styles.importingBanner}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.importingText}>Mengimport kursus...</Text>
+            <Text style={styles.importingText}>Mengimport...</Text>
           </View>
         )}
-        <View style={[styles.menuCard, shadowSm]}>
-          {MENU.map((item, i) => (
-            <React.Fragment key={item.label}>
-              <TouchableOpacity onPress={item.onPress} style={styles.menuItem} activeOpacity={0.7}>
-                <View style={[styles.menuIconWrap, { backgroundColor: item.color + "18" }]}>
-                  <Feather name={item.icon} size={18} color={item.color} />
+
+        {SECTIONS.map((sec, idx) => (
+          <View key={sec.title} style={{ marginTop: 20 }}>
+            <Text style={styles.menuLabel}>{sec.title}</Text>
+            <View style={[styles.menuCard, shadowSm]}>
+              {sec.items.map((item, i) => (
+                <View key={item.label}>
+                  <TouchableOpacity onPress={item.onPress} style={styles.menuItem} activeOpacity={0.7}>
+                    <View style={[styles.menuIconWrap, { backgroundColor: item.color + "18" }]}>
+                      <Feather name={item.icon} size={18} color={item.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.menuTitle, item.color === colors.danger && { color: colors.danger }]}>
+                        {item.label}
+                      </Text>
+                      <Text style={styles.menuSub}>{item.sub}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={15} color={colors.textMuted} />
+                  </TouchableOpacity>
+                  {i < sec.items.length - 1 && <View style={styles.menuDivider} />}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.menuTitle, item.color === colors.danger && { color: colors.danger }]}>
-                    {item.label}
-                  </Text>
-                  <Text style={styles.menuSub}>{item.sub}</Text>
-                </View>
-                <Feather name="chevron-right" size={15} color={colors.textMuted} />
-              </TouchableOpacity>
-              {i < MENU.length - 1 && <View style={styles.menuDivider} />}
-            </React.Fragment>
-          ))}
-        </View>
+              ))}
+            </View>
+          </View>
+        ))}
 
         <Text style={styles.footer}>Mobile Learning · v1.0</Text>
         <Text style={styles.footerCredit}>Developed by rizkinabawi</Text>
@@ -666,33 +532,34 @@ export default function ProfileTab() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 0, overflow: "hidden" },
-  blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)", top: -50, right: -50 },
-  blob2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.06)", bottom: 20, left: 20 },
+  blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)", top: -50, right: -50 },
+  blob2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)", bottom: 20, left: 20 },
   heroRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 22 },
-  avatar: { width: 68, height: 68, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.35)", overflow: "hidden", position: "relative" },
+  avatar: { width: 68, height: 68, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.25)", overflow: "hidden", position: "relative" },
   avatarImg: { width: 68, height: 68, borderRadius: 20 },
   avatarText: { fontSize: 28, fontWeight: "900", color: "#fff" },
   avatarEditBadge: {
     position: "absolute", bottom: 2, right: 2,
     width: 18, height: 18, borderRadius: 6,
-    backgroundColor: "rgba(76,111,255,0.9)",
+    backgroundColor: c.primary,
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)",
   },
   name: { fontSize: 22, fontWeight: "900", color: "#fff", marginBottom: 8 },
   badges: { flexDirection: "row", gap: 8 },
-  badge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(76,111,255,0.35)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  badge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeText: { fontSize: 11, fontWeight: "700", color: "#fff", textTransform: "capitalize" },
-  editBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  statsBar: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.15)" },
+  editBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },
+  statsBar: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)" },
   statItem: { flex: 1, paddingVertical: 16, alignItems: "center" },
-  statBorder: { borderRightWidth: 1, borderRightColor: "rgba(255,255,255,0.12)" },
+  statBorder: { borderRightWidth: 1, borderRightColor: "rgba(255,255,255,0.1)" },
   statVal: { fontSize: 18, fontWeight: "900", color: "#fff" },
-  statLbl: { fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: "700", textTransform: "uppercase", marginTop: 2 },
-  body: { padding: 16, gap: 12, paddingBottom: 40 },
+  statLbl: { fontSize: 9, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase", marginTop: 2 },
+  body: { padding: 16, paddingBottom: 40 },
+  sectionGap: { height: 6 },
   backupBanner: {
     flexDirection: "row",
     gap: 12,
@@ -707,7 +574,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: c.white,
     alignItems: "center", justifyContent: "center",
   },
-  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  backupBannerTitle: { fontSize: 14, fontWeight: "800", color: c.text },
   backupBannerSub: { fontSize: 12, color: c.textSecondary, marginTop: 2, lineHeight: 17 },
   backupBannerBtns: { flexDirection: "row", gap: 10, marginTop: 10 },
   backupBannerCta: {
@@ -721,27 +588,35 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderRadius: 999,
   },
   backupBannerSnoozeText: { color: c.textSecondary, fontWeight: "700", fontSize: 12 },
-  goalCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: c.white, borderRadius: 20, padding: 16 },
+  goalCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: c.surface, borderRadius: 20, padding: 16 },
   goalIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   goalLabel: { fontSize: 10, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  goalText: { fontSize: 14, fontWeight: "700", color: c.dark, lineHeight: 20 },
-  progressCard: { backgroundColor: c.white, borderRadius: 20, padding: 18, gap: 12 },
-  cardSectionLabel: { fontSize: 11, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1 },
-  progressRow: { flexDirection: "row", gap: 8 },
-  progressChip: { flex: 1, borderRadius: 14, padding: 12, alignItems: "center", gap: 3 },
-  progressChipVal: { fontSize: 20, fontWeight: "900" },
-  progressChipLbl: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
-  barTrack: { height: 7, backgroundColor: c.border, borderRadius: 999, overflow: "hidden" },
+  goalText: { fontSize: 14, fontWeight: "700", color: c.text, lineHeight: 20 },
+  progressCard: { backgroundColor: c.surface, borderRadius: 24, padding: 18, gap: 14, borderWidth: 1, borderColor: c.border },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  cardHeaderIndicator: { width: 3, height: 14, borderRadius: 99 },
+  cardSectionLabel: { fontSize: 13, fontWeight: "800", color: c.text, letterSpacing: -0.2 },
+  progressRow: { flexDirection: "row", gap: 10 },
+  progressChip: { flex: 1, borderRadius: 20, padding: 14, alignItems: "center", gap: 6 },
+  progressIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  progressChipVal: { fontSize: 18, fontWeight: "900", letterSpacing: -0.5 },
+  progressChipLbl: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
+  barSection: { gap: 10, marginTop: 4 },
+  barHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  barTitle: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+  barPercent: { fontSize: 12, fontWeight: "800" },
+  barTrack: { height: 10, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : c.borderLight, borderRadius: 999, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 999 },
-  barSub: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
-  quickRow: { flexDirection: "row", gap: 10 },
-  quickCard: { flex: 1, borderRadius: 18, padding: 14, alignItems: "center", gap: 8 },
-  quickLbl: { fontSize: 12, fontWeight: "800", textAlign: "center", lineHeight: 17 },
-  menuLabel: { fontSize: 11, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1 },
-  menuCard: { backgroundColor: c.white, borderRadius: 20, overflow: "hidden" },
+  quickRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  quickCard: { flex: 1, borderRadius: 22, overflow: "hidden" },
+  quickGrad: { paddingHorizontal: 10, paddingVertical: 20, alignItems: "center", gap: 12, minHeight: 125 },
+  quickIconCircle: { width: 44, height: 44, borderRadius: 15, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  quickLbl: { fontSize: 13, fontWeight: "900", textAlign: "center", lineHeight: 17, color: "#fff" },
+  menuLabel: { fontSize: 11, fontWeight: "800", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
+  menuCard: { backgroundColor: c.surface, borderRadius: 20, overflow: "hidden" },
   menuItem: { flexDirection: "row", alignItems: "center", padding: 16, gap: 14 },
   menuIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  menuTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  menuTitle: { fontSize: 14, fontWeight: "800", color: c.text },
   menuSub: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 2 },
   menuDivider: { height: 1, backgroundColor: c.borderLight, marginHorizontal: 16 },
   footer: { textAlign: "center", fontSize: 11, color: c.textMuted, fontWeight: "600", paddingTop: 8, paddingBottom: 2 },
@@ -755,7 +630,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
 
   // Reminder
   reminderCard: {
-    backgroundColor: c.white, borderRadius: 20, overflow: "hidden",
+    backgroundColor: c.surface, borderRadius: 20, overflow: "hidden",
     paddingTop: 4, paddingBottom: 4,
   },
   reminderRow: {
@@ -771,17 +646,17 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 8, backgroundColor: c.background, borderRadius: 16, padding: 14,
   },
-  timeVal: { fontSize: 32, fontWeight: "900", color: c.dark, minWidth: 52, textAlign: "center" },
+  timeVal: { fontSize: 32, fontWeight: "900", color: c.text, minWidth: 52, textAlign: "center" },
   timeSep: { fontSize: 28, fontWeight: "900", color: c.textMuted },
   timeArrow: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: c.white, alignItems: "center", justifyContent: "center",
+    backgroundColor: c.surface, alignItems: "center", justifyContent: "center",
     borderWidth: 1.5, borderColor: c.border,
   },
   minuteRow: { flexDirection: "row", gap: 8 },
   minuteChip: {
     flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: "center",
-    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.white,
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface,
   },
   minuteChipActive: { backgroundColor: c.primary, borderColor: c.primary },
   minuteChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },

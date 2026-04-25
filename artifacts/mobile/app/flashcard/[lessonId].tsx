@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
@@ -11,6 +11,8 @@ import {
   ScrollView,
   FlatList,
   InteractionManager,
+  Modal,
+  TouchableWithoutFeedback,
   type ListRenderItem,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -113,7 +115,7 @@ class CardErrorBoundary extends React.Component<
             {this.state.error.message || String(this.state.error)}
           </Text>
           <TouchableOpacity style={styles.addBtn} onPress={this.reset}>
-            <RotateCcw size={16} color={colors.white} />
+            <RotateCcw size={16} color="#fff" />
             <Text style={styles.addBtnText}>Coba lagi</Text>
           </TouchableOpacity>
         </View>
@@ -125,7 +127,8 @@ class CardErrorBoundary extends React.Component<
 
 export default function FlashcardScreen() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
@@ -153,6 +156,7 @@ export default function FlashcardScreen() {
 
   const [flipAnim] = useState(new Animated.Value(0));
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [fullscreenImg, setFullscreenImg] = useState<string | null>(null);
 
   const card = cards[currentIndex];
 
@@ -313,107 +317,6 @@ export default function FlashcardScreen() {
     setDone(false);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptySub}>Memuat kartu...</Text>
-      </View>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>Gagal memuat deck</Text>
-        <Text style={[styles.emptySub, { color: colors.danger }]} numberOfLines={6}>
-          {loadError}
-        </Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setReloadKey((k) => k + 1)}>
-          <RotateCcw size={16} color={colors.white} />
-          <Text style={styles.addBtnText}>Coba lagi</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={styles.backLinkText}>{t.common.back}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (cards.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>{t.flashcard.empty_title}</Text>
-        <Text style={styles.emptySub}>{t.flashcard.empty_sub}</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => router.push(`/create-flashcard/${lessonId}`)}
-        >
-          <Plus size={16} color={colors.white} />
-          <Text style={styles.addBtnText}>{t.flashcard.add_btn}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={styles.backLinkText}>{t.common.back}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (done) {
-    const correctCount = Object.values(completed).filter((v) => v === "correct").length;
-    const pct = Math.round((correctCount / cards.length) * 100);
-    const xpEarned = correctCount * 10;
-    const xpTranslateY = xpAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -60, -80] });
-    const xpOpacity = xpAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 1, 0] });
-    const xpScale = xpAnim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0.5, 1.2, 1] });
-    return (
-      <View
-        style={[
-          styles.resultWrap,
-          { paddingTop: Platform.OS === "web" ? 80 : insets.top + 24 },
-        ]}
-      >
-        <Animated.View style={[styles.xpBadge, { opacity: xpOpacity, transform: [{ translateY: xpTranslateY }, { scale: xpScale }] }]}>
-          <Text style={styles.xpText}>+{xpEarned} XP ⚡</Text>
-        </Animated.View>
-        <Text style={styles.resultEmoji}>{pct >= 80 ? "🎉" : pct >= 50 ? "👍" : "💪"}</Text>
-        <Text style={styles.resultTitle}>{t.flashcard.result_title}</Text>
-        <Text style={styles.resultScore}>{pct}%</Text>
-        <Text style={styles.resultSub}>{t.flashcard.result_correct(correctCount, cards.length)}</Text>
-        <View style={{ width: "100%", marginVertical: 8 }}>
-          <ProgressBar
-            value={pct}
-            color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger}
-            height={10}
-          />
-        </View>
-        <View style={styles.resultBtns}>
-          <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
-            <RotateCcw size={16} color={colors.white} />
-            <Text style={styles.restartBtnText}>{t.common.restart}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
-            <Text style={styles.doneBtnText}>{t.common.done}</Text>
-          </TouchableOpacity>
-        </View>
-        {nextLesson && (
-          <TouchableOpacity
-            style={styles.nextLessonBtn}
-            onPress={() => router.replace(`/flashcard/${nextLesson.id}`)}
-          >
-            <Text style={styles.nextLessonBtnText}>{t.common.next}: {nextLesson.name}</Text>
-            <Text style={styles.nextLessonArrow}>→</Text>
-          </TouchableOpacity>
-        )}
-        <AchievementPopup
-          visible={showAchievement}
-          type="flashcard_done"
-          value={achievementValue}
-          onClose={() => setShowAchievement(false)}
-        />
-      </View>
-    );
-  }
-
   const progress = (currentIndex / cards.length) * 100;
 
   // Lazy audio playback helper — safe to call from any button press handler.
@@ -492,6 +395,109 @@ export default function FlashcardScreen() {
     outputRange: ["180deg", "360deg"],
   });
 
+  // ── Final guard clauses ──────────────────────────────────────────────
+  // Moved to the end of the hook section to satisfy the Rules of Hooks.
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptySub}>Memuat kartu...</Text>
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyTitle}>Gagal memuat deck</Text>
+        <Text style={[styles.emptySub, { color: colors.danger }]} numberOfLines={6}>
+          {loadError}
+        </Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setReloadKey((k) => k + 1)}>
+          <RotateCcw size={16} color="#fff" />
+          <Text style={styles.addBtnText}>Coba lagi</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={styles.backLinkText}>{t.common.back}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (cards.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyTitle}>{t.flashcard.empty_title}</Text>
+        <Text style={styles.emptySub}>{t.flashcard.empty_sub}</Text>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => router.push(`/create-flashcard/${lessonId}`)}
+        >
+          <Plus size={16} color="#fff" />
+          <Text style={styles.addBtnText}>{t.flashcard.add_btn}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={styles.backLinkText}>{t.common.back}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (done) {
+    const correctCount = Object.values(completed).filter((v) => v === "correct").length;
+    const pct = Math.round((correctCount / cards.length) * 100);
+    const xpEarned = correctCount * 10;
+    const xpTranslateY = xpAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -60, -80] });
+    const xpOpacity = xpAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 1, 0] });
+    const xpScale = xpAnim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0.5, 1.2, 1] });
+    return (
+      <View
+        style={[
+          styles.resultWrap,
+          { paddingTop: Platform.OS === "web" ? 80 : insets.top + 24 },
+        ]}
+      >
+        <Animated.View style={[styles.xpBadge, { opacity: xpOpacity, transform: [{ translateY: xpTranslateY }, { scale: xpScale }] }]}>
+          <Text style={styles.xpText}>+{xpEarned} XP ⚡</Text>
+        </Animated.View>
+        <Text style={styles.resultEmoji}>{pct >= 80 ? "🎉" : pct >= 50 ? "👍" : "💪"}</Text>
+        <Text style={styles.resultTitle}>{t.flashcard.result_title}</Text>
+        <Text style={styles.resultScore}>{pct}%</Text>
+        <Text style={styles.resultSub}>{t.flashcard.result_correct(correctCount, cards.length)}</Text>
+        <View style={{ width: "100%", marginVertical: 8 }}>
+          <ProgressBar
+            value={pct}
+            color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger}
+            height={10}
+          />
+        </View>
+        <View style={styles.resultBtns}>
+          <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
+            <RotateCcw size={16} color="#fff" />
+            <Text style={styles.restartBtnText}>{t.common.restart}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
+            <Text style={styles.doneBtnText}>{t.common.done}</Text>
+          </TouchableOpacity>
+        </View>
+        {nextLesson && (
+          <TouchableOpacity
+            style={styles.nextLessonBtn}
+            onPress={() => router.replace(`/flashcard/${nextLesson.id}`)}
+          >
+            <Text style={styles.nextLessonBtnText}>{t.common.next}: {nextLesson.name}</Text>
+            <Text style={styles.nextLessonArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+        <AchievementPopup
+          visible={showAchievement}
+          type="flashcard_done"
+          value={achievementValue}
+          onClose={() => setShowAchievement(false)}
+        />
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -505,7 +511,7 @@ export default function FlashcardScreen() {
       {/* Nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <X size={20} color={colors.black} />
+          <X size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.navCount}>
           {viewMode === "card"
@@ -523,7 +529,7 @@ export default function FlashcardScreen() {
             <Feather
               name={viewMode === "card" ? "list" : "credit-card"}
               size={18}
-              color={colors.black}
+              color={colors.text}
             />
           </TouchableOpacity>
           {viewMode === "card" && (
@@ -539,7 +545,7 @@ export default function FlashcardScreen() {
             onPress={() => router.push(`/create-flashcard/${lessonId}`)}
             style={styles.navBtn}
           >
-            <Plus size={20} color={colors.black} />
+            <Plus size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -552,7 +558,7 @@ export default function FlashcardScreen() {
       {/* Tag */}
       {viewMode === "table" ? (
         <CardErrorBoundary styles={styles} colors={colors}>
-          <FlashcardTableList cards={cards} colors={colors} styles={styles} />
+          <FlashcardTableList cards={cards} colors={colors} styles={styles} onImagePress={setFullscreenImg} />
         </CardErrorBoundary>
       ) : (
         <CardErrorBoundary
@@ -584,6 +590,18 @@ export default function FlashcardScreen() {
           />
         </CardErrorBoundary>
       )}
+
+      {/* Image Modal */}
+      <Modal visible={!!fullscreenImg} transparent animationType="fade" onRequestClose={() => setFullscreenImg(null)}>
+        <TouchableWithoutFeedback onPress={() => setFullscreenImg(null)}>
+          <View style={styles.modalBg}>
+            <Image source={{ uri: fullscreenImg || "" }} style={styles.modalImg} resizeMode="contain" />
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setFullscreenImg(null)}>
+              <X color="#fff" size={24} />
+            </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -596,9 +614,10 @@ interface FlashcardTableListProps {
   cards: Flashcard[];
   colors: ColorScheme;
   styles: ReturnType<typeof makeStyles>;
+  onImagePress: (uri: string) => void;
 }
 
-function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) {
+function FlashcardTableList({ cards, colors, styles, onImagePress }: FlashcardTableListProps) {
   const renderItem = React.useCallback<ListRenderItem<Flashcard>>(
     ({ item: c, index: i }) => {
       const isAlt = i % 2 === 1;
@@ -617,6 +636,18 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
       const backAudCount = toStringArray(c.audiosBack).length;
       const qText = toText(c.question);
       const aText = toText(c.answer);
+
+      const getTableFontSize = (text: string, hasMedia: boolean) => {
+        const len = text.length;
+        if (len <= 2) return hasMedia ? 36 : 52; // Massive for Kanji
+        if (len < 8) return hasMedia ? 20 : 28;  // Large
+        if (len < 20) return hasMedia ? 16 : 20; // Medium
+        return 14;
+      };
+
+      const qFontSizeTable = getTableFontSize(qText, frontImgs.length > 0);
+      const aFontSizeTable = getTableFontSize(aText, backImgs.length > 0);
+
       return (
         <View
           style={[
@@ -628,58 +659,49 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
           <Text style={[styles.tableCell, styles.colNum, styles.cellNum]}>
             {i + 1}
           </Text>
-          <View style={styles.colQ}>
+          <View style={[styles.colQ, frontImgs.length > 0 && { flexDirection: "row", alignItems: "center" }]}>
             {frontImgs.length > 0 && (
-              <View style={styles.tableThumbRow}>
-                {frontImgs.slice(0, 3).map((u, idx) => (
-                  <Image
-                    key={`${u}-${idx}`}
-                    source={{ uri: u }}
-                    style={styles.tableThumb}
-                    resizeMode="contain"
-                  />
+              <View style={styles.tableThumbCol}>
+                {frontImgs.slice(0, 1).map((u, idx) => (
+                  <TouchableOpacity key={`${u}-${idx}`} onPress={() => onImagePress(u)} activeOpacity={0.8}>
+                    <Image source={{ uri: u }} style={styles.tableThumb} resizeMode="cover" />
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
-            <Text
-              style={[
-                styles.tableCellQ,
-                qText.length > 80 && styles.tableCellQLong,
-              ]}
-            >
-              {qText}
-            </Text>
-            {audCount > 0 && (
-              <View style={styles.tableMediaRow}>
-                <Volume2 size={14} color={colors.primary} />
-                <Text style={styles.tableMediaText}>
-                  {audCount > 1 ? `${audCount} audio` : "audio"}
-                </Text>
-              </View>
-            )}
+            <View style={{ flex: 1, justifyContent: "center" }}>
+              <Text style={[styles.tableCellQ, { fontSize: qFontSizeTable, lineHeight: qFontSizeTable * 1.25 }]}>
+                {qText}
+              </Text>
+              {audCount > 0 && (
+                <View style={[styles.tableMediaRow, { marginTop: 4 }]}>
+                  <Volume2 size={12} color={colors.primary} />
+                  <Text style={styles.tableMediaText}>{audCount > 1 ? `${audCount} audio` : "audio"}</Text>
+                </View>
+              )}
+            </View>
           </View>
-          <View style={styles.colA}>
+          <View style={[styles.colA, backImgs.length > 0 && { flexDirection: "row", alignItems: "center" }]}>
             {backImgs.length > 0 && (
-              <View style={styles.tableThumbRow}>
-                {backImgs.slice(0, 2).map((u, idx) => (
-                  <Image
-                    key={`${u}-${idx}`}
-                    source={{ uri: u }}
-                    style={styles.tableThumb}
-                    resizeMode="contain"
-                  />
+              <View style={styles.tableThumbCol}>
+                {backImgs.slice(0, 1).map((u, idx) => (
+                  <TouchableOpacity key={`${u}-${idx}`} onPress={() => onImagePress(u)} activeOpacity={0.8}>
+                    <Image source={{ uri: u }} style={styles.tableThumb} resizeMode="cover" />
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
-            <Text style={styles.tableCellA}>{aText}</Text>
-            {backAudCount > 0 && (
-              <View style={styles.tableMediaRow}>
-                <Volume2 size={14} color={colors.primary} />
-                <Text style={styles.tableMediaText}>
-                  {backAudCount > 1 ? `${backAudCount} audio` : "audio"}
-                </Text>
-              </View>
-            )}
+            <View style={{ flex: 1, justifyContent: "center" }}>
+              <Text style={[styles.tableCellA, { fontSize: aFontSizeTable, lineHeight: aFontSizeTable * 1.25 }]}>
+                {aText}
+              </Text>
+              {backAudCount > 0 && (
+                <View style={[styles.tableMediaRow, { marginTop: 4 }]}>
+                  <Volume2 size={12} color={colors.primary} />
+                  <Text style={styles.tableMediaText}>{backAudCount > 1 ? `${backAudCount} audio` : "audio"}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
       );
@@ -808,12 +830,20 @@ function FlashcardCardView({
     );
   };
 
-  // Coerce the three text fields once so a malformed import (object/null in
-  // place of a string) cannot crash the React render with "Objects are not
-  // valid as a React child".
   const tagText = toText(card.tag);
   const questionText = toText(card.question);
   const answerText = toText(card.answer);
+
+  const getDynamicFontSize = (text: string, hasMedia: boolean) => {
+    const len = text.length;
+    if (len < 15) return hasMedia ? 28 : 38;
+    if (len < 35) return hasMedia ? 24 : 30;
+    if (len < 70) return hasMedia ? 20 : 24;
+    return 18;
+  };
+
+  const qFontSize = getDynamicFontSize(questionText, frontImages.length > 0 || frontAudios.length > 0);
+  const aFontSize = getDynamicFontSize(answerText, backImages.length > 0 || backAudios.length > 0);
 
   return (
     <>
@@ -841,7 +871,7 @@ function FlashcardCardView({
             >
               {!flipped && renderImageStrip(frontImages)}
               <Text style={styles.cardHint}>Pertanyaan</Text>
-              <Text style={styles.cardText}>{questionText}</Text>
+              <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: qFontSize * 1.35 }]}>{questionText}</Text>
               {!flipped && renderAudioButtons(frontAudios)}
               <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
             </ScrollView>
@@ -862,7 +892,7 @@ function FlashcardCardView({
             >
               {flipped && renderImageStrip(backImages)}
               <Text style={styles.cardHint}>Jawaban</Text>
-              <Text style={styles.cardText}>{answerText}</Text>
+              <Text style={[styles.cardText, { fontSize: aFontSize, lineHeight: aFontSize * 1.35 }]}>{answerText}</Text>
               {flipped && renderAudioButtons(backAudios)}
             </ScrollView>
           </Animated.View>
@@ -896,7 +926,7 @@ function FlashcardCardView({
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   center: {
     flex: 1,
@@ -906,13 +936,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     gap: 10,
     backgroundColor: c.background,
   },
-  emptyTitle: { fontSize: 22, fontWeight: "900", color: c.black },
+  emptyTitle: { fontSize: 22, fontWeight: "900", color: c.text },
   emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", fontWeight: "500" },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: c.black,
+    backgroundColor: c.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
@@ -970,14 +1000,14 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     overflow: "hidden",
   },
   cardFront: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: c.borderLight,
+    borderColor: c.border,
   },
   cardBack: {
-    backgroundColor: c.primaryLight,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.15)" : c.primaryLight,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: isDark ? "rgba(79, 70, 229, 0.4)" : "#BFDBFE",
   },
   cardScroll: {
     flexGrow: 1,
@@ -1018,7 +1048,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   cardText: {
     fontSize: 20,
     fontWeight: "800",
-    color: c.black,
+    color: c.text,
     textAlign: "center",
     lineHeight: 28,
   },
@@ -1027,7 +1057,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: c.primaryLight,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.2)" : c.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
@@ -1040,27 +1070,27 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   tableScroll: { paddingHorizontal: 16, paddingBottom: 28 },
   tableCard: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: c.border ?? "#E6ECF8",
+    borderColor: c.border,
   },
   tableRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 14,
     gap: 14,
     borderBottomWidth: 1,
-    borderBottomColor: c.border ?? "#E6ECF8",
+    borderBottomColor: c.border,
   },
-  tableRowAlt: { backgroundColor: "rgba(76,111,255,0.04)" },
+  tableRowAlt: { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(76,111,255,0.04)" },
   tableRowLast: { borderBottomWidth: 0 },
   tableHeaderRow: {
-    backgroundColor: c.primaryLight,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.15)" : c.primaryLight,
     borderBottomWidth: 1,
-    borderBottomColor: c.border ?? "#E6ECF8",
+    borderBottomColor: c.border,
   },
   tableHeaderCell: {
     fontSize: 11,
@@ -1094,29 +1124,49 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     color: c.textMuted,
     fontVariant: ["tabular-nums"],
   },
-  colNum: { width: 24 },
-  colQ: { flex: 2.5, gap: 8, minWidth: 0 },
-  colA: { flex: 1, minWidth: 0 },
+  colNum: { width: 32 },
+  colQ: { flex: 1.5, gap: 10, minWidth: 0 },
+  colA: { flex: 2, gap: 10, minWidth: 0 },
   tableThumb: {
-    width: "100%",
-    aspectRatio: 16 / 10,
-    borderRadius: 10,
-    backgroundColor: "#0001",
-    marginBottom: 4,
-    flex: 1,
+    width: 80,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  tableThumbCol: {
+    marginRight: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tableThumbRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 4,
+    gap: 4,
+    marginBottom: 6,
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalImg: { width: "90%", height: "80%" },
+  modalCloseBtn: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    padding: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
   },
   tableMediaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     alignSelf: "flex-start",
-    backgroundColor: c.primaryLight,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.2)" : c.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
@@ -1147,8 +1197,14 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
   },
-  wrongBtn: { backgroundColor: c.dangerLight, borderColor: "#FCA5A5" },
-  correctBtn: { backgroundColor: c.successLight, borderColor: "#86EFAC" },
+  wrongBtn: { 
+    backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : c.dangerLight, 
+    borderColor: isDark ? "rgba(239, 68, 68, 0.4)" : "#FCA5A5" 
+  },
+  correctBtn: { 
+    backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : c.successLight, 
+    borderColor: isDark ? "rgba(34, 197, 94, 0.4)" : "#86EFAC" 
+  },
   answerBtnText: { fontSize: 16, fontWeight: "800" },
   flipHintWrap: { paddingTop: 16, alignItems: "center" },
   flipHintText: { fontSize: 13, color: c.textMuted, fontWeight: "500" },
@@ -1161,8 +1217,8 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: c.background,
   },
   resultEmoji: { fontSize: 64 },
-  resultTitle: { fontSize: 26, fontWeight: "900", color: c.black },
-  resultScore: { fontSize: 64, fontWeight: "900", color: c.black },
+  resultTitle: { fontSize: 26, fontWeight: "900", color: c.text },
+  resultScore: { fontSize: 64, fontWeight: "900", color: c.text },
   resultSub: { fontSize: 16, color: c.textMuted, fontWeight: "600" },
   resultBtns: { flexDirection: "row", gap: 12, marginTop: 16, width: "100%" },
   restartBtn: {
@@ -1171,11 +1227,11 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: c.black,
+    backgroundColor: c.primary,
     paddingVertical: 16,
     borderRadius: 18,
   },
-  restartBtnText: { color: c.white, fontWeight: "800", fontSize: 15 },
+  restartBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
   doneBtn: {
     flex: 1,
     alignItems: "center",
@@ -1186,13 +1242,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
   },
-  doneBtnText: { color: c.black, fontWeight: "800", fontSize: 15 },
+  doneBtnText: { color: c.textSecondary, fontWeight: "800", fontSize: 15 },
   nextLessonBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: c.primaryLight,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.15)" : c.primaryLight,
     borderWidth: 1.5,
     borderColor: c.primary,
     borderRadius: 18,

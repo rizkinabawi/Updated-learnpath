@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
@@ -34,7 +34,8 @@ const makeGrad = (colors: ColorScheme): [string, string][] => [
 
 export default function QuizBrowseAll() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const GRAD = useMemo(() => makeGrad(colors), [colors]);
 
   const router = useRouter();
@@ -244,11 +245,11 @@ export default function QuizBrowseAll() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
-  blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)", top: -50, right: -40 },
-  blob2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(255,255,255,0.06)", bottom: -20, left: 20 },
+  blob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)", top: -50, right: -40 },
+  blob2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)", bottom: -20, left: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   headerSub: { fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 },
@@ -259,19 +260,20 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: c.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
+    borderWidth: 1, borderColor: c.border,
   },
-  searchInput: { flex: 1, fontSize: 14, color: c.dark, fontWeight: "500" },
+  searchInput: { flex: 1, fontSize: 14, color: c.text, fontWeight: "500" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.dark, textAlign: "center" },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.text, textAlign: "center" },
   emptySub: { fontSize: 14, color: c.textMuted, fontWeight: "500", textAlign: "center", lineHeight: 20 },
   list: { padding: 16, paddingBottom: 40, gap: 12 },
   courseCard: { backgroundColor: c.surface, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: c.border },
   courseHeader: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   courseIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  courseName: { fontSize: 15, fontWeight: "800", color: c.dark },
+  courseName: { fontSize: 15, fontWeight: "800", color: c.text },
   courseMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 2 },
   moduleWrap: { borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   moduleLabel: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
@@ -285,7 +287,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   lessonLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0 },
   lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border, flexShrink: 0 },
-  lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  lessonName: { fontSize: 13, fontWeight: "700", color: c.text },
   lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   lessonRight: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 },
   countChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },

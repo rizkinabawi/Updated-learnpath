@@ -10,8 +10,8 @@ import { sha256, sha512 } from "@noble/hashes/sha2.js";
 import { concatBytes, randomBytes as nobleRandomBytes } from "@noble/hashes/utils.js";
 import { gcm } from "@noble/ciphers/aes.js";
 
-ed.hashes.sha512 = sha512;
-ed.hashes.sha512Async = async (...m) => sha512(concatBytes(...m));
+ed.utils.sha512Sync = (...m) => sha512(concatBytes(...m));
+ed.utils.sha512Async = async (...m) => sha512(concatBytes(...m));
 
 export const randomBytes = (n) => nobleRandomBytes(n);
 

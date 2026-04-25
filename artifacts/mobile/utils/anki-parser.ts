@@ -16,7 +16,7 @@
  *     battle-tested, always available, and has no JS-engine dependency.
  */
 
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as SQLite from "expo-sqlite";
 import JSZip from "jszip";
 import { Platform } from "react-native";
@@ -349,28 +349,32 @@ async function parseAnkiPackageOnce(
     );
   }
 
-  // ── Step 4: Write SQLite bytes to temp file ─────────────────────────────
-  // expo-sqlite needs a file path — it cannot open in-memory byte arrays
+  // ── Step 4: Find writable storage ───────────────────────────────────────
+  // expo-sqlite needs a file path in the standard documentDirectory/SQLite/ folder.
   onProgress?.({ stage: "loading-engine", message: "Menyiapkan database..." });
 
-  // Support both old and new Expo FileSystem APIs for folder detection
-  const docDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+  let docDir = FileSystem.documentDirectory || (FileSystem as any).Paths?.document?.uri;
   
   if (!docDir) {
-    throw new AnkiImportError(
-      "ENGINE_FAILED",
-      "Tidak ada folder penyimpanan yang tersedia di perangkat ini (Document/Cache Directory null).",
-      false,
-    );
+    docDir = FileSystem.cacheDirectory || (FileSystem as any).Paths?.cache?.uri;
+    if (docDir) {
+      console.warn("[AnkiParser] Using fallback cacheDirectory:", docDir);
+    }
   }
 
-  // Use the standard SQLite/ directory for the database file.
-  // This is the most compatible way for expo-sqlite v16+.
-  const sqliteDir = `${docDir}SQLite/`;
+  console.log("[AnkiParser] Final docDir:", docDir);
+
+  // Use the standard SQLite/ directory. expo-sqlite v16+ expects files here.
+  const sqliteDir = docDir.endsWith("/") ? `${docDir}SQLite/` : `${docDir}/SQLite/`;
+  console.log("[AnkiParser] Target SQLite directory:", sqliteDir);
+
   try {
-    await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
-  } catch {
-    // maybe it already exists or we can't create it, but we'll try to write anyway
+    const dirInfo = await FileSystem.getInfoAsync(sqliteDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
+    }
+  } catch (e) {
+    console.error("[AnkiParser] Failed to ensure SQLite dir:", e);
   }
 
   const tmpName = `anki_tmp_${Date.now()}.db`;

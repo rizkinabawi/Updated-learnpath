@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useState, useMemo } from "react";
 import {
   View,
@@ -33,8 +33,9 @@ import { toast } from "@/components/Toast";
 const PROVIDERS: AIProvider[] = ["openai", "gemini"];
 
 export default function AIKeysScreen() {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -377,7 +378,7 @@ export default function AIKeysScreen() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   header: {
     alignItems: "center",
     paddingBottom: 32,
@@ -442,7 +443,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderRadius: 18,
     padding: 16,
     gap: 12,
@@ -467,7 +468,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.dark,
+    color: c.text,
   },
   cardModel: {
     fontSize: 11,
@@ -517,7 +518,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   modelChipText: {
     fontSize: 11,
     fontWeight: "700",
-    color: c.dark,
+    color: c.text,
   },
   modelChipTextActive: {
     color: "#fff",
@@ -546,7 +547,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   maskedText: {
     flex: 1,
     fontSize: 12,
-    color: c.dark,
+    color: c.text,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
@@ -580,7 +581,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     paddingVertical: 13,
     fontSize: 14,
     fontWeight: "600",
-    color: c.dark,
+    color: c.text,
     borderWidth: 1.5,
     borderColor: c.border,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
@@ -617,7 +618,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   helpCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: c.dark,
+    backgroundColor: isDark ? c.surface : c.dark,
     borderRadius: 18,
     padding: 16,
     gap: 12,

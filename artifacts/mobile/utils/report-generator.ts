@@ -74,13 +74,20 @@ function buildActivityHeatmap(progress: { timestamp: string; isCorrect: boolean 
 }
 
 export async function generateReportHTML(): Promise<string> {
-  const [user, stats, progress, paths, flashcards, quizzes, difficulty] = await Promise.all([
-    getUser(), getStats(), getProgress(), getLearningPaths(),
-    getFlashcards(), getQuizzes(), classifyAllItems(),
-  ]);
+  const safeGet = async (fn: any, fallback: any) => {
+    try { return (await fn()) || fallback; } catch (e) { return fallback; }
+  };
 
-  const accuracy = stats && stats.totalAnswers > 0 ? Math.round((stats.correctAnswers / stats.totalAnswers) * 100) : 0;
-  const wrong = (stats?.totalAnswers ?? 0) - (stats?.correctAnswers ?? 0);
+  const user = await safeGet(getUser, {});
+  const stats = await safeGet(getStats, { totalAnswers: 0, correctAnswers: 0, streak: 0 });
+  const progress = await safeGet(getProgress, []);
+  const paths = await safeGet(getLearningPaths, []);
+  const flashcards = await safeGet(getFlashcards, []);
+  const quizzes = await safeGet(getQuizzes, []);
+  const difficulty = await safeGet(classifyAllItems, { mudah: [], sedang: [], susah: [], total: 0 });
+
+  const accuracy = stats.totalAnswers > 0 ? Math.round((stats.correctAnswers / stats.totalAnswers) * 100) : 0;
+  const wrong = stats.totalAnswers - stats.correctAnswers;
   const dateStr = new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   // Weekly accuracy data (last 7 days)
@@ -89,8 +96,8 @@ export async function generateReportHTML(): Promise<string> {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    const dayP = progress.filter((p) => p.timestamp.slice(0, 10) === key);
-    const dayCorrect = dayP.filter((p) => p.isCorrect).length;
+    const dayP = (progress || []).filter((p: any) => p && p.timestamp && p.timestamp.slice(0, 10) === key);
+    const dayCorrect = dayP.filter((p: any) => p.isCorrect).length;
     const dayAcc = dayP.length > 0 ? Math.round((dayCorrect / dayP.length) * 100) : 0;
     weeklyData.push({
       label: d.toLocaleDateString("id-ID", { weekday: "short" }),
@@ -101,15 +108,15 @@ export async function generateReportHTML(): Promise<string> {
   }
 
   const diffBarData = [
-    { label: "Mudah", value: difficulty.mudah.length, max: difficulty.total || 1, color: "#38BDF8" },
-    { label: "Sedang", value: difficulty.sedang.length, max: difficulty.total || 1, color: "#FF9500" },
-    { label: "Susah", value: difficulty.susah.length, max: difficulty.total || 1, color: "#FF6B6B" },
+    { label: "Mudah", value: (difficulty.mudah || []).length, max: difficulty.total || 1, color: "#38BDF8" },
+    { label: "Sedang", value: (difficulty.sedang || []).length, max: difficulty.total || 1, color: "#FF9500" },
+    { label: "Susah", value: (difficulty.susah || []).length, max: difficulty.total || 1, color: "#FF6B6B" },
   ];
 
-  const donutSVG = buildDonutChart(stats?.correctAnswers ?? 0, wrong);
+  const donutSVG = buildDonutChart(stats.correctAnswers || 0, wrong || 0);
   const weeklyBarSVG = buildBarChart(weeklyData);
   const diffBarSVG = buildBarChart(diffBarData);
-  const heatmapSVG = buildActivityHeatmap(progress);
+  const heatmapSVG = buildActivityHeatmap(progress || []);
 
   const recentRows = [...progress]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())

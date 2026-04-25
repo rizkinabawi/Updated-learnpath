@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
@@ -16,7 +16,15 @@ import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
-import * as Sharing from "expo-sharing";
+// Native modules loaded dynamically inside handler to prevent resolution issues in some environments
+let Print: any = null;
+let Sharing: any = null;
+try {
+  Print = require("expo-print");
+  Sharing = require("expo-sharing");
+} catch(e) {
+  console.warn("Native PDF/Sharing modules unavailable at top-level");
+}
 import { PromptBuilder } from "@/components/PromptBuilder";
 import {
   getStats, getProgress, getUser, getLearningPaths, getModules, getLessons,
@@ -27,7 +35,7 @@ import { useRouter } from "expo-router";
 import { classifyAllItems, type DifficultyStats } from "@/utils/difficulty-classifier";
 import { generateReportHTML } from "@/utils/report-generator";
 import { ProgressBar } from "@/components/ProgressBar";
-import { type ColorScheme } from "@/constants/colors";
+import { CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -58,7 +66,8 @@ const makeShareGrads = (colors: ColorScheme): [string, string][] => [
 
 export default function ProgressTab() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const DIFF_CONFIG = useMemo(() => makeDiffConfig(colors), [colors]);
   const SHARE_GRADS = useMemo(() => makeShareGrads(colors), [colors]);
 
@@ -117,6 +126,13 @@ export default function ProgressTab() {
     })();
   }, []));
 
+  // Dynamic gradients based on palette
+  const activeGradients = useMemo(() => {
+    if (palette === "minimal") return CARD_GRADIENTS_MINIMAL;
+    if (palette === "premium") return CARD_GRADIENTS_PREMIUM;
+    return CARD_GRADIENTS;
+  }, [palette, isDark]);
+
   const accuracy = stats && stats.totalAnswers > 0
     ? Math.round((stats.correctAnswers / stats.totalAnswers) * 100) : 0;
   const wrong = (stats?.totalAnswers ?? 0) - (stats?.correctAnswers ?? 0);
@@ -128,18 +144,46 @@ export default function ProgressTab() {
     }
     setPdfLoading(true);
     try {
-      const Print = await import("expo-print");
       const html = await generateReportHTML();
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: t.progress.share_image });
-        toast.success(t.progress.pdf_success);
-      } else {
-        toast.info(t.progress.pdf_saved);
+      
+      if (!Print || !Sharing) {
+        throw new Error("Modul Print/Sharing tidak termuat. Coba restart Expo Go.");
       }
+      
+      // Smart detection for iOS/Android variations
+      const printToFile = Print.printToFileAsync || (Print as any).default?.printToFileAsync;
+      const printDirect = Print.printAsync || (Print as any).default?.printAsync;
+
+      if (!printToFile && !printDirect) {
+        throw new Error("Fitur cetak (Print) tidak ditemukan di sistem Expo Go.");
+      }
+
+      // Attempt 1: Print to file and Share
+      try {
+        if (!printToFile) throw new Error("printToFileAsync unavailable");
+        
+        const { uri } = await printToFile({ html, base64: false });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: t.progress.share_image });
+          toast.success(t.progress.pdf_success);
+        } else {
+          toast.info(t.progress.pdf_saved);
+        }
+      } catch (innerErr) {
+        // Attempt 2: Direct Print Dialog
+        console.warn("PrintToFile failed, falling back to direct PrintAsync", innerErr);
+        if (printDirect) {
+           await printDirect({ html, orientation: Print.Orientation.portrait });
+        } else {
+           throw innerErr;
+        }
+      }
+
     } catch (e) {
-      if (!isCancellationError(e)) toast.error(t.progress.pdf_error);
+      console.error("Critical PDF Error:", e);
+      const msg = e instanceof Error ? e.message : "Gagal menyusun dokumen.";
+      Alert.alert("Error PDF", msg);
     } finally {
       setPdfLoading(false);
     }
@@ -200,7 +244,7 @@ export default function ProgressTab() {
     <View style={styles.container}>
       {/* ===== GRADIENT HEADER ===== */}
       <LinearGradient
-        colors={[colors.primary, colors.purple]}
+        colors={(palette === "minimal" && isDark) ? [colors.primaryLight, colors.background] : [colors.primary, palette === "color" ? colors.purple : colors.primaryDark]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.headerGrad, { paddingTop: Platform.OS === "web" ? 60 : insets.top + 12 }]}
       >
@@ -215,7 +259,7 @@ export default function ProgressTab() {
           </View>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity onPress={handleShareImage} style={styles.pdfBtn} activeOpacity={0.8}>
-              <LinearGradient colors={[colors.teal, "#0EA5E9"]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
+              <LinearGradient colors={palette === "color" ? [colors.teal, "#0EA5E9"] : [colors.primary, colors.primaryDark]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
                 {shareLoading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <><Feather name="image" size={14} color="#fff" /><Text style={styles.pdfBtnText}>{t.progress.share_btn}</Text></>
@@ -223,7 +267,7 @@ export default function ProgressTab() {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleExportPDF} style={styles.pdfBtn} activeOpacity={0.8}>
-              <LinearGradient colors={[colors.primary, colors.purple]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
+              <LinearGradient colors={palette === "color" ? [colors.primary, colors.purple] : [colors.primary, colors.primaryDark]} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.pdfBtnGrad}>
                 {pdfLoading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <><Feather name="download" size={14} color="#fff" /><Text style={styles.pdfBtnText}>PDF</Text></>
@@ -235,34 +279,56 @@ export default function ProgressTab() {
 
         {/* Hero: Ring + Stat chips */}
         <View style={styles.heroRow}>
-          {/* Accuracy ring */}
+          {/* Enhanced Accuracy ring */}
           <View style={styles.ringContainer}>
             <View style={styles.ringOuter}>
-              <View style={styles.ringInner}>
-                <Text style={styles.ringVal}>{accuracy}%</Text>
-                <Text style={styles.ringLbl}>{t.progress.accuracy.toUpperCase()}</Text>
-              </View>
+              <LinearGradient 
+                colors={accuracy >= 70 ? (palette === "color" ? [colors.teal, "#0EA5E9"] : [colors.primary, colors.primaryDark]) : accuracy >= 40 ? (palette === "color" ? [colors.amber, colors.accent] : [colors.border, colors.border]) : [colors.accent, colors.danger]}
+                style={styles.ringGradient}
+              >
+                <View style={styles.ringInner}>
+                  <Text style={styles.ringVal}>{accuracy}%</Text>
+                  <Text style={styles.ringLbl}>ACCURACY</Text>
+                </View>
+              </LinearGradient>
             </View>
-            {/* Arc decoration */}
-            <View style={[styles.ringArc, { borderColor: accuracy >= 70 ? colors.teal : accuracy >= 40 ? colors.amber : colors.accent }]} />
+            <View style={[styles.ringGlow, { backgroundColor: accuracy >= 70 ? colors.teal : colors.accent, opacity: 0.2 }]} />
           </View>
 
-          {/* 4 stat chips */}
-          <View style={styles.chipsGrid}>
-            {[
-              { icon: "message-circle" as const, val: stats?.totalAnswers ?? 0, lbl: t.progress.total_answers, grad: [colors.primary, colors.purple] as [string,string] },
-              { icon: "check-circle"   as const, val: stats?.correctAnswers ?? 0, lbl: t.progress.correct, grad: [colors.teal,"#0EA5E9"] as [string,string] },
-              { icon: "x-circle"       as const, val: wrong,                     lbl: t.progress.wrong, grad: [colors.accent, colors.danger] as [string,string] },
-              { icon: "activity"       as const, val: stats?.streak ?? 0,        lbl: t.progress.streak, grad: [colors.amber, colors.accent] as [string,string] },
-            ].map((c, i) => (
-              <View key={i} style={styles.chip}>
-                <LinearGradient colors={c.grad} style={styles.chipIcon}>
-                  <Feather name={c.icon} size={13} color="#fff" />
-                </LinearGradient>
-                <Text style={styles.chipVal}>{c.val}</Text>
-                <Text style={styles.chipLbl}>{c.lbl}</Text>
+          {/* Premium stat grid */}
+          <View style={styles.statsPanel}>
+            <View style={styles.statLine}>
+              <View style={styles.statMiniCard}>
+                <Feather name="check-circle" size={12} color={colors.teal} />
+                <View>
+                  <Text style={styles.statMiniVal}>{stats?.correctAnswers ?? 0}</Text>
+                  <Text style={styles.statMiniLbl}>Solved</Text>
+                </View>
               </View>
-            ))}
+              <View style={styles.statMiniCard}>
+                <Feather name="zap" size={12} color={colors.amber} />
+                <View>
+                  <Text style={styles.statMiniVal}>{stats?.streak ?? 0}</Text>
+                  <Text style={styles.statMiniLbl}>Streak</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.statLine}>
+              <View style={styles.statMiniCard}>
+                <Feather name="message-circle" size={12} color="#fff" />
+                <View>
+                  <Text style={styles.statMiniVal}>{stats?.totalAnswers ?? 0}</Text>
+                  <Text style={styles.statMiniLbl}>Total</Text>
+                </View>
+              </View>
+              <View style={styles.statMiniCard}>
+                <Feather name="x-circle" size={12} color={colors.accent} />
+                <View>
+                  <Text style={styles.statMiniVal}>{wrong}</Text>
+                  <Text style={styles.statMiniLbl}>Errors</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -298,24 +364,32 @@ export default function ProgressTab() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardHeadLeft}>
-                <LinearGradient colors={[colors.primary, colors.purple]} style={styles.cardHeadIcon}>
+                <LinearGradient 
+                  colors={palette === "color" ? [colors.primary, colors.purple] : [colors.primary, colors.primaryDark]} 
+                  style={styles.cardHeadIcon}
+                >
                   <Feather name="bar-chart-2" size={13} color="#fff" />
                 </LinearGradient>
                 <Text style={styles.cardTitle}>{t.progress.section_accuracy7}</Text>
               </View>
-              <Text style={styles.cardHint}>(%) per hari</Text>
+              <View style={styles.badgeCompact}>
+                <Text style={styles.badgeTextCompact}>Real-time</Text>
+              </View>
             </View>
             <View style={styles.barChartWrap}>
               {weeklyBars.map((b, i) => {
-                const h = Math.max(4, (b.pct / maxPct) * 80);
-                const col = b.pct >= 70 ? colors.teal : b.pct >= 40 ? colors.amber : b.pct === 0 ? "#E2E8F0" : colors.accent;
+                const h = Math.max(8, (b.pct / 100) * 80);
+                const col = b.pct >= 70 ? colors.teal : b.pct >= 40 ? colors.amber : b.pct === 0 ? colors.border : colors.accent;
                 return (
                   <View key={i} style={styles.barCol}>
-                    <Text style={[styles.barValText, { color: col }]}>{b.pct > 0 ? `${b.pct}` : ""}</Text>
                     <View style={styles.barTrack}>
-                      <View style={[styles.barFill, { height: h, backgroundColor: col }]} />
+                      <LinearGradient 
+                        colors={b.pct > 0 ? [col, col + "88"] : [colors.border, colors.border]} 
+                        style={[styles.barFill, { height: h }]} 
+                      />
                     </View>
-                    <Text style={styles.barDayText}>{b.day}</Text>
+                    <Text style={[styles.barDayText, b.pct > 0 && { color: colors.dark, fontWeight: "900" }]}>{b.day}</Text>
+                    <Text style={[styles.barPctText, { color: col }]}>{b.pct}%</Text>
                   </View>
                 );
               })}
@@ -326,7 +400,10 @@ export default function ProgressTab() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardHeadLeft}>
-                <LinearGradient colors={[colors.teal,"#0EA5E9"]} style={styles.cardHeadIcon}>
+                <LinearGradient 
+                  colors={palette === "color" ? [colors.teal, "#0EA5E9"] : [colors.primary, colors.primaryDark]} 
+                  style={styles.cardHeadIcon}
+                >
                   <Feather name="target" size={13} color="#fff" />
                 </LinearGradient>
                 <Text style={styles.cardTitle}>{t.progress.section_accuracy_overall}</Text>
@@ -344,46 +421,55 @@ export default function ProgressTab() {
             <Text style={styles.progressSub}>{stats?.correctAnswers ?? 0} {t.progress.correct.toLowerCase()} · {wrong} {t.progress.wrong.toLowerCase()} · {stats?.totalAnswers ?? 0} {t.progress.total_answers.toLowerCase()}</Text>
           </View>
 
-          {/* Activity heatmap */}
+          {/* Activity Dot Matrix (Recent Performance) */}
           {recent.length > 0 && (
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardHeadLeft}>
-                  <LinearGradient colors={[colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
+                  <LinearGradient 
+                    colors={palette === "color" ? [colors.purple, "#A855F7"] : [colors.primary, colors.primaryDark]} 
+                    style={styles.cardHeadIcon}
+                  >
                     <Feather name="grid" size={13} color="#fff" />
                   </LinearGradient>
-                  <Text style={styles.cardTitle}>{t.progress.section_weekly}</Text>
+                  <Text style={styles.cardTitle}>Performance Matrix</Text>
                 </View>
+                <Text style={styles.cardHint}>Last 21 Items</Text>
               </View>
-              <View style={styles.heatmapWrap}>
-                {recent.slice(0, 21).map((p, i) => {
-                  const cellSize = (Math.min(width, 1100) - 28 - 14 * 2 - 6 * 6) / 7;
-                  return (
-                    <View
-                      key={i}
-                      style={[
-                        styles.heatCell,
-                        { width: cellSize, height: cellSize, backgroundColor: p.isCorrect ? colors.teal : colors.accent },
-                      ]}
-                    />
-                  );
-                })}
+              <View style={styles.dotMatrixWrap}>
+                {recent.slice(0, 21).map((p, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dotCell,
+                      { 
+                        backgroundColor: p.isCorrect ? colors.teal : colors.accent,
+                        shadowColor: p.isCorrect ? colors.teal : colors.accent,
+                        opacity: 1 - (i * 0.03)
+                      }
+                    ]}
+                  >
+                    <View style={styles.dotInner} />
+                  </View>
+                ))}
               </View>
-              <View style={styles.heatLegend}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.teal }]} />
-                  <Text style={styles.legendText}>{t.progress.correct}</Text>
+              <View style={styles.matrixFooter}>
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  <View style={styles.legendRow}>
+                    <View style={[styles.legendDotSmall, { backgroundColor: colors.teal }]} />
+                    <Text style={styles.legendTxt}>Passed</Text>
+                  </View>
+                  <View style={styles.legendRow}>
+                    <View style={[styles.legendDotSmall, { backgroundColor: colors.accent }]} />
+                    <Text style={styles.legendTxt}>Failed</Text>
+                  </View>
                 </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
-                  <Text style={styles.legendText}>{t.progress.wrong}</Text>
-                </View>
-                <Text style={styles.legendText}>{recent.length} aktivitas</Text>
+                <Text style={styles.matrixStatus}>Consistency: {Math.round((recent.filter(r => r.isCorrect).length / recent.length) * 100)}%</Text>
               </View>
             </View>
           )}
 
-          {/* ─── Streak Calendar (30 days) ─── */}
+          {/* ─── Activity Heatmap (35 days) ─── */}
           {(() => {
             const today = new Date();
             const days = Array.from({ length: 35 }, (_, i) => {
@@ -394,7 +480,7 @@ export default function ProgressTab() {
               const isToday = key === today.toISOString().slice(0, 10);
               return { key, hasActivity, isToday, dayNum: d.getDate(), weekday: d.getDay() };
             });
-            const cellSize = Math.floor((Math.min(width, 1100) - 28 - 12 * 2 - 6 * 4) / 7);
+            const cellSize = Math.floor((Math.min(width, 1100) - 40 - 12 * 7) / 7);
             return (
               <View style={styles.card}>
                 <View style={styles.cardHead}>
@@ -402,34 +488,37 @@ export default function ProgressTab() {
                     <LinearGradient colors={[colors.success, colors.emerald]} style={styles.cardHeadIcon}>
                       <Feather name="calendar" size={13} color="#fff" />
                     </LinearGradient>
-                    <Text style={styles.cardTitle}>Kalender Streak</Text>
+                    <Text style={styles.cardTitle}>Activity History</Text>
                   </View>
-                  <Text style={styles.cardHint}>{stats?.streak ?? 0} hari berturut</Text>
+                  <View style={styles.streakBadge}>
+                    <Feather name="zap" size={10} color={colors.amber} />
+                    <Text style={styles.streakText}>{stats?.streak ?? 0} DAYS</Text>
+                  </View>
                 </View>
-                <View style={{ flexDirection: "row", gap: 4, flexWrap: "wrap" }}>
+                
+                <View style={styles.calendarGrid}>
                   {["M","S","S","R","K","J","S"].map((d, i) => (
-                    <Text key={i} style={{ width: cellSize, textAlign: "center", fontSize: 9, fontWeight: "800", color: colors.textMuted, marginBottom: 4 }}>{d}</Text>
+                    <Text key={i} style={styles.calendarDayHeader}>{d}</Text>
                   ))}
                   {days.map((d) => (
-                    <View key={d.key} style={{
-                      width: cellSize, height: cellSize, borderRadius: 8, marginBottom: 4,
-                      backgroundColor: d.hasActivity ? (d.isToday ? colors.primary : colors.teal) : colors.border,
-                      alignItems: "center", justifyContent: "center",
-                      borderWidth: d.isToday ? 2 : 0, borderColor: colors.primary,
-                    }}>
-                      <Text style={{ fontSize: 9, fontWeight: "700", color: d.hasActivity ? "#fff" : colors.textMuted }}>{d.dayNum}</Text>
+                    <View key={d.key} style={[
+                      styles.calendarCell,
+                      { width: cellSize, height: cellSize },
+                      d.hasActivity && { backgroundColor: d.isToday ? colors.primary : colors.teal + "33", borderColor: d.isToday ? colors.primary : colors.teal, borderWidth: 1 },
+                    ]}>
+                      <Text style={[
+                        styles.calendarCellText,
+                        d.hasActivity && { color: d.isToday ? "#fff" : colors.teal, fontWeight: "900" },
+                        d.isToday && !d.hasActivity && { color: colors.primary }
+                      ]}>{d.dayNum}</Text>
                     </View>
                   ))}
                 </View>
-                <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.teal }} />
-                    <Text style={{ fontSize: 11, color: colors.textMuted }}>Ada aktivitas</Text>
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.border }} />
-                    <Text style={{ fontSize: 11, color: colors.textMuted }}>Tidak ada</Text>
-                  </View>
+
+                <View style={styles.calendarFooter}>
+                  <View style={styles.legendRow}><View style={[styles.legendSquare, { backgroundColor: colors.border }]} /><Text style={styles.legendTxt}>None</Text></View>
+                  <View style={styles.legendRow}><View style={[styles.legendSquare, { backgroundColor: colors.teal, opacity: 0.3 }]} /><Text style={styles.legendTxt}>Studied</Text></View>
+                  <View style={styles.legendRow}><View style={[styles.legendSquare, { backgroundColor: colors.primary }]} /><Text style={styles.legendTxt}>Today</Text></View>
                 </View>
               </View>
             );
@@ -437,7 +526,10 @@ export default function ProgressTab() {
 
           {/* Session History Link */}
           <TouchableOpacity activeOpacity={0.85} onPress={() => router.push("/session-history")} style={[styles.card, { flexDirection: "row", alignItems: "center", padding: 16, gap: 14 }]}>
-            <LinearGradient colors={[colors.teal, "#0EA5E9"]} style={{ width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" }}>
+            <LinearGradient 
+              colors={palette === "color" ? [colors.teal, "#0EA5E9"] : [colors.primary, colors.primaryDark]} 
+              style={{ width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" }}
+            >
               <Feather name="list" size={18} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
@@ -452,7 +544,10 @@ export default function ProgressTab() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardHeadLeft}>
-                  <LinearGradient colors={[colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
+                  <LinearGradient 
+                    colors={palette === "color" ? [colors.purple, "#A855F7"] : [colors.primary, colors.primaryDark]} 
+                    style={styles.cardHeadIcon}
+                  >
                     <Feather name="layers" size={13} color="#fff" />
                   </LinearGradient>
                   <Text style={styles.cardTitle}>Statistik Per Topik</Text>
@@ -477,43 +572,58 @@ export default function ProgressTab() {
             </View>
           )}
 
-          {/* Log */}
+          {/* Activity Log */}
           {recent.length > 0 && (
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardHeadLeft}>
-                  <LinearGradient colors={[colors.amber, colors.accent]} style={styles.cardHeadIcon}>
-                    <Feather name="list" size={13} color="#fff" />
+                  <LinearGradient 
+                    colors={palette === "color" ? [colors.amber, colors.accent] : [colors.border, colors.border]} 
+                    style={styles.cardHeadIcon}
+                  >
+                    <Feather name="clock" size={13} color="#fff" />
                   </LinearGradient>
-                  <Text style={styles.cardTitle}>{t.progress.section_log}</Text>
+                  <Text style={styles.cardTitle}>Recent Activity</Text>
                 </View>
               </View>
-              {recent.slice(0, 10).map((p, i) => (
-                <View key={i} style={[styles.logRow, i < Math.min(10, recent.length) - 1 && styles.logRowBorder]}>
-                  <View style={[styles.logDot, { backgroundColor: p.isCorrect ? colors.teal : colors.accent }]} />
-                  <Feather name={p.flashcardId ? "credit-card" : "help-circle"} size={13} color={colors.textMuted} />
-                  <Text style={styles.logDate}>{new Date(p.timestamp).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</Text>
-                  <Text style={[styles.logResult, { color: p.isCorrect ? "#059669" : "#DC2626" }]}>
-                    {p.isCorrect ? t.progress.correct_mark : t.progress.wrong_mark}
-                  </Text>
-                  {p.userAnswer ? <Text style={styles.logAnswer} numberOfLines={1}>{p.userAnswer}</Text> : null}
-                </View>
-              ))}
+              <View style={{ gap: 8 }}>
+                {recent.slice(0, 8).map((p, i) => (
+                  <View key={i} style={styles.modernLogRow}>
+                    <View style={[styles.logIndicator, { backgroundColor: p.isCorrect ? (palette === "color" ? colors.teal : colors.primary) : (palette === "color" ? colors.accent : colors.textMuted) }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.logQuestion} numberOfLines={1}>
+                        {p.flashcardId ? "Flashcard Review" : "Quiz Question"}
+                      </Text>
+                      <Text style={styles.logMeta}>
+                        {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {p.isCorrect ? "Correct" : "Incorrect"}
+                      </Text>
+                    </View>
+                    <Feather name={p.isCorrect ? "check-circle" : "x-circle"} size={14} color={p.isCorrect ? (palette === "color" ? colors.teal : colors.primary) : (palette === "color" ? colors.accent : colors.textMuted)} />
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 
           {recent.length === 0 && (
-            <LinearGradient colors={["#0A1628","#1A3066"]} style={styles.emptyGrad}>
+            <LinearGradient 
+              colors={palette === "color" ? ["#0A1628","#1A3066"] : [colors.white, colors.white]} 
+              style={[styles.emptyGrad, palette !== "color" && { borderWidth: 1, borderColor: colors.border }]}
+            >
               <View style={styles.hDot1} /><View style={styles.hDot2} />
               <Feather name="trending-up" size={40} color="rgba(74,158,255,0.6)" />
-              <Text style={styles.emptyTitle}>{t.progress.tab_stats}</Text>
-              <Text style={styles.emptySub}>{t.progress.section_accuracy7}</Text>
+              <Text style={[styles.emptyTitle, palette !== "color" && { color: colors.dark }]}>{t.progress.tab_stats}</Text>
+              <Text style={[styles.emptySub, palette !== "color" && { color: colors.textMuted }]}>{t.progress.section_accuracy7}</Text>
             </LinearGradient>
           )}
 
           {/* PDF Button */}
           <TouchableOpacity onPress={handleExportPDF} activeOpacity={0.85} style={{ borderRadius: 16, overflow: "hidden" }}>
-            <LinearGradient colors={["#0A1628","#1A3066"]} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.pdfBigBtn}>
+            <LinearGradient 
+              colors={palette === "color" ? ["#0A1628","#1A3066"] : [colors.primary, colors.primaryDark]} 
+              start={{x:0,y:0}} end={{x:1,y:0}} 
+              style={styles.pdfBigBtn}
+            >
               <View style={styles.pdfBigIconWrap}>
                 {pdfLoading
                   ? <ActivityIndicator size="small" color="#fff" />
@@ -521,8 +631,8 @@ export default function ProgressTab() {
                 }
               </View>
               <View>
-                <Text style={styles.pdfBigTitle}>Export Laporan PDF</Text>
-                <Text style={styles.pdfBigSub}>Graph, heatmap, klasifikasi soal & log lengkap</Text>
+                <Text style={[styles.pdfBigTitle, palette !== "color" && { color: colors.dark }]}>Export Laporan PDF</Text>
+                <Text style={[styles.pdfBigSub, palette !== "color" && { color: colors.textMuted }]}>Graph, heatmap, klasifikasi soal & log lengkap</Text>
               </View>
               <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.4)" style={{ marginLeft: "auto" }} />
             </LinearGradient>
@@ -542,7 +652,10 @@ export default function ProgressTab() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardHeadLeft}>
-                <LinearGradient colors={[colors.purple,"#A855F7"]} style={styles.cardHeadIcon}>
+                <LinearGradient 
+                  colors={palette === "color" ? [colors.purple, "#A855F7"] : [colors.primary, colors.primaryDark]} 
+                  style={styles.cardHeadIcon}
+                >
                   <Feather name="layers" size={13} color="#fff" />
                 </LinearGradient>
                 <Text style={styles.cardTitle}>Klasifikasi Otomatis</Text>
@@ -578,7 +691,12 @@ export default function ProgressTab() {
                 <View style={styles.cardHead}>
                   <View style={styles.cardHeadLeft}>
                     <LinearGradient
-                      colors={activeDiff === "mudah" ? [colors.teal,"#0EA5E9"] : activeDiff === "sedang" ? [colors.amber, colors.accent] : [colors.accent, colors.danger]}
+                      colors={activeDiff === "mudah" 
+                        ? (palette === "color" ? [colors.teal, "#0EA5E9"] : [colors.primary, colors.primaryDark])
+                        : activeDiff === "sedang" 
+                        ? (palette === "color" ? [colors.amber, colors.accent] : [colors.border, colors.border])
+                        : [colors.accent, colors.danger]
+                      }
                       style={styles.cardHeadIcon}
                     >
                       <Feather name={cfg.icon} size={13} color="#fff" />
@@ -628,16 +746,25 @@ export default function ProgressTab() {
         collapsable={false}
         style={styles.shareCardWrap}
       >
-        <LinearGradient colors={["#0F1F3D", "#1E3A5F"]} style={styles.shareCard}>
+        <LinearGradient 
+          colors={palette === "color" ? ["#0F1F3D", "#1E3A5F"] : (isDark ? ["#000000", "#111111"] : ["#F8F9FA", "#E9ECEF"])} 
+          style={styles.shareCard}
+        >
           {/* Header */}
-          <LinearGradient colors={["#4C6FFF", "#7C47FF"]} style={styles.shareBanner}>
+          <LinearGradient 
+            colors={palette === "color" ? ["#4C6FFF", "#7C47FF"] : [colors.primary, colors.primaryDark]} 
+            style={styles.shareBanner}
+          >
             <Text style={styles.shareAppName}>📚 MobileLearning</Text>
             <Text style={styles.shareTagline}>Laporan Progres Belajar</Text>
           </LinearGradient>
 
           {/* User */}
           <View style={styles.shareUserRow}>
-            <LinearGradient colors={["#4C6FFF", "#7C47FF"]} style={styles.shareAvatar}>
+            <LinearGradient 
+              colors={palette === "color" ? ["#4C6FFF", "#7C47FF"] : [colors.primary, colors.primaryDark]} 
+              style={styles.shareAvatar}
+            >
               <Text style={styles.shareAvatarText}>
                 {(user?.name ?? "U").charAt(0).toUpperCase()}
               </Text>
@@ -716,40 +843,95 @@ export default function ProgressTab() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
-  headerGrad: { paddingHorizontal: 20, paddingBottom: 0, overflow: "hidden" },
-  hDot1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(74,158,255,0.1)", top: -50, right: -50 },
-  hDot2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(56,189,248,0.07)", bottom: -20, left: 20 },
+  headerGrad: { paddingHorizontal: 20, paddingBottom: 12, overflow: "hidden" },
+  hDot1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)", top: -50, right: -50 },
+  hDot2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)", bottom: -20, left: 20 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 },
   headerTitle: { fontSize: 24, fontWeight: "900", color: "#fff", letterSpacing: -0.5 },
   pdfBtn: { borderRadius: 12, overflow: "hidden" },
   pdfBtnGrad: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 9 },
   pdfBtnText: { fontSize: 12, fontWeight: "800", color: "#fff" },
-  heroRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 16 },
-  ringContainer: { width: 100, height: 100, alignItems: "center", justifyContent: "center" },
-  ringOuter: { width: 96, height: 96, borderRadius: 48, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" },
-  ringInner: { width: 74, height: 74, borderRadius: 37, backgroundColor: "rgba(10,22,40,0.6)", alignItems: "center", justifyContent: "center" },
-  ringArc: { position: "absolute", width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderTopColor: "transparent", borderRightColor: "transparent" },
-  ringVal: { fontSize: 20, fontWeight: "900", color: "#fff" },
-  ringLbl: { fontSize: 8, color: "rgba(255,255,255,0.5)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 },
-  chipsGrid: { flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { width: "46%", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 14, padding: 10, flexDirection: "row", alignItems: "center", gap: 8 },
-  chipIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  chipVal: { fontSize: 16, fontWeight: "900", color: "#fff" },
-  chipLbl: { fontSize: 9, color: "rgba(255,255,255,0.45)", fontWeight: "700", textTransform: "uppercase" },
+  barCol: { flex: 1, alignItems: "center", gap: 6 },
+  barPctText: { fontSize: 8, fontWeight: "800", marginTop: 2 },
+  barTrack: { width: "45%", height: 80, justifyContent: "flex-end", backgroundColor: c.background, borderRadius: 10, overflow: "hidden" },
+  barFill: { width: "100%", borderRadius: 10 },
+  barDayText: { fontSize: 10, color: c.textMuted, fontWeight: "700" },
+  badgeCompact: { backgroundColor: "rgba(0,0,0,0.05)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  badgeTextCompact: { fontSize: 10, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase" },
+  progressSub: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+  
+  dotMatrixWrap: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center", paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.02)", borderRadius: 12, padding: 10 },
+  dotCell: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 4 },
+  dotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.8)" },
+  matrixFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
+  matrixStatus: { fontSize: 11, fontWeight: "900", color: c.text, textTransform: "uppercase" },
+  legendDotSmall: { width: 8, height: 8, borderRadius: 4 },
+  
+  calendarGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  calendarDayHeader: { textAlign: "center", fontSize: 10, fontWeight: "900", color: c.textMuted, marginBottom: 8, width: 34 },
+  calendarCell: { borderRadius: 10, backgroundColor: c.border, alignItems: "center", justifyContent: "center", position: "relative" },
+  calendarCellText: { fontSize: 10, fontWeight: "700", color: c.textMuted },
+  cellDot: { position: "absolute", bottom: 4, width: 3, height: 3, borderRadius: 1.5, backgroundColor: c.teal },
+  calendarFooter: { flexDirection: "row", gap: 15, marginTop: 15, justifyContent: "center" },
+  legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendSquare: { width: 10, height: 10, borderRadius: 3 },
+  legendTxt: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+  streakBadge: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 4, 
+    backgroundColor: c.primaryLight, 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 20, 
+    borderWidth: 1, 
+    borderColor: c.primary + "33" 
+  },
+  streakText: { fontSize: 10, fontWeight: "900", color: c.primary },
+
+  modernLogRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.border },
+  logIndicator: { width: 4, height: 24, borderRadius: 2 },
+  logQuestion: { fontSize: 14, fontWeight: "700", color: c.text },
+  logMeta: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 2 },
+
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 20, marginBottom: 20, paddingVertical: 10 },
+  ringContainer: { width: 110, height: 110, alignItems: "center", justifyContent: "center" },
+  ringOuter: { width: 106, height: 106, borderRadius: 53, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", padding: 4 },
+  ringGradient: { width: "100%", height: "100%", borderRadius: 53, alignItems: "center", justifyContent: "center" },
+  ringInner: { width: 84, height: 84, borderRadius: 42, backgroundColor: "rgba(0,0,0,0.15)", alignItems: "center", justifyContent: "center" },
+  ringGlow: { position: "absolute", width: 120, height: 120, borderRadius: 60, zIndex: -1 },
+  ringVal: { fontSize: 22, fontWeight: "900", color: "#fff" },
+  ringLbl: { fontSize: 8, color: "rgba(255,255,255,0.55)", fontWeight: "800", letterSpacing: 1 },
+  
+  statsPanel: { flex: 1, gap: 10 },
+  statLine: { flexDirection: "row", gap: 10 },
+  statMiniCard: { 
+    flex: 1, 
+    backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)", 
+    borderRadius: 14, 
+    padding: 12, 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 8, 
+    borderWidth: 1, 
+    borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" 
+  },
+  statMiniVal: { fontSize: 16, fontWeight: "900", color: c.white, lineHeight: 20 },
+  statMiniLbl: { fontSize: 9, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase" },
   tabStrip: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
   tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 12 },
-  tabItemActive: { borderBottomWidth: 2.5, borderBottomColor: c.primary },
+  tabItemActive: { borderBottomWidth: 2.5, borderBottomColor: "#fff" },
   tabItemText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.4)" },
   tabItemTextActive: { color: "#fff" },
   scrollContent: { padding: 20, paddingBottom: 40, gap: 12 },
-  card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: c.border, gap: 12 },
+  card: { backgroundColor: c.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: c.border, gap: 12 },
   cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardHeadLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   cardHeadIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  cardTitle: { fontSize: 13, fontWeight: "800", color: c.dark },
+  cardTitle: { fontSize: 13, fontWeight: "800", color: c.text },
   cardHint: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   barChartWrap: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 110, paddingTop: 16 },
   barCol: { flex: 1, alignItems: "center", gap: 4 },
@@ -788,7 +970,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   classifyRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11 },
   classifyRowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
   classifyTypeBadge: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  classifyQ: { fontSize: 13, fontWeight: "700", color: c.dark, lineHeight: 19 },
+  classifyQ: { fontSize: 13, fontWeight: "700", color: c.text, lineHeight: 19 },
   classifyMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
   classifyMetaText: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
   classifyAcc: { fontSize: 11, fontWeight: "800" },
@@ -808,15 +990,15 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   shareTagline: { fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: "600", marginTop: 2 },
   shareUserRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 16 },
   shareAvatar: { width: 50, height: 50, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  shareAvatarText: { fontSize: 22, fontWeight: "900", color: "#fff" },
-  shareUserName: { fontSize: 17, fontWeight: "900", color: "#fff" },
+  shareAvatarText: { fontSize: 22, fontWeight: "900", color: c.white },
+  shareUserName: { fontSize: 17, fontWeight: "900", color: c.white },
   shareUserLevel: { fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: "600", marginTop: 2 },
   shareAccRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingBottom: 16 },
   shareAccBox: {
     width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center", justifyContent: "center",
   },
-  shareAccVal: { fontSize: 28, fontWeight: "900", color: "#fff" },
+  shareAccVal: { fontSize: 28, fontWeight: "900", color: c.white },
   shareAccLbl: { fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: "700", textTransform: "uppercase" },
   shareStatGrid: { flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 },
   shareStatBox: { width: "46%", borderRadius: 12, padding: 10, alignItems: "center", gap: 2 },

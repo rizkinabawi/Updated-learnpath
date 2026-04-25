@@ -287,7 +287,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   phasePillActive: { backgroundColor: c.primary, borderColor: c.primary },
   phasePillText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
-  phasePillTextActive: { color: c.white },
+  phasePillTextActive: { color: "#fff" },
   ringWrap: { width: 240, height: 240, alignItems: "center", justifyContent: "center", marginBottom: 24 },
   ringBg: {
     position: "absolute",

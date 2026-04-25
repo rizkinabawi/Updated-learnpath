@@ -218,85 +218,85 @@ const DarkDefault: ColorScheme = {
   shadow: "#000000",
 };
 
-// ── DARK × MINIMAL (B&W) ─────────────────────────────────────────────────────
+// ── DARK × MINIMAL (Midnight Neon) ──────────────────────────────────────────
 const DarkMinimal: ColorScheme = {
-  primary: "#FFFFFF",
-  primaryDark: "#E5E5E5",
-  primaryLight: "#1A1A1A",
-  accent: "#CCCCCC",
-  accentLight: "#1A1A1A",
-  teal: "#BBBBBB",
-  tealLight: "#1A1A1A",
-  amber: "#AAAAAA",
-  amberLight: "#1A1A1A",
-  purple: "#DDDDDD",
-  purpleLight: "#1A1A1A",
-  emerald: "#CCCCCC",
-  emeraldLight: "#1A1A1A",
-  dark: "#FFFFFF",
+  primary: "#4FD1C5",      // Glowing Cyan-Teal
+  primaryDark: "#38B2AC",
+  primaryLight: "#1A222F", // Deep navy-gray blocks
+  accent: "#63B3ED",       // Electric Blue
+  accentLight: "#1A2B3D",
+  teal: "#4FD1C5",         
+  tealLight: "#132F3A",
+  amber: "#718096",        
+  amberLight: "#171923",
+  purple: "#805AD5",       
+  purpleLight: "#2A2438",
+  emerald: "#68D391",
+  emeraldLight: "#12251B",
+  dark: "#F7FAFC",         
   black: "#FFFFFF",
-  darkMed: "#DDDDDD",
-  white: "#111111",
-  background: "#000000",
-  surface: "#0E0E0E",
-  border: "#262626",
-  borderLight: "#1A1A1A",
-  text: "#FAFAFA",
-  textSecondary: "#BBBBBB",
-  textMuted: "#777777",
-  success: "#FFFFFF",
-  successLight: "#1A1A1A",
-  danger: "#EEEEEE",
-  dangerLight: "#1A1A1A",
-  warning: "#CCCCCC",
-  warningLight: "#1A1A1A",
-  tabActive: "#FFFFFF",
-  tabInactive: "#777777",
-  card1: "#2A2A2A",
-  card2: "#1F1F1F",
-  card3: "#333333",
-  card4: "#252525",
+  darkMed: "#E2E8F0",
+  white: "#0F111A",
+  background: "#05060B",   
+  surface: "#0F111A",      
+  border: "#1C1F2E",
+  borderLight: "#141724",
+  text: "#FFFFFF",
+  textSecondary: "#A0AEC0",
+  textMuted: "#4A5568",
+  success: "#4FD1C5",
+  successLight: "#132F3A",
+  danger: "#F56565",       
+  dangerLight: "#2D1D1D",
+  warning: "#D69E2E",
+  warningLight: "#2D261A",
+  tabActive: "#4FD1C5",
+  tabInactive: "#4A5568",
+  card1: "#1A222F",
+  card2: "#0F111A",
+  card3: "#1C1F2E",
+  card4: "#141724",
   shadow: "#000000",
 };
 
-// ── DARK × PREMIUM (deep charcoal + warm gold) ───────────────────────────────
+// ── DARK × PREMIUM (ebony metallic + champagne gold) ─────────────────────────
 const DarkPremium: ColorScheme = {
-  primary: "#F1ECE2",
-  primaryDark: "#E5DDCC",
-  primaryLight: "#1F1B14",
-  accent: "#D4B583",
-  accentLight: "#1F1B14",
+  primary: "#D4AF37",      // Champagne Gold
+  primaryDark: "#AA8C2C",
+  primaryLight: "#1C1910", // Very dark gold-tinted black
+  accent: "#E5C07B",       // Lighter gold flair
+  accentLight: "#201D15",
   teal: "#8FA8A8",
   tealLight: "#162020",
-  amber: "#D4B583",
-  amberLight: "#1F1B14",
+  amber: "#D4AF37",
+  amberLight: "#1C1910",
   purple: "#8B85A0",
   purpleLight: "#171520",
-  emerald: "#8FA88F",
-  emeraldLight: "#162016",
+  emerald: "#9BAE9B",
+  emeraldLight: "#111A11",
   dark: "#FFFFFF",
   black: "#FFFFFF",
   darkMed: "#E5E0D6",
-  white: "#13110D",
-  background: "#0F0D0A",
-  surface: "#19170F",
-  border: "#2D2920",
-  borderLight: "#211E16",
-  text: "#F4F0E6",
-  textSecondary: "#B5AFA3",
-  textMuted: "#7A746A",
-  success: "#8FA88F",
-  successLight: "#162016",
-  danger: "#D08070",
-  dangerLight: "#251612",
-  warning: "#D4B583",
-  warningLight: "#1F1B14",
-  tabActive: "#F1ECE2",
-  tabInactive: "#7A746A",
-  card1: "#3A352B",
-  card2: "#5C4A2E",
-  card3: "#3D4A4A",
-  card4: "#2D2A38",
+  white: "#121212",        // Surface-like for dark mode
+  background: "#0A0A0A",   // Deep Ebony
+  surface: "#161616",      // Lighter Ebony
+  border: "#2A2A2A",
+  borderLight: "#1E1E1E",
+  text: "#FFFFFF",
+  textSecondary: "#8A8A8A",
+  textMuted: "#555555",
+  success: "#9BAE9B",
+  successLight: "#111A11",
+  danger: "#CD5C5C",       // Indian Red (Sober, Luxurious)
+  dangerLight: "#1D1212",
+  warning: "#D4AF37",
+  warningLight: "#1C1910",
+  tabActive: "#D4AF37",
+  tabInactive: "#666666",
+  card1: "#1A1A1A",
+  card2: "#2A2210",
+  card3: "#1C2424",
+  card4: "#1E1A24",
   shadow: "#000000",
 };
 
@@ -366,12 +366,12 @@ const CARD_GRADIENTS_PREMIUM_LIGHT: [string, string][] = [
 ];
 
 const CARD_GRADIENTS_PREMIUM_DARK: [string, string][] = [
-  ["#3A352B", "#19170F"],
-  ["#5C4A2E", "#3A2E1C"],
-  ["#3D4A4A", "#2A3434"],
-  ["#2D2A38", "#1C1A24"],
-  ["#3A4540", "#252D2A"],
-  ["#4A302A", "#2A1C18"],
+  ["#F4F1EC", "#D4AF37"], // LUXURY HERO: Light Ivory to Gold
+  ["#1C1910", "#0A0A0A"],
+  ["#AA8C2C", "#1C1910"],
+  ["#222222", "#050505"],
+  ["#3A2E1C", "#121212"],
+  ["#D4AF37", "#1C1910"],
 ];
 
 const CARD_GRADIENTS_MINIMAL_LIGHT: [string, string][] = [
@@ -384,12 +384,12 @@ const CARD_GRADIENTS_MINIMAL_LIGHT: [string, string][] = [
 ];
 
 const CARD_GRADIENTS_MINIMAL_DARK: [string, string][] = [
-  ["#2A2A2A", "#1A1A1A"],
-  ["#333333", "#222222"],
-  ["#3A3A3A", "#2A2A2A"],
-  ["#2D2D2D", "#1F1F1F"],
-  ["#3D3D3D", "#2A2A2A"],
-  ["#252525", "#151515"],
+  ["#1A222F", "#0F111A"],
+  ["#1C1F2E", "#05060B"],
+  ["#2D3748", "#1A202C"],
+  ["#132F3A", "#05060B"],
+  ["#2A2438", "#0F111A"],
+  ["#1A2B3D", "#0A1015"],
 ];
 
 export const CARD_GRADIENTS: [string, string][] = [...CARD_GRADIENTS_LIGHT];

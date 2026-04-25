@@ -65,13 +65,9 @@ export default function ExternalViewPage() {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Header
-          title={screen.title}
-          url={screen.url}
-          onBack={() => router.back()}
-          onReload={() => {}}
-          onForward={() => {}}
           canGoBack={false}
+          colors={colors}
+          styles={styles}
         />
         <View style={styles.webFallback}>
           <Feather name="external-link" size={36} color={colors.primary} />
@@ -101,6 +97,8 @@ export default function ExternalViewPage() {
         onForward={() => webRef.current?.goForward()}
         canGoBack={canGoBack}
         onWebBack={() => webRef.current?.goBack()}
+        colors={colors}
+        styles={styles}
       />
       {progress > 0 && progress < 1 && (
         <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
@@ -130,6 +128,8 @@ function Header({
   onForward,
   canGoBack,
   onWebBack,
+  colors,
+  styles,
 }: {
   title: string;
   url: string;
@@ -138,6 +138,8 @@ function Header({
   onForward: () => void;
   canGoBack: boolean;
   onWebBack?: () => void;
+  colors: ColorScheme;
+  styles: any;
 }) {
   return (
     <View style={styles.header}>

@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useState, useMemo } from "react";
 import {
   View,
@@ -23,6 +23,7 @@ import {
   getLearningPaths, getModules, getLessons,
   getFlashcards, getQuizzes,
   saveLearningPath, deleteLearningPath, exportCourse,
+  getCompletedLessons,
   generateId, type LearningPath,
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
@@ -50,21 +51,25 @@ interface CourseStats {
   lessons: number;
   flashcards: number;
   quizzes: number;
+  percentage: number;
 }
 
 export default function LearnPage() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const COURSE_GRADIENTS = useMemo(() => makeCourseGradients(colors), [colors]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const isTablet = width >= 720;
+  const isTablet = width >= 768; // Standard tablet threshold
   const { t } = useTranslation();
 
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [stats, setStats] = useState<Record<string, CourseStats>>({});
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "empty">("all");
   const [showNewPath, setShowNewPath] = useState(false);
   const [pathName, setPathName] = useState("");
   const [pathDesc, setPathDesc] = useState("");
@@ -72,23 +77,27 @@ export default function LearnPage() {
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [editingIconFor, setEditingIconFor] = useState<LearningPath | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"large" | "compact">("large");
+  const [completions, setCompletions] = useState<string[]>([]);
 
   const loadData = async () => {
-    const data = await getLearningPaths();
+    const [data, completedIds] = await Promise.all([getLearningPaths(), getCompletedLessons()]);
     setPaths(data);
+    setCompletions(completedIds);
     const sMap: Record<string, CourseStats> = {};
     for (const p of data) {
       const mods = await getModules(p.id);
-      let lessons = 0, flashcards = 0, quizzes = 0;
+      let lessons = 0, flashcards = 0, quizzes = 0, doneLessons = 0;
       for (const m of mods) {
         const ls = await getLessons(m.id);
         lessons += ls.length;
+        doneLessons += ls.filter(l => completedIds.includes(l.id)).length;
         for (const l of ls) {
           flashcards += (await getFlashcards(l.id)).length;
           quizzes += (await getQuizzes(l.id)).length;
         }
       }
-      sMap[p.id] = { modules: mods.length, lessons, flashcards, quizzes };
+      sMap[p.id] = { modules: mods.length, lessons, flashcards, quizzes, percentage: lessons > 0 ? Math.round((doneLessons / lessons) * 100) : 0 };
     }
     setStats(sMap);
   };
@@ -114,10 +123,16 @@ export default function LearnPage() {
   };
 
   const handleIconSelected = async (icon: string) => {
+    setShowIconPicker(false);
     if (editingIconFor) {
-      await saveLearningPath({ ...editingIconFor, icon });
-      setEditingIconFor(null);
-      loadData();
+      try {
+        await saveLearningPath({ ...editingIconFor, icon });
+        setEditingIconFor(null);
+        toast.success("Ikon berhasil diperbarui!");
+        loadData();
+      } catch (e) {
+        toast.error("Gagal menyimpan ikon");
+      }
     } else {
       setPathIcon(icon);
     }
@@ -235,6 +250,15 @@ export default function LearnPage() {
           </View>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity
+              onPress={() => setViewMode(viewMode === "large" ? "compact" : "large")}
+              style={styles.addBtn}
+              activeOpacity={0.8}
+            >
+              <LinearGradient colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]} style={styles.addGrad}>
+                <Feather name={viewMode === "large" ? "list" : "grid"} size={19} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => router.push("/import-roadmap")}
               style={styles.addBtn}
               activeOpacity={0.8}
@@ -257,6 +281,41 @@ export default function LearnPage() {
         {paths.length > 0 && (
           <Text style={styles.headerCount}>{t.learn.courses_available(paths.length)}</Text>
         )}
+
+        {/* SEARCH & FILTER */}
+        <View style={styles.searchBarRow}>
+          <View style={styles.searchInputWrap}>
+            <Feather name="search" size={16} color="rgba(255,255,255,0.5)" />
+            <TextInput
+              placeholder="Cari kursus..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {!!search && (
+              <TouchableOpacity onPress={() => setSearch("")}>
+                <Feather name="x-circle" size={16} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+          {([
+            { id: "all", label: "Semua" },
+            { id: "active", label: "Aktif (Ada Isi)" },
+            { id: "empty", label: "Kosong" },
+          ] as const).map((f) => (
+            <TouchableOpacity
+              key={f.id}
+              onPress={() => setFilter(f.id)}
+              style={[styles.filterChip, filter === f.id && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterText, filter === f.id && styles.filterTextActive]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </LinearGradient>
 
       {/* COURSE LIST */}
@@ -285,102 +344,151 @@ export default function LearnPage() {
                 <Text style={styles.emptySub}>Tap untuk membuat jalur belajarmu sendiri</Text>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/import-roadmap")}
-              activeOpacity={0.85}
-              style={styles.importRoadmapCard}
-            >
-              <Feather name="download" size={22} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.importRoadmapTitle}>Import dari Roadmap JSON</Text>
-                <Text style={styles.importRoadmapSub}>Generate dengan AI lalu import otomatis</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
           </View>
         ) : (
-          <View style={isTablet ? styles.tabletGrid : undefined}>
-            {paths.map((p, idx) => {
-              const grad = COURSE_GRADIENTS[idx % COURSE_GRADIENTS.length];
-              const emoji = COURSE_EMOJIS[idx % COURSE_EMOJIS.length];
-              const s = stats[p.id] ?? { modules: 0, lessons: 0, flashcards: 0, quizzes: 0 };
+          <View style={isTablet ? styles.gridWrap : undefined}>
+            {paths
+              .filter(p => {
+                const s = stats[p.id];
+                if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+                if (filter === "active" && (!s || s.modules === 0)) return false;
+                if (filter === "empty" && (s && s.modules > 0)) return false;
+                return true;
+              })
+              .map((p, idx) => {
+                const grad = COURSE_GRADIENTS[idx % COURSE_GRADIENTS.length];
+                const s = stats[p.id] ?? { modules: 0, lessons: 0, flashcards: 0, quizzes: 0 };
 
-              return (
-                <TouchableOpacity
-                  key={p.id}
-                  onPress={() => router.push(`/course/${p.id}`)}
-                  onLongPress={() =>
-                    Alert.alert(p.name, undefined, [
-                      { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
-                      { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
-                      { text: t.common.cancel, style: "cancel" },
-                    ])
-                  }
-                  activeOpacity={0.92}
-                  style={[styles.courseCard, isTablet && styles.courseCardTablet]}
-                >
-                  <LinearGradient
-                    colors={grad}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.courseGrad}
-                  >
-                    {/* Decorative circles */}
-                    <View style={styles.cardCircle1} />
-                    <View style={styles.cardCircle2} />
-
-                    {/* Top row: emoji icon + arrow */}
-                    <View style={styles.cardTopRow}>
-                      <View style={styles.courseIconWrap}>
-                        {p.icon ? (
-                          <Feather name={p.icon as any} size={22} color="#fff" />
-                        ) : (
-                          <Text style={styles.courseEmoji}>{emoji}</Text>
-                        )}
-                      </View>
-                      <View style={styles.arrowWrap}>
-                        <Feather name="arrow-right" size={18} color="rgba(255,255,255,0.8)" />
-                      </View>
-                    </View>
-
-                    {/* Course name & description */}
-                    <Text style={styles.courseName} numberOfLines={2}>{p.name}</Text>
-                    {!!p.description && (
-                      <Text style={styles.courseDesc} numberOfLines={2}>{p.description}</Text>
-                    )}
-
-                    {/* Stats row */}
-                    <View style={styles.statsRow}>
-                      <StatPill icon="layers" value={s.modules} label={t.learn.stat_modules} />
-                      <StatPill icon="book" value={s.lessons} label={t.learn.stat_lessons} />
-                      <StatPill icon="credit-card" value={s.flashcards} label={t.learn.stat_cards} />
-                      <StatPill icon="help-circle" value={s.quizzes} label={t.learn.stat_quiz} />
-                    </View>
-
-                    {/* Share button */}
-                    <View style={styles.shareDivider} />
+                if (viewMode === "large") {
+                  return (
                     <TouchableOpacity
-                      onPress={(e) => { e.stopPropagation?.(); handleShare(p); }}
-                      style={styles.shareBtn}
-                      activeOpacity={0.75}
-                      disabled={!!sharingId}
+                      key={p.id}
+                      onPress={() => router.push(`/course/${p.id}`)}
+                      onLongPress={() =>
+                        Alert.alert(p.name, undefined, [
+                          { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
+                          { text: "Bagikan Bundle", onPress: () => handleShare(p) },
+                          { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
+                          { text: t.common.cancel, style: "cancel" },
+                        ])
+                      }
+                      activeOpacity={0.92}
+                      style={[styles.largeCard, isTablet && styles.courseCardTablet]}
                     >
-                      {sharingId === p.id ? (
-                        <>
-                          <ActivityIndicator size="small" color="rgba(255,255,255,0.9)" />
-                          <Text style={styles.shareBtnText}>Menyiapkan bundle...</Text>
-                        </>
-                      ) : (
-                        <>
-                          <Feather name="share-2" size={14} color="rgba(255,255,255,0.9)" />
-                          <Text style={styles.shareBtnText}>{t.learn.share_btn}</Text>
-                        </>
-                      )}
+                      <LinearGradient
+                        colors={grad}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.courseGrad}
+                      >
+                        {/* Decorative circles */}
+                        <View style={styles.cardCircle1} />
+                        <View style={styles.cardCircle2} />
+
+                        {/* Top row: icon + arrow */}
+                        <View style={styles.cardTopRow}>
+                          <View style={styles.courseIconWrap}>
+                             <Feather name={p.icon as any || "book"} size={22} color="#fff" />
+                          </View>
+                          <View style={styles.arrowWrap}>
+                            <Feather name="arrow-right" size={18} color="rgba(255,255,255,0.8)" />
+                          </View>
+                        </View>
+
+                        {/* Course name & description */}
+                        <Text style={styles.courseNameLarge} numberOfLines={2}>{p.name}</Text>
+                        {!!p.description && (
+                          <Text style={styles.courseDesc} numberOfLines={2}>{p.description}</Text>
+                        )}
+
+                        {/* Stats row */}
+                        <View style={styles.statsRow}>
+                          <StatPill styles={styles} icon="layers" value={s.modules} label={t.learn.stat_modules} />
+                          <StatPill styles={styles} icon="book" value={s.lessons} label={t.learn.stat_lessons} />
+                          <StatPill styles={styles} icon="credit-card" value={s.flashcards} label={t.learn.stat_cards} />
+                          <StatPill styles={styles} icon="help-circle" value={s.quizzes} label={t.learn.stat_quiz} />
+                        </View>
+
+                        {/* Share button */}
+                        <View style={styles.shareDivider} />
+                        <TouchableOpacity
+                          onPress={(e) => { e.stopPropagation?.(); handleShare(p); }}
+                          style={styles.shareBtn}
+                          activeOpacity={0.75}
+                          disabled={!!sharingId}
+                        >
+                          {sharingId === p.id ? (
+                            <>
+                              <ActivityIndicator size="small" color="rgba(255,255,255,0.9)" />
+                              <Text style={styles.shareBtnText}>Menyiapkan bundle...</Text>
+                            </>
+                          ) : (
+                            <>
+                              <Feather name="share-2" size={14} color="rgba(255,255,255,0.9)" />
+                              <Text style={styles.shareBtnText}>{t.learn.share_btn}</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </LinearGradient>
                     </TouchableOpacity>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            })}
+                  );
+                }
+
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => router.push(`/course/${p.id}`)}
+                      onLongPress={() =>
+                        Alert.alert(p.name, undefined, [
+                          { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
+                          { text: "Bagikan Bundle", onPress: () => handleShare(p) },
+                          { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
+                          { text: t.common.cancel, style: "cancel" },
+                        ])
+                      }
+                      activeOpacity={0.9}
+                      style={[styles.courseCard, isTablet && styles.courseCardTablet]}
+                    >
+                      <LinearGradient
+                        colors={grad}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.courseCardGrad}
+                      >
+                        <Feather name={p.icon as any || "book"} size={22} color="#fff" />
+                      </LinearGradient>
+                      
+                      <View style={styles.courseCardBody}>
+                        <Text style={styles.courseName} numberOfLines={1}>{p.name}</Text>
+                        {!!p.description && (
+                          <Text style={styles.courseSub} numberOfLines={1}>{p.description}</Text>
+                        )}
+                        <View style={styles.courseStatRow}>
+                          <View style={styles.courseStatChip}>
+                            <Feather name="layers" size={10} color={grad[0]} />
+                            <Text style={[styles.courseStatText, { color: grad[0] }]}>{s.modules} Modul</Text>
+                          </View>
+                          <View style={styles.courseStatChip}>
+                            <Feather name="check-circle" size={10} color={grad[0]} />
+                            <Text style={[styles.courseStatText, { color: grad[0] }]}>
+                              {s.percentage}%
+                            </Text>
+                          </View>
+                          <View style={styles.courseStatChip}>
+                            <Feather name="book-open" size={10} color={grad[0]} />
+                            <Text style={[styles.courseStatText, { color: grad[0] }]}>{s.lessons} Materi</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.courseCardArrow}>
+                        <LinearGradient colors={grad} style={styles.courseArrowCircle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                          <Feather name="chevron-right" size={14} color="#fff" />
+                        </LinearGradient>
+                      </View>
+                    </TouchableOpacity>
+                  );
+              })}
 
             {/* Add another course card */}
             <TouchableOpacity
@@ -450,9 +558,7 @@ export default function LearnPage() {
   );
 }
 
-function StatPill({ icon, value, label }: { icon: React.ComponentProps<typeof Feather>["name"]; value: number; label: string }) {
-  const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+function StatPill({ styles, icon, value, label }: { styles: any; icon: React.ComponentProps<typeof Feather>["name"]; value: number; label: string }) {
   return (
     <View style={styles.statPill}>
       <Feather name={icon} size={10} color="rgba(255,255,255,0.75)" />
@@ -462,22 +568,39 @@ function StatPill({ icon, value, label }: { icon: React.ComponentProps<typeof Fe
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
 
-  header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
-  hdot1: { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,0.06)", top: -60, right: -50 },
-  hdot2: { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(255,255,255,0.05)", top: 20, right: 70 },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  header: { paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
+  hdot1: { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.06)", top: -60, right: -50 },
+  hdot2: { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)", top: 20, right: 70 },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
   headerSub: { fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: "700", letterSpacing: 1.5, marginBottom: 4 },
   headerTitle: { fontSize: 28, fontWeight: "900", color: "#fff", letterSpacing: -0.5 },
   headerCount: { fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: "600", marginTop: 2 },
   addBtn: { borderRadius: 16, overflow: "hidden" },
-  addGrad: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+  addGrad: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+
+  searchBarRow: { marginTop: 16, marginBottom: 12 },
+  searchInputWrap: {
+    height: 46, backgroundColor: "rgba(0,0,0,0.15)", borderRadius: 14,
+    flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 10,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+  },
+  searchInput: { flex: 1, color: "#fff", fontSize: 14, fontWeight: "600" },
+  filterRow: { marginHorizontal: -20, marginBottom: -10 },
+  filterContent: { paddingHorizontal: 20, gap: 8, paddingBottom: 10 },
+  filterChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99,
+    backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)",
+  },
+  filterChipActive: { backgroundColor: "#fff", borderColor: "#fff" },
+  filterText: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.7)" },
+  filterTextActive: { color: "#1A222F" },
 
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 40, gap: 12 },
-  tabletGrid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
+  scrollContent: { padding: 16, paddingBottom: 60, gap: 14 },
+  gridWrap: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
 
   emptyCard: {
     borderRadius: 24, padding: 40, alignItems: "center",
@@ -488,20 +611,52 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center", justifyContent: "center", marginBottom: 4,
   },
-  emptyTitle: { fontSize: 20, fontWeight: "900", color: "#fff" },
+  emptyTitle: { fontSize: 18, fontWeight: "900", color: "#fff" },
   emptySub: { fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: "500", textAlign: "center" },
-  importRoadmapCard: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    backgroundColor: c.white, borderRadius: 18,
-    borderWidth: 1.5, borderColor: c.primaryLight,
-    paddingVertical: 16, paddingHorizontal: 18,
-  },
-  importRoadmapTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
-  importRoadmapSub: { fontSize: 12, color: c.textMuted, fontWeight: "500", marginTop: 2 },
 
-  courseCard: { borderRadius: 22, overflow: "hidden", marginBottom: 4 },
-  courseCardTablet: { width: "48.5%", marginBottom: 0 },
-  courseGrad: { padding: 22, minHeight: 180, overflow: "hidden", position: "relative" },
+  courseCard: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: c.surface, width: "100%",
+    borderRadius: 18, overflow: "hidden",
+    minHeight: 76, borderWidth: 1, borderColor: c.border
+  },
+  courseCardTablet: { width: "48.5%" },
+  courseCardGrad: {
+    width: 72, alignSelf: "stretch",
+    alignItems: "center", justifyContent: "center",
+  },
+  courseCardBody: {
+    flex: 1, paddingVertical: 11, paddingHorizontal: 12, gap: 2,
+  },
+  courseName: { fontSize: 15, fontWeight: "800", color: c.text, lineHeight: 20 },
+  courseSub: { fontSize: 12, color: c.textMuted, fontWeight: "500", marginBottom: 2 },
+  courseStatRow: { flexDirection: "row", gap: 6, marginTop: 2, flexWrap: "wrap" },
+  courseStatChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: c.background, borderRadius: 20,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  courseStatText: { fontSize: 10, fontWeight: "700" },
+  courseCardArrow: { paddingRight: 14 },
+  courseArrowCircle: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+  },
+
+  addMoreCard: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, paddingVertical: 18, borderRadius: 18, width: "100%",
+    borderWidth: 2, borderColor: c.primary, borderStyle: "dashed",
+    backgroundColor: c.primaryLight,
+    marginBottom: 4,
+  },
+  addMoreText: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+
+  largeCard: { borderRadius: 22, overflow: "hidden", marginBottom: 2, width: "100%" },
+  courseGrad: { 
+    width: "100%", padding: 18, minHeight: 155, 
+    overflow: "hidden", position: "relative" 
+  },
   cardCircle1: {
     position: "absolute", width: 180, height: 180, borderRadius: 90,
     backgroundColor: "rgba(255,255,255,0.07)", top: -60, right: -50,
@@ -512,18 +667,17 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   cardTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   courseIconWrap: {
-    width: 54, height: 54, borderRadius: 16,
+    width: 48, height: 48, borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center", justifyContent: "center",
   },
-  courseEmoji: { fontSize: 26 },
   arrowWrap: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center", justifyContent: "center",
   },
-  courseName: { fontSize: 22, fontWeight: "900", color: "#fff", letterSpacing: -0.3, marginBottom: 6 },
-  courseDesc: { fontSize: 13, color: "rgba(255,255,255,0.72)", fontWeight: "500", marginBottom: 16, lineHeight: 18 },
+  courseNameLarge: { fontSize: 20, fontWeight: "900", color: "#fff", letterSpacing: -0.3, marginBottom: 4 },
+  courseDesc: { fontSize: 13, color: "rgba(255,255,255,0.72)", fontWeight: "500", marginBottom: 12, lineHeight: 17 },
   statsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 4 },
   statPill: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -532,9 +686,8 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   statValue: { fontSize: 12, fontWeight: "800", color: "#fff" },
   statLabel: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.75)" },
-
   shareDivider: {
-    height: 1, backgroundColor: "rgba(255,255,255,0.18)", marginVertical: 14,
+    height: 1, backgroundColor: "rgba(255,255,255,0.18)", marginVertical: 12,
   },
   shareBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
@@ -543,15 +696,6 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
   },
   shareBtnText: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.92)" },
-
-  addMoreCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, paddingVertical: 18, borderRadius: 18,
-    borderWidth: 2, borderColor: c.primary, borderStyle: "dashed",
-    backgroundColor: c.primaryLight,
-    marginBottom: 4,
-  },
-  addMoreText: { fontSize: 14, fontWeight: "700", color: c.primary },
 
   mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
   mBox: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },

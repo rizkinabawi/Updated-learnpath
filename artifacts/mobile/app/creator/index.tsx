@@ -20,7 +20,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import {
   ensureCreatorIdentity,
   getCreatorIdentity,
@@ -29,9 +29,10 @@ import {
 } from "@/utils/security/creator";
 
 export default function CreatorHubScreen() {
-  const colors = useColors();
   const router = useRouter();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const [identity, setIdentity] = useState<CreatorIdentity | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -168,7 +169,7 @@ export default function CreatorHubScreen() {
   );
 }
 
-const makeStyles = (c: ReturnType<typeof useColors>) =>
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) =>
   StyleSheet.create({
     container: { padding: 20, gap: 14 },
     backBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 40, marginBottom: 8 },

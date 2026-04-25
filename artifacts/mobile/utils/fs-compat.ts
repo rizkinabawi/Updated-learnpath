@@ -14,6 +14,11 @@ export const EncodingType = {
   Base64: "base64" as const,
 };
 
+// Re-export as a standard object for files using it as FileSystem.EncodingType
+export const FileSystem = {
+  EncodingType,
+};
+
 export interface FileInfo {
   exists: boolean;
   uri: string;
@@ -61,7 +66,7 @@ async function getNative(): Promise<typeof webStub> {
   if (Platform.OS === "web") return webStub;
   if (_native) return _native;
 
-  const FileSystem = await import("expo-file-system");
+  const FileSystem = await import("expo-file-system/legacy");
 
   _native = {
     cacheDirectory: FileSystem.Paths?.cache?.uri || FileSystem.cacheDirectory || null,
@@ -143,10 +148,12 @@ export let documentDirectory: string | null = null;
 
 if (Platform.OS !== "web") {
   try {
-    const { Paths } = require("expo-file-system");
-    cacheDirectory = Paths.cache.uri;
-    documentDirectory = Paths.document.uri;
-  } catch {}
+    const FS = require("expo-file-system/legacy");
+    cacheDirectory = FS.cacheDirectory || FS.Paths?.cache?.uri || null;
+    documentDirectory = FS.documentDirectory || FS.Paths?.document?.uri || null;
+  } catch (e) {
+    console.error("[fs-compat] Failed to init sync paths:", e);
+  }
 }
 
 export async function getInfoAsync(
@@ -222,4 +229,44 @@ export async function writeAsBytesAsync(
 ): Promise<void> {
   const n = await getNative();
   return n.writeAsBytesAsync(fileUri, bytes);
+}
+
+/**
+ * Android-only: Save a temporary file to a user-picked public directory.
+ * On iOS, falls back to sharing (which allows "Save to Files").
+ */
+export async function downloadToFile(
+  tempUri: string,
+  filename: string,
+  mimeType: string = "application/json"
+): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  
+  if (Platform.OS === "android") {
+    try {
+      const { StorageAccessFramework } = await import("expo-file-system/legacy");
+      const permissions = await StorageAccessFramework.requestDirectoryPermissionsAsync();
+      
+      if (permissions.granted) {
+        const content = await readAsStringAsync(tempUri, { encoding: "base64" });
+        const createdUri = await StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          filename,
+          mimeType
+        );
+        await writeAsStringAsync(createdUri, content, { encoding: "base64" });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn("[fs-compat] downloadToFile failed:", e);
+      return false;
+    }
+  } else {
+    // iOS: Open the share sheet; users can select "Save to Files"
+    const Sharing = await import("expo-sharing");
+    if (!(await Sharing.isAvailableAsync())) return false;
+    await Sharing.shareAsync(tempUri);
+    return true;
+  }
 }

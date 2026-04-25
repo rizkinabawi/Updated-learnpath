@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   View,
@@ -39,8 +39,9 @@ const MOD_EMOJIS = ["📘", "🎨", "🌐", "🧠", "⚗️"];
 type ModCounts = { fc: number; qz: number; nt: number; mt: number };
 
 export default function CourseDetailPage() {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const GRAD_PALETTE = useMemo(() => makeGradPalette(colors), [colors]);
 
   const { pathId } = useLocalSearchParams<{ pathId: string }>();
@@ -166,7 +167,7 @@ export default function CourseDetailPage() {
     <View style={styles.container}>
       {/* HEADER */}
       <LinearGradient
-        colors={[colors.primary, colors.purple]}
+        colors={(palette === "minimal" && isDark) ? [colors.primaryLight, colors.background] : [colors.primary, colors.purple]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 10 }]}
@@ -180,7 +181,7 @@ export default function CourseDetailPage() {
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="arrow-left" size={20} color="#fff" />
+            <Feather name="arrow-left" size={20} color={colors.white} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.headerSub}>{t.course.header_sub}</Text>
@@ -192,7 +193,7 @@ export default function CourseDetailPage() {
             activeOpacity={0.8}
           >
             <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
-              <Feather name="plus" size={20} color="#fff" />
+              <Feather name="plus" size={20} color={colors.white} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -296,7 +297,7 @@ export default function CourseDetailPage() {
                               onPress={() => toggleComplete(lesson.id)}
                               style={[
                                 styles.checkCircle, 
-                                completions.includes(lesson.id) && { backgroundColor: "#fff", borderColor: "#fff" }
+                                completions.includes(lesson.id) && { backgroundColor: isDark ? colors.surface : "#fff", borderColor: isDark ? colors.surface : "#fff" }
                               ]}
                             >
                               {completions.includes(lesson.id) && (
@@ -438,7 +439,8 @@ export default function CourseDetailPage() {
 
 function MetaChip({ label, color, bg }: { label: string; color?: string; bg?: string }) {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   return (
     <View style={[styles.metaChip, bg ? { backgroundColor: bg } : undefined]}>
       <Text style={[styles.metaChipText, color ? { color } : undefined]}>{label}</Text>
@@ -454,25 +456,26 @@ function ActionPill({
   onPress: () => void;
 }) {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   return (
     <TouchableOpacity
       onPress={onPress}
       style={[styles.actionPill, { backgroundColor: bg }, border ? { borderWidth: 1, borderColor: border } : undefined]}
       activeOpacity={0.75}
     >
-      {icon && <Feather name={icon} size={10} color={textColor ?? colors.dark} />}
+      {icon && <Feather name={icon} size={10} color={textColor ?? colors.text} />}
       <Text style={[styles.actionPillText, textColor ? { color: textColor } : undefined]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
 
   header: { paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
-  hdot1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.06)", top: -50, right: -40 },
-  hdot2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(255,255,255,0.05)", bottom: -20, right: 70 },
+  hdot1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.06)", top: -50, right: -40 },
+  hdot2: { position: "absolute", width: 110, height: 110, borderRadius: 55, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)", bottom: -20, right: 70 },
   headerRow: { flexDirection: "row", alignItems: "center" },
   backBtn: {
     width: 38, height: 38, borderRadius: 12,
@@ -488,7 +491,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   progLabel: { fontSize: 11, fontWeight: "800", color: "#fff", textTransform: "uppercase", opacity: 0.8 },
   progVal: { fontSize: 12, fontWeight: "900", color: "#fff" },
   progTrack: { height: 6, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 3, overflow: "hidden" },
-  progFill: { height: "100%", backgroundColor: "#fff", borderRadius: 3 },
+  progFill: { height: "100%", backgroundColor: (palette === "minimal" && isDark) ? c.primary : "#fff", borderRadius: 3 },
   progSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "600" },
 
   addBtn: { borderRadius: 13, overflow: "hidden" },
@@ -507,13 +510,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   emptyModText: { fontSize: 14, fontWeight: "700", color: c.primary },
 
   moduleCard: {
-    backgroundColor: "#fff", borderRadius: 18, marginBottom: 10,
+    backgroundColor: c.surface, borderRadius: 18, marginBottom: 10,
     overflow: "hidden", borderWidth: 1, borderColor: c.border,
   },
   moduleCardTablet: { width: "48.5%", marginBottom: 0 },
   moduleHeader: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
   modIconGrad: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  moduleName: { fontSize: 15, fontWeight: "800", color: c.dark, marginBottom: 5 },
+  moduleName: { fontSize: 15, fontWeight: "800", color: c.text, marginBottom: 5 },
   moduleMetaRow: { flexDirection: "row", gap: 5 },
   metaChip: { backgroundColor: c.background, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 },
   metaChipText: { fontSize: 10, fontWeight: "700", color: c.textSecondary },
@@ -540,7 +543,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     marginTop: 1,
   },
   lessonTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 1 },
-  lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  lessonName: { fontSize: 13, fontWeight: "700", color: c.text },
   lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
   lessonDeleteBtn: {
     width: 24, height: 24, borderRadius: 6,
@@ -560,13 +563,13 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   addModText: { fontSize: 13, fontWeight: "700", color: c.primary },
 
-  mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
-  mBox: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
-  mTitle: { fontSize: 20, fontWeight: "900", color: c.dark },
+  mOverlay: { flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.8)" : "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
+  mBox: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
+  mTitle: { fontSize: 20, fontWeight: "900", color: c.text },
   mInput: {
     backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 14, fontWeight: "600", color: c.dark,
+    fontSize: 14, fontWeight: "600", color: c.text,
     borderWidth: 1.5, borderColor: c.border,
   },
   mBtns: { flexDirection: "row", gap: 10 },

@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   ActivityIndicator,
@@ -17,7 +17,8 @@ import { Stack, router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 
 import {
   Flashcard,
@@ -191,7 +192,8 @@ function parseTxt(text: string): ParsedDeck {
 
 export default function AnkiImportScreen() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const [busy, setBusy] = useState(false);
   const [decks, setDecks] = useState<ParsedDeck[]>([]);
@@ -284,6 +286,9 @@ export default function AnkiImportScreen() {
   const pickFile = async () => {
     try {
       setStatus(null);
+      // Trigger media permissions to ensure the app has broad file system access in Expo Go
+      await MediaLibrary.requestPermissionsAsync();
+
       console.log("[AnkiImport] Opening document picker...");
       const result = await DocumentPicker.getDocumentAsync({
         type: ["*/*"],
@@ -1121,8 +1126,9 @@ function StatPill({
   color: string;
   bg: string;
 }) {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   return (
     <View style={[styles.statPill, { backgroundColor: bg }]}>
       <Feather name={icon} size={14} color={color} />
@@ -1145,8 +1151,9 @@ function TipRow({
   title: string;
   body: string;
 }) {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   return (
     <View style={styles.tipRow}>
       <View style={[styles.tipIcon, { backgroundColor: bg }]}>
@@ -1160,7 +1167,7 @@ function TipRow({
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   content: { padding: 16, paddingBottom: 80 },
 
@@ -1290,8 +1297,9 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     marginTop: 12,
     padding: 12,
     borderRadius: 12,
+    backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
   },
-  statusText: { fontSize: 13, flex: 1, lineHeight: 18, fontWeight: "500" },
+  statusText: { fontSize: 13, flex: 1, lineHeight: 18, fontWeight: "500", color: c.text },
   retryBtn: {
     flexDirection: "row",
     alignItems: "center",

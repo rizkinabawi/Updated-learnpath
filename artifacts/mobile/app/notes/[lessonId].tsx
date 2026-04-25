@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   View,
@@ -53,7 +53,8 @@ const ensureNotesDir = async () => {
 
 export default function NotesScreen() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const { lessonId, openEditId } = useLocalSearchParams<{
     lessonId: string;
@@ -220,7 +221,7 @@ export default function NotesScreen() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <X size={20} color={colors.white} />
+          <X size={20} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -229,7 +230,7 @@ export default function NotesScreen() {
           <Text style={styles.headerTitle}>{t.common.notes}</Text>
         </View>
         <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
-          <Plus size={20} color={colors.white} />
+          <Plus size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -380,7 +381,7 @@ export default function NotesScreen() {
                           alignItems: "center", justifyContent: "center",
                         }}
                       >
-                        <X size={12} color={colors.white} />
+                        <X size={12} color="#fff" />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -415,7 +416,7 @@ export default function NotesScreen() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   header: {
     backgroundColor: c.primary,
@@ -439,7 +440,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: c.white },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: "#fff" },
   addBtn: {
     width: 40,
     height: 40,
@@ -450,7 +451,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   listContent: { padding: 16, paddingBottom: 40, gap: 10 },
   emptyCard: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderRadius: 20,
     padding: 36,
     alignItems: "center",
@@ -460,7 +461,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderStyle: "dashed",
     marginTop: 24,
   },
-  emptyTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
+  emptyTitle: { fontSize: 17, fontWeight: "900", color: c.text },
   emptySub: {
     fontSize: 13,
     color: c.textMuted,
@@ -468,7 +469,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     textAlign: "center",
   },
   noteCard: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: c.border,
@@ -488,7 +489,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  noteTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  noteTitle: { fontSize: 14, fontWeight: "800", color: c.text },
   noteMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   noteDate: { fontSize: 10, color: c.textMuted, fontWeight: "500" },
   noteActions: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -520,11 +521,11 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(10,22,40,0.55)",
+    backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(10,22,40,0.55)",
     justifyContent: "flex-end",
   },
   modalBox: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -539,7 +540,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     alignSelf: "center",
     marginBottom: 8,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: c.dark, marginBottom: 4 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text, marginBottom: 4 },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
@@ -554,7 +555,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     fontWeight: "600",
-    color: c.dark,
+    color: c.text,
     borderWidth: 1.5,
     borderColor: c.border,
     marginTop: 6,
@@ -578,7 +579,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     backgroundColor: c.primary,
     alignItems: "center",
   },
-  saveBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
+  saveBtnText: { fontSize: 14, fontWeight: "900", color: "#fff" },
   attachBadge: {
     flexDirection: "row", alignItems: "center", gap: 3,
     backgroundColor: c.successLight, borderRadius: 8,

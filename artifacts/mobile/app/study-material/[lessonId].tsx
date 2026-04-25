@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
@@ -82,8 +82,9 @@ const extractYoutubeId = (url: string): string | null => {
 
 /** Inline YouTube embed using WebView */
 function YoutubeEmbed({ url }: { url: string }) {
+  const { isDark } = useTheme();
   const colors = useColors();
-  const ytStyles = useMemo(() => makeYtStyles(colors), [colors]);
+  const ytStyles = useMemo(() => makeYtStyles(colors, isDark), [colors, isDark]);
   const videoId = extractYoutubeId(url);
   if (!videoId) {
     return (
@@ -188,14 +189,14 @@ function YoutubeEmbed({ url }: { url: string }) {
   );
 }
 
-const makeYtStyles = (colors: ColorScheme) => StyleSheet.create({
+const makeYtStyles = (colors: ColorScheme, isDark: boolean) => StyleSheet.create({
   container: { gap: 8 },
   fallback: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#FFF0F0", borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: "#FFD0D0",
+    backgroundColor: isDark ? "rgba(255,0,0,0.15)" : "#FFF0F0", borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: isDark ? "rgba(255,0,0,0.3)" : "#FFD0D0",
   },
-  fallbackText: { flex: 1, fontSize: 14, fontWeight: "700", color: "#FF0000" },
+  fallbackText: { flex: 1, fontSize: 14, fontWeight: "700", color: isDark ? "#FF6B6B" : "#FF0000" },
   openBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, paddingVertical: 6,
@@ -229,7 +230,7 @@ const formatDate = (iso: string) => {
 
 type TabType = "text" | "html" | "file" | "youtube" | "googledoc" | "image";
 
-const makeTypeInfo = (colors: ColorScheme): Record<TabType, { icon: React.ReactNode; label: string; color: string; bg: string }> => ({
+const makeTypeInfo = (colors: ColorScheme, isDark: boolean): Record<TabType, { icon: React.ReactNode; label: string; color: string; bg: string }> => ({
   text: {
     icon: <FileText size={14} color={colors.primary} />,
     label: "Teks",
@@ -251,14 +252,14 @@ const makeTypeInfo = (colors: ColorScheme): Record<TabType, { icon: React.ReactN
   youtube: {
     icon: <Video size={14} color="#FF0000" />,
     label: "YouTube",
-    color: "#FF0000",
-    bg: "#FFF0F0",
+    color: isDark ? "#FF5252" : "#FF0000",
+    bg: isDark ? "rgba(255,0,0,0.15)" : "#FFF0F0",
   },
   googledoc: {
     icon: <Globe size={14} color="#1967D2" />,
     label: "Google Docs",
-    color: "#1967D2",
-    bg: "#E8F0FE",
+    color: isDark ? "#64B5F6" : "#1967D2",
+    bg: isDark ? "rgba(25,103,210,0.15)" : "#E8F0FE",
   },
   image: {
     icon: <FileImage size={14} color={colors.success} />,
@@ -277,8 +278,9 @@ function ExtraImagesEditor({
   onAdd: () => void;
   onRemove: (i: number) => void;
 }) {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   return (
     <View style={{ marginTop: 12, gap: 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -331,9 +333,11 @@ function ExtraImagesEditor({
 }
 
 export default function StudyMaterialScreen() {
+  const { isDark, palette } = useTheme();
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
-  const typeInfo = useMemo(() => makeTypeInfo(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
+  const ytStyles = useMemo(() => makeYtStyles(colors, isDark), [colors, isDark]);
+  const typeInfo = useMemo(() => makeTypeInfo(colors, isDark), [colors, isDark]);
 
   const { lessonId, openEditId } = useLocalSearchParams<{
     lessonId: string;
@@ -703,41 +707,44 @@ export default function StudyMaterialScreen() {
             const hasAttachments = mat.images && mat.images.length > 0;
             return (
               <View key={mat.id} style={styles.matCard}>
-                <TouchableOpacity
-                  style={styles.matHeader}
-                  onPress={() => openFullView(mat)}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.typeTag, { backgroundColor: info.bg }]}>
-                    {info.icon}
-                    <Text style={[styles.typeTagText, { color: info.color }]}>
-                      {info.label}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.matTitle}>{mat.title}</Text>
-                    <View style={styles.matMeta}>
-                      <Clock size={10} color={colors.textMuted} />
-                      <Text style={styles.matDate}>{formatDate(mat.createdAt)}</Text>
-                      {mat.type === "file" && typeof mat.fileSize === "number" && (
-                        <Text style={styles.matDate}>
-                          · {formatBytes(mat.fileSize)}
-                        </Text>
-                      )}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TouchableOpacity
+                    style={[styles.matHeader, { flex: 1 }]}
+                    onPress={() => openFullView(mat)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.typeTag, { backgroundColor: info.bg }]}>
+                      {info.icon}
+                      <Text style={[styles.typeTagText, { color: info.color }]}>
+                        {info.label}
+                      </Text>
                     </View>
-                  </View>
-                  <View style={styles.matActions}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.matTitle} numberOfLines={1}>{mat.title}</Text>
+                      <View style={styles.matMeta}>
+                        <Clock size={10} color={colors.textMuted} />
+                        <Text style={styles.matDate}>{formatDate(mat.createdAt)}</Text>
+                        {mat.type === "file" && typeof mat.fileSize === "number" && (
+                          <Text style={styles.matDate}>
+                            · {formatBytes(mat.fileSize)}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={[styles.matActions, { paddingRight: 10 }]}>
                     <TouchableOpacity
                       onPress={() => { openEdit(mat); }}
                       style={[styles.iconBtn, styles.iconBtnEdit]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                     >
                       <PencilLine size={13} color={colors.purple} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDelete(mat)}
                       style={[styles.iconBtn, styles.iconBtnDanger]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                     >
                       <Trash2 size={13} color={colors.danger} />
                     </TouchableOpacity>
@@ -749,9 +756,8 @@ export default function StudyMaterialScreen() {
                         </Text>
                       </View>
                     )}
-                    <ChevronRight size={16} color={colors.textMuted} />
                   </View>
-                </TouchableOpacity>
+                </View>
 
                 {false && (
                   <View style={styles.matBody as any}>
@@ -1070,11 +1076,10 @@ export default function StudyMaterialScreen() {
     </View>
   );
 }
-
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   header: {
-    backgroundColor: c.purple,
+    backgroundColor: c.primary,
     paddingHorizontal: 16,
     paddingBottom: 16,
     flexDirection: "row",
@@ -1090,7 +1095,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     fontSize: 11, color: "rgba(255,255,255,0.6)",
     fontWeight: "700", textTransform: "uppercase",
   },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: c.white },
+  headerTitle: { fontSize: 22, fontWeight: "900", color: "#fff" },
   addBtn: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.2)",
@@ -1098,14 +1103,14 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   listContent: { padding: 16, paddingBottom: 40, gap: 10 },
   emptyCard: {
-    backgroundColor: c.white, borderRadius: 20, padding: 36,
+    backgroundColor: c.surface, borderRadius: 20, padding: 36,
     alignItems: "center", gap: 10, borderWidth: 1.5,
     borderColor: c.purpleLight, borderStyle: "dashed", marginTop: 24,
   },
-  emptyTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
+  emptyTitle: { fontSize: 17, fontWeight: "900", color: c.text },
   emptySub: { fontSize: 13, color: c.textMuted, fontWeight: "500", textAlign: "center" },
   matCard: {
-    backgroundColor: c.white, borderRadius: 16,
+    backgroundColor: c.surface, borderRadius: 16,
     borderWidth: 1, borderColor: c.border, overflow: "hidden",
   },
   matHeader: { flexDirection: "row", alignItems: "center", padding: 14, gap: 10 },
@@ -1114,7 +1119,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
   typeTagText: { fontSize: 11, fontWeight: "800" },
-  matTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  matTitle: { fontSize: 14, fontWeight: "800", color: c.text },
   matMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   matDate: { fontSize: 10, color: c.textMuted, fontWeight: "500" },
   matActions: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -1123,7 +1128,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   iconBtnDanger: { backgroundColor: c.dangerLight },
-  iconBtnEdit: { backgroundColor: "#EDE9FE" },
+  iconBtnEdit: { backgroundColor: isDark ? "rgba(124, 58, 237, 0.2)" : "#EDE9FE" },
   matBody: {
     borderTopWidth: 1, borderTopColor: c.border,
     padding: 14, backgroundColor: c.background,
@@ -1149,8 +1154,12 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   htmlCodeScroll: { maxHeight: 180, backgroundColor: "#1E1E2E", borderRadius: 10, padding: 10 },
   htmlCode: { fontSize: 11, color: "#A9B1D6", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 18 },
   fileBox: { gap: 10 },
-  fileInfo: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.amberLight, borderRadius: 12, padding: 12 },
-  fileName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  fileInfo: { 
+    flexDirection: "row", alignItems: "center", gap: 10, 
+    backgroundColor: isDark ? "rgba(245, 158, 11, 0.1)" : c.amberLight, 
+    borderRadius: 12, padding: 12 
+  },
+  fileName: { fontSize: 13, fontWeight: "700", color: c.text },
   fileSize: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   openFileBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1158,10 +1167,10 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   openFileBtnText: { fontSize: 13, fontWeight: "800", color: c.white },
   modalOverlay: {
-    flex: 1, backgroundColor: "rgba(10,22,40,0.55)", justifyContent: "flex-end",
+    flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(10,22,40,0.55)", justifyContent: "flex-end",
   },
   modalBox: {
-    backgroundColor: c.white,
+    backgroundColor: c.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: 20, paddingTop: 12, gap: 8,
   },
@@ -1169,7 +1178,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     width: 40, height: 4, borderRadius: 2,
     backgroundColor: c.border, alignSelf: "center", marginBottom: 8,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: c.dark, marginBottom: 4 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text, marginBottom: 4 },
   tabRow: { flexDirection: "row", gap: 6, marginBottom: 4 },
   tabBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
@@ -1178,7 +1187,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   tabBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
   tabBtnText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
-  tabBtnTextActive: { color: c.white },
+  tabBtnTextActive: { color: "#fff" },
   fieldLabel: {
     fontSize: 11, fontWeight: "800", color: c.textSecondary,
     textTransform: "uppercase", letterSpacing: 0.8,
@@ -1187,7 +1196,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   input: {
     backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, fontWeight: "600", color: c.dark,
+    fontSize: 15, fontWeight: "600", color: c.text,
     borderWidth: 1.5, borderColor: c.border, marginTop: 6,
   },
   textArea: { height: 160, textAlignVertical: "top" },
@@ -1199,16 +1208,18 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   uploadBtn: {
     borderRadius: 14, borderWidth: 1.5, borderColor: c.amber,
     borderStyle: "dashed", padding: 20, alignItems: "center", gap: 6,
-    backgroundColor: c.amberLight, marginTop: 6,
+    backgroundColor: isDark ? "rgba(245, 158, 11, 0.1)" : c.amberLight, 
+    marginTop: 6,
   },
   uploadBtnText: { fontSize: 15, fontWeight: "800", color: c.amber },
   uploadBtnHint: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   pickedFile: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: c.amberLight, borderRadius: 12, padding: 12, marginTop: 6,
+    backgroundColor: isDark ? "rgba(245, 158, 11, 0.15)" : c.amberLight, 
+    borderRadius: 12, padding: 12, marginTop: 6,
     borderWidth: 1, borderColor: c.amber,
   },
-  pickedFileName: { fontSize: 13, fontWeight: "700", color: c.dark },
+  pickedFileName: { fontSize: 13, fontWeight: "700", color: c.text },
   pickedFileSize: { fontSize: 11, color: c.textMuted },
   modalBtns: { flexDirection: "row", gap: 10, marginTop: 12 },
   cancelBtn: {
@@ -1221,19 +1232,20 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     flex: 2, paddingVertical: 14, borderRadius: 14,
     backgroundColor: c.primary, alignItems: "center",
   },
-  saveBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
+  saveBtnText: { fontSize: 14, fontWeight: "900", color: "#fff" },
 
   // YouTube / Google Docs link display
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: c.white, borderRadius: 12, padding: 12,
+    backgroundColor: c.surface, borderRadius: 12, padding: 12,
     borderWidth: 1, borderColor: c.border,
   },
   linkIconWrap: {
     width: 44, height: 44, borderRadius: 10,
-    backgroundColor: "#FFF0F0", alignItems: "center", justifyContent: "center",
+    backgroundColor: isDark ? "rgba(255, 0, 0, 0.1)" : "#FFF0F0", 
+    alignItems: "center", justifyContent: "center",
   },
-  linkLabel: { fontSize: 12, fontWeight: "800", color: "#FF0000", marginBottom: 2 },
+  linkLabel: { fontSize: 12, fontWeight: "800", color: isDark ? "#FF4D4D" : "#FF0000", marginBottom: 2 },
   linkUrl: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
   openLinkBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -1242,7 +1254,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   openLinkBtnText: { fontSize: 11, fontWeight: "800", color: "#fff" },
 
   // Image display
-  imageBox: { borderRadius: 12, overflow: "hidden", backgroundColor: "#f0f0f0" },
+  imageBox: { borderRadius: 12, overflow: "hidden", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#f0f0f0" },
   materialImage: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12 },
 
   // Picked image in modal

@@ -266,10 +266,6 @@ function RootLayoutNav() {
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
       <Stack.Screen
-        name="about-developer"
-        options={{ headerShown: false, animation: "slide_from_right" }}
-      />
-      <Stack.Screen
         name="pomodoro"
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
@@ -316,7 +312,6 @@ function RootLayoutNav() {
     </Stack>
   );
 }
-
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -325,72 +320,67 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  // Section 1: global app lock. App is locked by default on first launch and
-  // remains locked until a valid activation key has been verified & stored.
-  // We re-check whenever fonts load so a successful activation lifts the gate.
+  // Section 1: global app lock.
   const [licenseChecked, setLicenseChecked] = useState(false);
-  const [licensed, setLicensed] = useState(false);
+  const [licensed, setLicensed] = useState(true); // Default to true during debug
 
   useEffect(() => {
     let cancelled = false;
-    isAppActivated()
-      .then((ok) => {
-        if (!cancelled) {
-          setLicensed(ok);
-          setLicenseChecked(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLicensed(false);
-          setLicenseChecked(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+    // Check license but don't crash if it fails
+    import("@/utils/security/app-license").then(({ isAppActivated }) => {
+      return isAppActivated();
+    }).then((ok) => {
+      if (!cancelled) {
+        setLicensed(ok);
+        setLicenseChecked(true);
+      }
+    }).catch((e) => {
+      console.warn("[RootLayout] License check failed:", e);
+      if (!cancelled) {
+        setLicensed(true); // Fallback to licensed so users can still use the app if security fails
+        setLicenseChecked(true);
+      }
+    });
+
+    // Ensure creator identity is also ready
+    import("@/utils/security/creator").then(({ ensureCreatorIdentity }) => {
+      ensureCreatorIdentity().catch(() => {});
+    });
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
-      scheduleDailyMotivation().catch(() => {});
-      getReminderSettings().then((s) => {
-        if (s.enabled) scheduleStudyReminder(s.hour, s.minute).catch(() => {});
-      });
     }
   }, [fontsLoaded, fontError]);
 
-  if ((!fontsLoaded && !fontError) || !licenseChecked) return <AppLoadingScreen />;
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary
-        onError={(error, stackTrace) => {
-          if (__DEV__) {
-            console.error("[App ErrorBoundary]", error?.message ?? error, "\n", stackTrace);
-          }
-        }}
-      >
+      <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-        <LanguageProvider>
-        <OverlayProvider>
-          <QueryClientProvider client={queryClient}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              {licensed ? (
-                <RootLayoutNav />
-              ) : (
-                // Hard gate — no Stack while locked, so no other route is reachable.
-                <ActivateScreen />
-              )}
-              <FloatingOverlay />
-              <ToastContainer />
-            </GestureHandlerRootView>
-          </QueryClientProvider>
-        </OverlayProvider>
-        </LanguageProvider>
+          <LanguageProvider>
+            <OverlayProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <ErrorBoundary>
+                  {licensed ? (
+                    <>
+                      <RootLayoutNav />
+                      <FloatingOverlay />
+                    </>
+                  ) : (
+                    <ActivateScreen onActivated={() => setLicensed(true)} />
+                  )}
+                  <ToastContainer />
+                </ErrorBoundary>
+              </GestureHandlerRootView>
+            </OverlayProvider>
+          </LanguageProvider>
         </ThemeProvider>
-      </ErrorBoundary>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

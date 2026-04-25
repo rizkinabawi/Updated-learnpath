@@ -22,6 +22,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "@/utils/fs-compat";
 import { useColors } from "@/contexts/ThemeContext";
 import {
   createSignedBundle,
@@ -33,10 +34,19 @@ import {
   type CreatorIdentity,
 } from "@/utils/security/creator";
 
+import {
+  getLearningPaths,
+  exportCourse,
+  type LearningPath,
+  type CoursePack,
+} from "@/utils/storage";
+
 interface DraftCard {
   q: string;
   a: string;
 }
+
+type SourceType = "manual" | "course";
 
 export default function CreateBundleScreen() {
   const colors = useColors();
@@ -44,6 +54,10 @@ export default function CreateBundleScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [identity, setIdentity] = useState<CreatorIdentity | null>(null);
+  const [sourceType, setSourceType] = useState<SourceType>("course");
+  const [courses, setCourses] = useState<LearningPath[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  
   const [bundleId, setBundleId] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -53,6 +67,7 @@ export default function CreateBundleScreen() {
 
   useEffect(() => {
     getCreatorIdentity().then(setIdentity);
+    getLearningPaths().then(setCourses);
   }, []);
 
   const updateCard = (i: number, key: keyof DraftCard, value: string) => {
@@ -67,19 +82,37 @@ export default function CreateBundleScreen() {
     if (!bundleId.trim()) return Alert.alert("Bundle ID wajib diisi.");
     if (password.length < 4) return Alert.alert("Password minimal 4 karakter.");
     if (password !== confirmPw) return Alert.alert("Konfirmasi password tidak cocok.");
-    const trimmed = cards.filter((c) => c.q.trim() && c.a.trim());
-    if (trimmed.length === 0) return Alert.alert("Tambahkan minimal 1 kartu.");
+    
+    let content: BundleContent;
+
+    if (sourceType === "course") {
+      if (!selectedCourseId) return Alert.alert("Pilih kursus yang ingin di-lock.");
+      setBusy(true);
+      try {
+        const pack = await exportCourse(selectedCourseId);
+        content = {
+          cards: [], // not used for course pack
+          media: {}, // assets handled in pack for now, or could move to bundle level
+          coursePack: pack,
+        };
+      } catch (e: any) {
+        setBusy(false);
+        return Alert.alert("Gagal export kursus", String(e.message));
+      }
+    } else {
+      const trimmed = cards.filter((c) => c.q.trim() && c.a.trim());
+      if (trimmed.length === 0) return Alert.alert("Tambahkan minimal 1 kartu.");
+      content = {
+        cards: trimmed.map((c) => ({ q: c.q.trim(), a: c.a.trim() })),
+        media: {},
+      };
+    }
 
     setBusy(true);
     try {
       // Ensure we have a creator identity before signing.
       const id = identity ?? (await ensureCreatorIdentity());
       setIdentity(id);
-
-      const content: BundleContent = {
-        cards: trimmed.map((c) => ({ q: c.q.trim(), a: c.a.trim() })),
-        media: {},
-      };
 
       const bundle = await createSignedBundle({
         bundleId: bundleId.trim(),
@@ -94,7 +127,7 @@ export default function CreateBundleScreen() {
     } finally {
       setBusy(false);
     }
-  }, [bundleId, password, confirmPw, cards, identity]);
+  }, [bundleId, password, confirmPw, cards, identity, sourceType, selectedCourseId]);
 
   const copy = async () => {
     if (!output) return;
@@ -121,6 +154,7 @@ export default function CreateBundleScreen() {
     setPassword("");
     setConfirmPw("");
     setCards([{ q: "", a: "" }]);
+    setSelectedCourseId(null);
   };
 
   return (
@@ -134,7 +168,7 @@ export default function CreateBundleScreen() {
         <Text style={styles.backText}>Kembali</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Buat Bundle</Text>
+      <Text style={styles.title}>Buat Bundle Aman</Text>
       <Text style={styles.subtitle}>
         Bundle akan ditandatangani oleh creator key Anda, terenkripsi dengan
         password, dan dapat diverifikasi sepenuhnya secara offline.
@@ -158,12 +192,31 @@ export default function CreateBundleScreen() {
             </Text>
           </ScrollView>
 
-          <View style={styles.row}>
+          <View style={styles.grid}>
             <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={copy}>
               <Feather name="copy" size={16} color={colors.text} />
               <Text style={styles.btnSecondaryText}>Salin</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.btnPrimary]} onPress={share}>
+            
+            <TouchableOpacity 
+              style={[styles.btn, styles.btnSecondary]} 
+              onPress={async () => {
+                try {
+                  const stamp = Date.now();
+                  const tmp = `${FileSystem.cacheDirectory}bundle-${stamp}.json`;
+                  await FileSystem.writeAsStringAsync(tmp, output);
+                  const ok = await FileSystem.downloadToFile(tmp, `${bundleId || "bundle"}.json`);
+                  if (ok) Alert.alert("Tersimpan", "File bundle telah disimpan ke perangkat.");
+                } catch (e: any) {
+                  Alert.alert("Gagal menyimpan", e.message);
+                }
+              }}
+            >
+              <Feather name="download" size={16} color={colors.text} />
+              <Text style={styles.btnSecondaryText}>Download</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.btn, styles.btnPrimary, { flex: 2 }]} onPress={share}>
               <Feather name="share-2" size={16} color="#fff" />
               <Text style={styles.btnPrimaryText}>Bagikan</Text>
             </TouchableOpacity>
@@ -176,84 +229,144 @@ export default function CreateBundleScreen() {
         </>
       ) : (
         <>
-          <Text style={styles.fieldLabel}>Bundle ID</Text>
+          <Text style={styles.fieldLabel}>Nama / ID Bundle (Otomatis)</Text>
           <TextInput
             value={bundleId}
             onChangeText={setBundleId}
-            placeholder="contoh: kursus-fisika-vol1"
+            placeholder="Contoh: Kursus-Mekki-01"
             placeholderTextColor={colors.textSecondary}
             style={styles.input}
             autoCapitalize="none"
           />
 
-          <Text style={styles.fieldLabel}>Password</Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password untuk enkripsi"
-            placeholderTextColor={colors.textSecondary}
-            style={styles.input}
-            secureTextEntry
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.fieldLabel}>Konfirmasi Password</Text>
-          <TextInput
-            value={confirmPw}
-            onChangeText={setConfirmPw}
-            placeholder="Ulangi password"
-            placeholderTextColor={colors.textSecondary}
-            style={styles.input}
-            secureTextEntry
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.sectionLabel}>Kartu</Text>
-          {cards.map((c, i) => (
-            <View key={i} style={styles.cardBox}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardIndex}>#{i + 1}</Text>
-                {cards.length > 1 && (
-                  <TouchableOpacity onPress={() => removeCard(i)}>
-                    <Feather name="trash-2" size={16} color="#b91c1c" />
-                  </TouchableOpacity>
-                )}
-              </View>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fieldLabel}>Password Bundle</Text>
               <TextInput
-                value={c.q}
-                onChangeText={(v) => updateCard(i, "q", v)}
-                placeholder="Pertanyaan"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="4+ karakter"
                 placeholderTextColor={colors.textSecondary}
                 style={styles.input}
-                multiline
-              />
-              <TextInput
-                value={c.a}
-                onChangeText={(v) => updateCard(i, "a", v)}
-                placeholder="Jawaban"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.input}
-                multiline
+                secureTextEntry
+                autoCapitalize="none"
               />
             </View>
-          ))}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fieldLabel}>Konfirmasi Password</Text>
+              <TextInput
+                value={confirmPw}
+                onChangeText={setConfirmPw}
+                placeholder="Ulangi"
+                placeholderTextColor={colors.textSecondary}
+                style={styles.input}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
 
-          <TouchableOpacity style={styles.addBtn} onPress={addCard}>
-            <Feather name="plus" size={16} color={colors.primary} />
-            <Text style={styles.addText}>Tambah Kartu</Text>
-          </TouchableOpacity>
+          <View style={styles.sourcePicker}>
+            <TouchableOpacity
+              style={[styles.sourceBtn, sourceType === "course" && styles.sourceBtnActive]}
+              onPress={() => setSourceType("course")}
+            >
+              <Text style={[styles.sourceText, sourceType === "course" && styles.sourceTextActive]}>
+                Dari Kursus
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sourceBtn, sourceType === "manual" && styles.sourceBtnActive]}
+              onPress={() => setSourceType("manual")}
+            >
+              <Text style={[styles.sourceText, sourceType === "manual" && styles.sourceTextActive]}>
+                Manual (Kartu)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {sourceType === "course" ? (
+            <View style={styles.courseList}>
+              <Text style={styles.sectionLabel}>Pilih Kursus yang akan di-lock:</Text>
+              {courses.filter(c => !c.isLocked).length === 0 ? (
+                <Text style={styles.emptyText}>Belum ada kursus buatan Anda sendiri (bukan hasil import) yang bisa di-lock.</Text>
+              ) : (
+                courses.filter(c => !c.isLocked).map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[
+                      styles.courseItem,
+                      selectedCourseId === c.id && styles.courseItemActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedCourseId(c.id);
+                      // Auto-fill bundleId from course name
+                      setBundleId(c.name.replace(/\s+/g, '-').toLowerCase());
+                    }}
+                  >
+                    <Feather
+                      name={selectedCourseId === c.id ? "check-circle" : "circle"}
+                      size={20}
+                      color={selectedCourseId === c.id ? colors.primary : colors.textSecondary}
+                    />
+                    <View>
+                      <Text style={[styles.courseName, { color: colors.text }]}>{c.name}</Text>
+                      <Text style={styles.courseSub}>{c.totalLessons ?? 0} Pelajaran</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          ) : (
+            <>
+              <Text style={styles.sectionLabel}>Kartu</Text>
+              {cards.map((c, i) => (
+                <View key={i} style={styles.cardBox}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardIndex}>#{i + 1}</Text>
+                    {cards.length > 1 && (
+                      <TouchableOpacity onPress={() => removeCard(i)}>
+                        <Feather name="trash-2" size={16} color="#b91c1c" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TextInput
+                    value={c.q}
+                    onChangeText={(v) => updateCard(i, "q", v)}
+                    placeholder="Pertanyaan"
+                    placeholderTextColor={colors.textSecondary}
+                    style={styles.input}
+                    multiline
+                  />
+                  <TextInput
+                    value={c.a}
+                    onChangeText={(v) => updateCard(i, "a", v)}
+                    placeholder="Jawaban"
+                    placeholderTextColor={colors.textSecondary}
+                    style={styles.input}
+                    multiline
+                  />
+                </View>
+              ))}
+
+              <TouchableOpacity style={styles.addBtn} onPress={addCard}>
+                <Feather name="plus" size={16} color={colors.primary} />
+                <Text style={styles.addText}>Tambah Kartu</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           <TouchableOpacity
-            style={[styles.btn, styles.btnPrimary, busy && { opacity: 0.6 }]}
+            style={[styles.btn, styles.btnPrimary, (busy || (sourceType === "course" && !selectedCourseId)) && { opacity: 0.6 }]}
             onPress={handleExport}
-            disabled={busy}
+            disabled={busy || (sourceType === "course" && !selectedCourseId)}
           >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Feather name="lock" size={16} color="#fff" />
-                <Text style={styles.btnPrimaryText}>Sign + Enkripsi + Export</Text>
+                <Feather name="shield" size={16} color="#fff" />
+                <Text style={styles.btnPrimaryText}>Kunci & Export Bundle</Text>
               </>
             )}
           </TouchableOpacity>
@@ -304,6 +417,7 @@ const makeStyles = (c: ReturnType<typeof useColors>) =>
     },
     addText: { color: c.primary, fontWeight: "700", fontSize: 13 },
     row: { flexDirection: "row", gap: 10 },
+    grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     btn: {
       flex: 1,
       paddingVertical: 14,
@@ -347,4 +461,60 @@ const makeStyles = (c: ReturnType<typeof useColors>) =>
       marginTop: 4,
     },
     resetText: { color: c.primary, fontWeight: "700" },
+    sourcePicker: {
+      flexDirection: "row",
+      backgroundColor: c.surface,
+      borderRadius: 12,
+      padding: 4,
+      marginTop: 10,
+    },
+    sourceBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: "center",
+      borderRadius: 10,
+    },
+    sourceBtnActive: {
+      backgroundColor: c.primary,
+    },
+    sourceText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: c.textSecondary,
+    },
+    sourceTextActive: {
+      color: "#fff",
+    },
+    courseList: {
+      gap: 10,
+      marginTop: 10,
+    },
+    courseItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+    },
+    courseItemActive: {
+      borderColor: c.primary,
+      backgroundColor: c.primary + "10",
+    },
+    courseName: {
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    courseSub: {
+      fontSize: 12,
+      color: c.textSecondary,
+    },
+    emptyText: {
+      textAlign: "center",
+      color: c.textSecondary,
+      padding: 20,
+      fontStyle: "italic",
+    },
   });

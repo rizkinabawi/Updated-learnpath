@@ -32,28 +32,25 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "@/utils/fs-compat";
 import { useColors } from "@/contexts/ThemeContext";
-import { generateBuyerToken } from "@/utils/security/bundle-license";
-import { getCreatorIdentityWithKey } from "@/utils/security/creator";
+import {
+  getLearningPaths,
+  getIssuedTokens,
+  saveIssuedToken,
+  deleteIssuedToken,
+  type IssuedTokenRecord,
+} from "@/utils/storage";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface IssuedTokenRecord {
-  id: number;
-  bundleId: string;
-  buyerId: string;
-  days: number;
-  expiryIso: string;
-  tokenJson: string;
-  issuedAt: string;
-}
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const VALIDITY_OPTIONS = [
-  { label: "7 hari", days: 7 },
-  { label: "30 hari", days: 30 },
-  { label: "90 hari", days: 90 },
-  { label: "1 tahun", days: 365 },
-  { label: "Selamanya", days: 36500 },
+  { label: "10 menit", ms: 600_000 },
+  { label: "7 hari", ms: 7 * 86_400_000 },
+  { label: "30 hari", ms: 30 * 86_400_000 },
+  { label: "90 hari", ms: 90 * 86_400_000 },
+  { label: "1 tahun", ms: 365 * 86_400_000 },
+  { label: "Selamanya", ms: 36500 * 86_400_000 },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -65,10 +62,13 @@ export default function GenerateTokenScreen() {
 
   const [bundleId, setBundleId] = useState("");
   const [buyerId, setBuyerId] = useState("");
-  const [selectedDays, setSelectedDays] = useState(365);
+  const [selectedDurationMs, setSelectedDurationMs] = useState(365 * 86_400_000);
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<IssuedTokenRecord[]>([]);
-  const counterRef = useRef(0);
+
+  useEffect(() => {
+    getIssuedTokens().then(setHistory);
+  }, []);
 
   const handleGenerate = async () => {
     const bid = bundleId.trim();
@@ -89,21 +89,25 @@ export default function GenerateTokenScreen() {
       }
 
       const tokenJson = await generateBuyerToken(
-        { bundleId: bid, buyerId: buyer, days: selectedDays },
+        { bundleId: bid, buyerId: buyer, durationMs: selectedDurationMs },
         identity,
       );
 
-      const expiry = new Date(Date.now() + selectedDays * 86_400_000);
+      const expiry = new Date(Date.now() + selectedDurationMs);
       const record: IssuedTokenRecord = {
-        id: ++counterRef.current,
+        id: Date.now().toString(),
         bundleId: bid,
         buyerId: buyer,
-        days: selectedDays,
-        expiryIso: expiry.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" }),
+        durationMs: selectedDurationMs,
+        expiryIso: expiry.toLocaleString("id-ID", { 
+          year: "numeric", month: "long", day: "numeric", 
+          hour: "2-digit", minute: "2-digit" 
+        }),
         tokenJson,
         issuedAt: new Date().toLocaleTimeString("id-ID"),
       };
 
+      await saveIssuedToken(record);
       setHistory((prev) => [record, ...prev]);
       setBuyerId(""); // Reset buyer field for next generation; keep bundleId
     } catch (e: any) {
@@ -111,6 +115,20 @@ export default function GenerateTokenScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const removeRecord = async (id: string) => {
+    Alert.alert("Hapus Riwayat", "Hapus catatan token ini?", [
+      { text: "Batal", style: "cancel" },
+      { 
+        text: "Hapus", 
+        style: "destructive", 
+        onPress: async () => {
+          await deleteIssuedToken(id);
+          setHistory(prev => prev.filter(t => t.id !== id));
+        }
+      }
+    ]);
   };
 
   const copyToken = async (json: string) => {
@@ -147,9 +165,8 @@ export default function GenerateTokenScreen() {
 
       <Text style={styles.title}>Generate Token Pembeli</Text>
       <Text style={styles.subtitle}>
-        Setiap token unik, ditandatangani oleh creator key Anda, dan dapat
-        diverifikasi pembeli secara offline. Token berbeda untuk tiap pembeli
-        mencegah distribusi ilegal yang mudah dilacak.
+        Bundle yang Anda buat akan terkunci dan membutuhkan token akses.
+        Satu token unik dibuat untuk satu pembeli spesifik agar bundle Anda aman dari pembajakan.
       </Text>
 
       {/* Security badge */}
@@ -175,7 +192,7 @@ export default function GenerateTokenScreen() {
           autoCorrect={false}
         />
         <Text style={styles.hint}>
-          Harus sama persis dengan bundleId yang digunakan saat membuat bundle.
+          💡 Masukkan Bundle ID yang Anda buat di menu "Buat Bundle Baru" sebelumnya. Token ini **hanya** akan bisa membuka file bundle tersebut.
         </Text>
       </View>
 
@@ -192,8 +209,7 @@ export default function GenerateTokenScreen() {
           autoCapitalize="words"
         />
         <Text style={styles.hint}>
-          Identitas ini tertanam di token dan tidak bisa diubah pasca-penerbitan.
-          Ini membuat penyebaran ilegal mudah dilacak.
+          💡 Nama/Email pembeli agar Anda mudah melacak kepada siapa token ini diberikan. Identitas ini akan terpatri di dalam token selamanya.
         </Text>
       </View>
 
@@ -202,17 +218,17 @@ export default function GenerateTokenScreen() {
         <View style={styles.pillRow}>
           {VALIDITY_OPTIONS.map((opt) => (
             <TouchableOpacity
-              key={opt.days}
+              key={opt.ms}
               style={[
                 styles.pill,
-                selectedDays === opt.days && styles.pillActive,
+                selectedDurationMs === opt.ms && styles.pillActive,
               ]}
-              onPress={() => setSelectedDays(opt.days)}
+              onPress={() => setSelectedDurationMs(opt.ms)}
             >
               <Text
                 style={[
                   styles.pillText,
-                  selectedDays === opt.days && styles.pillTextActive,
+                  selectedDurationMs === opt.ms && styles.pillTextActive,
                 ]}
               >
                 {opt.label}
@@ -256,7 +272,12 @@ export default function GenerateTokenScreen() {
                   <Feather name="check-circle" size={13} color="#16a34a" />
                   <Text style={styles.tokenBadgeText}>Signed</Text>
                 </View>
-                <Text style={styles.tokenTime}>{rec.issuedAt}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Text style={styles.tokenTime}>{rec.issuedAt}</Text>
+                  <TouchableOpacity onPress={() => removeRecord(rec.id)}>
+                    <Feather name="trash-2" size={14} color="#b91c1c" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Meta */}
@@ -288,6 +309,25 @@ export default function GenerateTokenScreen() {
                   <Feather name="copy" size={14} color={colors.primary} />
                   <Text style={styles.actionBtnOutlineText}>Salin</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.actionBtnOutline]}
+                  onPress={async () => {
+                    try {
+                      const stamp = Date.now();
+                      const tmp = `${FileSystem.cacheDirectory}token-${stamp}.json`;
+                      await FileSystem.writeAsStringAsync(tmp, rec.tokenJson);
+                      const ok = await FileSystem.downloadToFile(tmp, `token-${rec.buyerId}-${rec.bundleId}.json`);
+                      if (ok) Alert.alert("Tersimpan", "Token telah disimpan ke perangkat.");
+                    } catch (e: any) {
+                      Alert.alert("Gagal menyimpan", e.message);
+                    }
+                  }}
+                >
+                  <Feather name="download" size={14} color={colors.primary} />
+                  <Text style={styles.actionBtnOutlineText}>Simpan</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[styles.actionBtn, styles.actionBtnFill]}
                   onPress={() => shareToken(rec.tokenJson, rec.buyerId)}
@@ -303,13 +343,14 @@ export default function GenerateTokenScreen() {
 
       {/* Info box */}
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>ℹ️  Cara kerja token</Text>
+        <Text style={styles.infoTitle}>💡 Cara Kerja Kunci & Bundle</Text>
         <Text style={styles.infoText}>
-          1. Creator membuat bundle dengan password tertentu.{"\n"}
-          2. Creator generate token untuk setiap pembeli (layar ini).{"\n"}
-          3. Pembeli menerima dua hal: <Text style={styles.infoEmph}>bundle JSON</Text> + <Text style={styles.infoEmph}>token JSON</Text> + <Text style={styles.infoEmph}>password</Text>.{"\n"}
-          4. App pembeli verifikasi token (offline) → jika valid, decrypt bundle.{"\n"}
-          5. Token tidak bisa dipalsukan tanpa private key creator.
+          <Text style={styles.infoEmph}>1. Kunci Bundle (Locking)</Text>: Saat Anda membuat bundle melalui menu "Buat Bundle Baru", file otomatis dienkripsi (dikunci).{"\n\n"}
+          <Text style={styles.infoEmph}>2. Mengikat Token ke Bundle</Text>: Dengan memasukkan Bundle ID yang sama di halaman ini, Anda membuatkan kunci duplikat khusus untuk 1 pelanggan saja.{"\n\n"}
+          <Text style={styles.infoEmph}>3. Yang Harus Dikirimkan ke Pembeli</Text> (ada 3 hal):{"\n"}
+          • File <Text style={styles.infoEmph}>Bundle JSON</Text> (didapat saat buat bundle){"\n"}
+          • Teks <Text style={styles.infoEmph}>Token Akses</Text> (didapat dari halaman ini){"\n"}
+          • <Text style={styles.infoEmph}>Password</Text> yang Anda buat untuk bundle tersebut.
         </Text>
       </View>
     </ScrollView>

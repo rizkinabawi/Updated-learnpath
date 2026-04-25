@@ -1,4 +1,4 @@
-import { useColors } from "@/contexts/ThemeContext";
+import { useColors, useTheme } from "@/contexts/ThemeContext";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions,
@@ -11,13 +11,14 @@ import {
   getLearningPaths, getFlashcards, getQuizzes, getStats,
   type LearningPath,
 } from "@/utils/storage";
-import { shadow, shadowSm, CARD_GRADIENTS, type ColorScheme } from "@/constants/colors";
+import { shadow, shadowSm, CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { AdBanner } from "@/components/AdBanner";
 
 export default function PracticeTab() {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -25,11 +26,57 @@ export default function PracticeTab() {
   const isTablet = width >= 720;
   const { t } = useTranslation();
 
+  // Dynamic gradients based on palette
+  const activeGradients = useMemo(() => {
+    if (palette === "minimal") return CARD_GRADIENTS_MINIMAL;
+    if (palette === "premium") return CARD_GRADIENTS_PREMIUM;
+    return CARD_GRADIENTS;
+  }, [palette, isDark]);
+
+  // Hero inversion for Premium Dark (Light Hero on Dark Bg)
+  const isPremiumDarkHero = palette === "premium" && isDark;
+  
   const MODES = [
-    { icon: "credit-card" as const, label: t.practice.mode_flash, sub: t.practice.mode_flash_sub, gradient: [colors.primary, colors.purple] as [string, string], route: "/flashcard/browse-all" },
-    { icon: "help-circle" as const, label: t.practice.mode_quiz, sub: t.practice.mode_quiz_sub, gradient: [colors.accent, colors.amber] as [string, string], route: "/quiz/browse-all" },
-    { icon: "repeat" as const, label: t.practice.mode_review, sub: t.practice.mode_review_sub, gradient: [colors.purple, "#A855F7"] as [string, string], route: "/mistakes-review" },
-    { icon: "zap" as const, label: t.practice.mode_fast, sub: t.practice.mode_fast_sub, gradient: [colors.amber, colors.warning] as [string, string], route: "/(tabs)/learn" },
+    { 
+      icon: "credit-card" as const, label: t.practice.mode_flash, sub: t.practice.mode_flash_sub, 
+      gradient: activeGradients[0], 
+      route: "/flashcard/browse-all",
+      iconColor: isPremiumDarkHero ? "#1A1A1A" : (palette === "minimal" && isDark) ? "#4FD1C5" : "#fff",
+      labelColor: isPremiumDarkHero ? "#1A1A1A" : "#fff",
+      subColor: isPremiumDarkHero ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.7)",
+      arrowBg: isPremiumDarkHero ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)",
+      badgeBg: isPremiumDarkHero ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.18)",
+    },
+    { 
+      icon: "help-circle" as const, label: t.practice.mode_quiz, sub: t.practice.mode_quiz_sub, 
+      gradient: activeGradients[1], 
+      route: "/quiz/browse-all",
+      iconColor: (palette === "minimal" && isDark) ? "#4FD1C5" : "#fff",
+      labelColor: "#fff",
+      subColor: "rgba(255,255,255,0.7)",
+      arrowBg: "rgba(255,255,255,0.15)",
+      badgeBg: "rgba(255,255,255,0.18)",
+    },
+    { 
+      icon: "repeat" as const, label: t.practice.mode_review, sub: t.practice.mode_review_sub, 
+      gradient: activeGradients[2], 
+      route: "/mistakes-review",
+      iconColor: (palette === "minimal" && isDark) ? "#4FD1C5" : "#fff",
+      labelColor: "#fff",
+      subColor: "rgba(255,255,255,0.7)",
+      arrowBg: "rgba(255,255,255,0.15)",
+      badgeBg: "rgba(255,255,255,0.18)",
+    },
+    { 
+      icon: "zap" as const, label: t.practice.mode_fast, sub: t.practice.mode_fast_sub, 
+      gradient: activeGradients[3] ?? activeGradients[0], 
+      route: "/(tabs)/learn",
+      iconColor: (palette === "minimal" && isDark) ? "#4FD1C5" : "#fff",
+      labelColor: "#fff",
+      subColor: "rgba(255,255,255,0.7)",
+      arrowBg: "rgba(255,255,255,0.15)",
+      badgeBg: "rgba(255,255,255,0.18)",
+    },
   ];
   const SCROLL_PAD = 20; // matches styles.scroll padding
   const modeCardWidth = isTablet
@@ -55,7 +102,7 @@ export default function PracticeTab() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={[colors.accent, colors.amber]}
+        colors={(palette === "minimal" && isDark) ? [colors.primaryLight, colors.background] : [colors.primary, palette === "color" ? colors.purple : colors.primaryDark]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={[styles.header, { paddingTop: Platform.OS === "web" ? 56 : insets.top + 16 }]}
@@ -68,7 +115,7 @@ export default function PracticeTab() {
             <Text style={styles.headerTitle}>{t.practice.header_title}</Text>
           </View>
           <View style={styles.streakBadge}>
-            <Feather name="zap" size={16} color="#fff" />
+            <Feather name="zap" size={16} color={colors.white} />
             <Text style={styles.streakText}>{accuracy}% akurat</Text>
           </View>
         </View>
@@ -112,14 +159,13 @@ export default function PracticeTab() {
                 end={{ x: 1, y: 1 }}
                 style={styles.modeGrad}
               >
-                <View style={styles.modeBlob} />
-                <View style={styles.modeIconWrap}>
-                  <Feather name={m.icon} size={22} color="#fff" />
+                <View style={[styles.modeIconWrap, (palette === "minimal" && isDark) && { backgroundColor: "rgba(79, 209, 197, 0.15)", borderWidth: 1, borderColor: "rgba(79, 209, 197, 0.3)" }, m.badgeBg ? { backgroundColor: m.badgeBg } : {}]}>
+                  <Feather name={m.icon} size={22} color={m.iconColor} />
                 </View>
-                <Text style={styles.modeLabel}>{m.label}</Text>
-                <Text style={styles.modeSub}>{m.sub}</Text>
-                <View style={styles.modeArrow}>
-                  <Feather name="arrow-right" size={14} color="#fff" />
+                <Text style={[styles.modeLabel, m.labelColor ? { color: m.labelColor } : {}]}>{m.label}</Text>
+                <Text style={[styles.modeSub, m.subColor ? { color: m.subColor } : {}]}>{m.sub}</Text>
+                <View style={[styles.modeArrow, m.arrowBg ? { backgroundColor: m.arrowBg } : {}]}>
+                  <Feather name="arrow-right" size={14} color={m.iconColor} />
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -133,35 +179,38 @@ export default function PracticeTab() {
           <>
             <Text style={[styles.sectionTitle, { marginTop: 8 }]}>{t.practice.section_course}</Text>
             <View style={styles.courseList}>
-              {paths.map((path, i) => (
-                <TouchableOpacity
-                  key={path.id}
-                  onPress={() => router.push(`/course/${path.id}` as any)}
-                  style={[styles.courseRow, shadowSm]}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={CARD_GRADIENTS[i % CARD_GRADIENTS.length]}
-                    style={styles.courseRowIcon}
+              {paths.map((path, i) => {
+                const grad = activeGradients[i % activeGradients.length];
+                return (
+                  <TouchableOpacity
+                    key={path.id}
+                    onPress={() => router.push(`/course/${path.id}` as any)}
+                    style={[styles.courseRow, shadowSm]}
+                    activeOpacity={0.85}
                   >
-                    <Feather name="book" size={16} color="#fff" />
-                  </LinearGradient>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.courseRowName} numberOfLines={1}>{path.name}</Text>
-                    <Text style={styles.courseRowSub} numberOfLines={1}>{path.description || t.practice.practice_btn}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.practiceBtn} onPress={() => router.push(`/course/${path.id}` as any)}>
-                    <Text style={styles.practiceBtnText}>{t.practice.practice_btn}</Text>
+                    <LinearGradient
+                      colors={grad}
+                      style={styles.courseRowIcon}
+                    >
+                      <Feather name="book" size={16} color="#fff" />
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.courseRowName} numberOfLines={1}>{path.name}</Text>
+                      <Text style={styles.courseRowSub} numberOfLines={1}>{path.description || t.practice.practice_btn}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.practiceBtn} onPress={() => router.push(`/course/${path.id}` as any)}>
+                      <Text style={styles.practiceBtnText}>{t.practice.practice_btn}</Text>
+                    </TouchableOpacity>
                   </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             </View>
           </>
         )}
 
         {paths.length === 0 && (
           <View style={[styles.emptyCard, shadow]}>
-            <LinearGradient colors={[colors.primary, colors.purple]} style={styles.emptyGrad}>
+            <LinearGradient colors={[colors.primary, palette === "color" ? colors.purple : colors.primaryDark]} style={styles.emptyGrad}>
               <View style={styles.hBlob1} />
               <Feather name="book-open" size={36} color="rgba(255,255,255,0.85)" />
               <Text style={styles.emptyTitle}>{t.practice.no_course_title}</Text>
@@ -177,11 +226,11 @@ export default function PracticeTab() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
+const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, overflow: "hidden" },
-  hBlob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)", top: -50, right: -50 },
-  hBlob2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.06)", bottom: -20, left: 30 },
+  hBlob1: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)", top: -50, right: -50 },
+  hBlob2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)", bottom: -20, left: 30 },
   headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 },
   headerTitle: { fontSize: 24, fontWeight: "900", color: "#fff", letterSpacing: -0.4, marginTop: 2 },
@@ -192,19 +241,19 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   summaryVal: { fontSize: 16, fontWeight: "900", color: "#fff" },
   summaryLbl: { fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: "700", textTransform: "uppercase" },
   scroll: { padding: 20, paddingBottom: 40, gap: 12 },
-  sectionTitle: { fontSize: 15, fontWeight: "800", color: c.dark, letterSpacing: -0.2, marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: "800", color: c.text, letterSpacing: -0.2, marginBottom: 12 },
   modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   modeCard: { borderRadius: 16, overflow: "hidden" },
   modeGrad: { padding: 18, minHeight: 148, overflow: "hidden", justifyContent: "flex-end" },
-  modeBlob: { position: "absolute", width: 90, height: 90, borderRadius: 45, backgroundColor: "rgba(255,255,255,0.1)", top: -20, right: -20 },
-  modeIconWrap: { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  modeBlob: { position: "absolute", width: 90, height: 90, borderRadius: 45, backgroundColor: "rgba(255,255,255,0.08)", top: -20, right: -20 },
+  modeIconWrap: { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 10 },
   modeLabel: { fontSize: 15, fontWeight: "800", color: "#fff", marginBottom: 3 },
   modeSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: "500", lineHeight: 17 },
-  modeArrow: { position: "absolute", top: 14, right: 14, width: 26, height: 26, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  modeArrow: { position: "absolute", top: 14, right: 14, width: 26, height: 26, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   courseList: { gap: 8 },
-  courseRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.white, borderRadius: 16, padding: 14 },
+  courseRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.surface, borderRadius: 16, padding: 14 },
   courseRowIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  courseRowName: { fontSize: 14, fontWeight: "800", color: c.dark },
+  courseRowName: { fontSize: 14, fontWeight: "800", color: c.text },
   courseRowSub: { fontSize: 12, color: c.textMuted, fontWeight: "500", marginTop: 2 },
   practiceBtn: { backgroundColor: c.primaryLight, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
   practiceBtnText: { fontSize: 12, fontWeight: "800", color: c.primary },

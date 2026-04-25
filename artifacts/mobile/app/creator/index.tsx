@@ -143,6 +143,17 @@ export default function CreatorHubScreen() {
             <Text style={styles.primaryBtnText}>Buat Bundle Baru</Text>
           </TouchableOpacity>
 
+          {/* NEW: Token generation — main anti-piracy action */}
+          <TouchableOpacity
+            style={styles.tokenBtn}
+            onPress={() => router.push("/creator/generate-token")}
+          >
+            <Feather name="key" size={18} color="#fff" />
+            <Text style={styles.primaryBtnText}>Generate Token Pembeli</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
           <TouchableOpacity
             style={styles.dangerBtn}
             onPress={onRegenerate}
@@ -186,6 +197,20 @@ const makeStyles = (c: ReturnType<typeof useColors>) =>
       gap: 8,
     },
     dangerBtnText: { color: "#b91c1c", fontWeight: "700", fontSize: 14 },
+    tokenBtn: {
+      backgroundColor: "#16a34a",
+      borderRadius: 12,
+      paddingVertical: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: c.border,
+      marginVertical: 4,
+    },
     card: {
       borderWidth: 1,
       borderColor: c.border,

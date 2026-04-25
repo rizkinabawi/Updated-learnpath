@@ -1042,8 +1042,28 @@ export const isBookmarked = async (itemId: string, type: "flashcard" | "quiz"): 
 };
 
 // ─── Spaced Repetition (SM-2) ──────────────────────────────────
+//
+// BUG 3 FIX: The SPACED_REP AsyncStorage key is unbounded — it grows with
+// every card a user has ever studied. Reading + JSON.parse of this entire
+// blob on every deck open (via sortBySpacedRep → getSpacedRepData) caused
+// multi-second JS-thread blocks and genuine OOM on large libraries.
+//
+// Fix: keep an in-memory cache that is populated on first read and
+// invalidated whenever updateSpacedRep writes a new entry. Subsequent reads
+// return the cached array without touching AsyncStorage.
+let _spacedRepCache: SpacedRepData[] | null = null;
+
 export const getSpacedRepData = async (): Promise<SpacedRepData[]> => {
-  return getFromStorage<SpacedRepData>(STORAGE_KEYS.SPACED_REP);
+  if (_spacedRepCache !== null) return _spacedRepCache;
+  const data = await getFromStorage<SpacedRepData>(STORAGE_KEYS.SPACED_REP);
+  _spacedRepCache = data;
+  return data;
+};
+
+/** Invalidate the spaced-rep cache — call after restore-from-backup or
+ *  direct AsyncStorage mutation. */
+export const invalidateSpacedRepCache = () => {
+  _spacedRepCache = null;
 };
 
 export const getCardSpacedRep = async (cardId: string): Promise<SpacedRepData> => {
@@ -1080,13 +1100,16 @@ export const updateSpacedRep = async (cardId: string, quality: number) => {
   const nextReview = new Date(Date.now() + interval * 86400000).toISOString();
   const updated: SpacedRepData = { cardId, easeFactor, interval, repetitions, nextReview };
   const rest = all.filter((d) => d.cardId !== cardId);
-  await saveToStorage(STORAGE_KEYS.SPACED_REP, [...rest, updated]);
+  const newAll = [...rest, updated];
+  await saveToStorage(STORAGE_KEYS.SPACED_REP, newAll);
+  // Update the in-memory cache so the next deck open doesn't need a disk read.
+  _spacedRepCache = newAll;
   return updated;
 };
 
 export const sortBySpacedRep = async (cards: Flashcard[]): Promise<Flashcard[]> => {
   const now = Date.now();
-  const all = await getSpacedRepData();
+  const all = await getSpacedRepData(); // now cached — no extra I/O on repeated calls
   const dataMap = new Map(all.map((d) => [d.cardId, d]));
   return [...cards].sort((a, b) => {
     const da = dataMap.get(a.id);

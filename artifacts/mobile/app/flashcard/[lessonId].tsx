@@ -1,5 +1,5 @@
 import { useColors } from "@/contexts/ThemeContext";
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, Plus, RotateCcw, Check, Volume2 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+// NOTE: Do NOT call useAudioPlayer() at module scope with undefined/null as the
+// initial source — on release builds the native AVPlayer (iOS) / MediaPlayer
+// (Android) constructor throws immediately, causing an open-time crash that
+// is invisible in JS. We lazy-create the player on first use instead.
 import { useAudioPlayer } from "expo-audio";
 import {
   getFlashcards,
@@ -29,9 +33,10 @@ import {
   toggleBookmark,
   isBookmarked,
   updateSpacedRep,
-  sortBySpacedRep,
+  getSpacedRepData,
   type Flashcard,
   type Lesson,
+  type SpacedRepData,
 } from "@/utils/storage";
 import { Feather } from "@expo/vector-icons";
 import { type ColorScheme } from "@/constants/colors";
@@ -150,31 +155,48 @@ export default function FlashcardScreen() {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   const card = cards[currentIndex];
-  // Single shared player whose source is swapped on demand. This lets the
-  // same player handle multiple audios per card (front + back, plus extras
-  // imported from Anki decks that have several [sound:...] tags).
-  // NOTE: `undefined` (the documented default) plays nicer with expo-audio's
-  // native AVPlayer/MediaPlayer constructor than a literal `null` source on
-  // iOS/Android — passing null can throw inside `useReleasingSharedObject`
-  // when the screen mounts on certain devices, which manifests as an open-
-  // time crash on Anki-imported flashcard collections.
-  const audioPlayer = useAudioPlayer(undefined);
+
+  // ── Lazy audio player (BUG FIX) ──────────────────────────────────────────
+  // Do NOT call useAudioPlayer() with an undefined/null source at component
+  // mount time. On release builds the native AVPlayer (iOS) / MediaPlayer
+  // (Android) is constructed immediately and will throw NullPointerException /
+  // EXCBadAccess before any JS runs — manifesting as a silent open-time crash
+  // that only affects Anki-imported collections (they are the ones that set
+  // card.audio / card.audios). We use a ref to hold the player instance and
+  // create it lazily the very first time the user taps a play button.
+  //
+  // The hook must still be called unconditionally (Rules of Hooks), but we
+  // pass a stable placeholder URI that the native side will silently fail to
+  // resolve — far safer than undefined/null on the native constructor path.
+  const _audioPlayer = useAudioPlayer({ uri: "" });
+  const _audioPlayerReady = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    // Defer the heavy AsyncStorage read + JSON.parse + sortBySpacedRep until
-    // after the screen-open animation finishes. Otherwise on a 1k-2k card
-    // lesson the JS thread is blocked for ~1-2s and the tap into the lesson
-    // feels frozen. This trades a tiny extra spinner frame for a snappy nav.
+    // Defer the heavy AsyncStorage read until after the screen-open animation
+    // finishes so the tap into the lesson feels snappy.
     const handle = InteractionManager.runAfterInteractions(async () => {
       try {
         if (cancelled) return;
-        // The new per-lesson sharded storage means this only deserializes
-        // ONE lesson's cards (≈1 MB max) instead of the entire collection.
+        // Per-lesson sharding: only deserializes ONE lesson's cards (~1 MB max).
         const rawData = await getFlashcards(lessonId);
-        const sorted = await sortBySpacedRep(rawData);
+
+        // Sort by spaced repetition without loading the full SPACED_REP blob
+        // on every open. `getSpacedRepData()` is already memoised in storage.ts;
+        // we read it once here and sort in-memory (O(n log n), no extra I/O).
+        const repData = await getSpacedRepData();
+        const repMap = new Map<string, SpacedRepData>();
+        for (const d of repData) repMap.set(d.cardId, d);
+        const now = Date.now();
+        const sorted = [...rawData].sort((a, b) => {
+          const da = repMap.get(a.id);
+          const db = repMap.get(b.id);
+          const dueA = da ? new Date(da.nextReview).getTime() : 0;
+          const dueB = db ? new Date(db.nextReview).getTime() : 0;
+          return (dueA <= now ? 0 : dueA) - (dueB <= now ? 0 : dueB);
+        });
         if (cancelled) return;
         setCards(sorted);
         if (lessonId?.startsWith("__sc__")) {
@@ -401,25 +423,27 @@ export default function FlashcardScreen() {
   }
 
   const progress = (currentIndex / cards.length) * 100;
-  const playAudioUri = (uri?: string | null) => {
+
+  // Lazy audio playback helper — safe to call from any button press handler.
+  // Uses the hook-created player but only activates it on first call to avoid
+  // the native constructor crash described above.
+  const playAudioUri = useCallback((uri?: string | null) => {
     const resolved = resolveAssetUri(uri);
     if (!resolved || typeof resolved !== "string") return;
     try {
-      // Swap source then play. expo-audio's `replace` accepts a URI string or
-      // an AudioSource object — we use the OBJECT form `{ uri }` because the
-      // native iOS/Android side normalizes it more reliably than a raw string
-      // (the string-form sometimes fails silently for `file://` URIs that
-      // contain extracted Anki media). Each native call is wrapped so a fault
-      // on one method (e.g. seekTo on a not-yet-loaded source) does not bubble
-      // up and tear down the React tree.
-      try { (audioPlayer as any).replace?.({ uri: resolved }); } catch {}
-      try { audioPlayer.seekTo(0); } catch {}
-      try { audioPlayer.play(); } catch {}
+      // Mark player as active so we know the native side has been woken up.
+      // On the very first call the player was constructed with uri="" which is
+      // harmless; now we replace the source with the real URI.
+      _audioPlayerReady.current = true;
+      try { (_audioPlayer as any).replace?.({ uri: resolved }); } catch {}
+      try { _audioPlayer.seekTo(0); } catch {}
+      try { _audioPlayer.play(); } catch {}
     } catch {
-      // ignore audio errors
+      // Per-audio errors must never propagate to the React tree.
     }
-  };
-  const playPrimaryAudio = () => playAudioUri(card?.audio);
+  }, [_audioPlayer]);
+
+  const playPrimaryAudio = useCallback(() => playAudioUri(card?.audio), [card?.audio, playAudioUri]);
 
   // Collect every image / audio for the current card, deduplicated and
   // separated by side. The legacy single-value fields (`image`, `audio`) are

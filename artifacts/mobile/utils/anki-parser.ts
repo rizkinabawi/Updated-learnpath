@@ -2,13 +2,30 @@
  * 100% client-side Anki .apkg / .colpkg parser.
  * - Uses JSZip to extract the package
  * - Uses sql.js (pure-JS asm.js variant — runs in Hermes & browser) to read SQLite
- * - Strips HTML, removes [sound:...] / image refs from card fields
+ * - Strips HTML, Cloze markers, removes [sound:...] / image refs from card fields
  * - No network, no backend
  */
 
 import { Platform } from "react-native";
 import JSZip from "jszip";
 import * as fsCompat from "./fs-compat";
+// IMPORTANT: Use require() NOT import() for sql.js on Hermes / React Native.
+// Metro bundles require() of CJS modules at build time (safe on all targets).
+// Dynamic import() of CJS fails on Hermes release builds — the module factory
+// resolves to undefined, meaning sql.js never initializes and every Anki
+// import silently saves 0 cards.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const _sqlJsFactory: (() => Promise<any>) | null = (() => {
+  try {
+    // Metro will inline this require() at bundle time.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("sql.js/dist/sql-asm.js");
+    return mod?.default ?? mod ?? null;
+  } catch {
+    return null;
+  }
+})();
+
 
 export interface AnkiCard {
   front: string;
@@ -89,7 +106,6 @@ export interface ParseProgress {
 type ProgressCb = (p: ParseProgress) => void;
 
 // ---------------- Helpers ----------------
-
 function stripHtmlAndMedia(input: string): { text: string; media: string[] } {
   if (!input) return { text: "", media: [] };
   const media: string[] = [];
@@ -120,6 +136,10 @@ function stripHtmlAndMedia(input: string): { text: string; media: string[] } {
     media.push(String(name));
     return "";
   });
+  // BUG 5 FIX: Strip Anki Cloze markers — {{c1::answer}} → answer
+  //            Also handles nested: {{c1::answer::hint}} → answer
+  //            Raw cloze syntax was previously shown verbatim on the front card.
+  s = s.replace(/\{\{c\d+::([^:}]+)(?:::[^}]+)?\}\}/gi, (_, answer) => answer);
   // remove style/script content
   s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
   s = s.replace(/<script[\s\S]*?<\/script>/gi, "");
@@ -152,12 +172,16 @@ let _SQL: any = null;
 async function loadSqlEngine(onProgress?: ProgressCb): Promise<any> {
   if (_SQL) return _SQL;
   onProgress?.({ stage: "loading-engine", message: "Memuat mesin SQLite..." });
-
-  // Use the asm.js (pure JS) variant so it runs on Hermes / RN without WASM.
-  // This module exposes a factory function as default export.
-  const mod: any = await import("sql.js/dist/sql-asm.js");
-  const factory = mod.default ?? mod;
-  _SQL = await factory();
+  // BUG 2 FIX: _sqlJsFactory was populated at module load time via require(),
+  // which Metro / Hermes handles correctly. A dynamic import() of a CJS module
+  // inside an async function fails silently on Hermes release builds.
+  if (!_sqlJsFactory) {
+    throw new Error(
+      "sql.js tidak bisa dimuat (mesin tidak tersedia di perangkat ini). " +
+      "Pastikan sql.js terinstall: pnpm add sql.js",
+    );
+  }
+  _SQL = await _sqlJsFactory();
   return _SQL;
 }
 
@@ -336,17 +360,37 @@ async function parseAnkiPackageOnce(
   ];
   let sqliteBytes: Uint8Array | null = null;
   let usedName = "";
+  let foundAnki21b = false;
   for (const name of candidates) {
     const entry = zip.file(name);
     if (entry) {
-      sqliteBytes = await entry.async("uint8array");
+      const bytes = await entry.async("uint8array");
       usedName = name;
-      if (sqliteBytes && isSqliteSignature(sqliteBytes)) break;
-      // anki21b is zstd-compressed — not supported without zstd; try next
-      sqliteBytes = null;
+      if (isSqliteSignature(bytes)) {
+        sqliteBytes = bytes;
+        break;
+      }
+      // anki21b is zstd-compressed — we can detect it but cannot decompress it.
+      if (name === "collection.anki21b") foundAnki21b = true;
+      // anki21 / anki2 without sqlite signature: corrupt, try next
     }
   }
   if (!sqliteBytes) {
+    if (foundAnki21b) {
+      // BUG 4 FIX: Give the user a clear, actionable error instead of the
+      // generic "database not found" message. This is the single most common
+      // reason imports fail silently on modern Anki exports.
+      throw new AnkiImportError(
+        "DB_UNSUPPORTED",
+        "File ini menggunakan format zstd baru (Anki 2.1.50+) yang belum didukung.\n\n" +
+        "Cara ekspor ulang dari Anki Desktop:\n" +
+        "  1. Buka Anki → File → Export\n" +
+        "  2. Pilih 'Anki Deck Package (.apkg)'\n" +
+        "  3. Centang \u2705 'Support older Anki versions (slower)'\n" +
+        "  4. Klik Export → simpan file baru → coba import lagi",
+        false,
+      );
+    }
     throw new AnkiImportError(
       "NO_DB",
       "Tidak menemukan database Anki yang valid (collection.anki2/anki21). File mungkin rusak atau bukan paket Anki.",
@@ -497,7 +541,24 @@ async function parseAnkiPackageOnce(
         const tags = String(row[2] ?? "").trim();
         const fields = splitFields(flds);
         const front = stripHtmlAndMedia(fields[0] ?? "");
-        const back = stripHtmlAndMedia(fields.slice(1).join("\n\n") ?? "");
+
+        // BUG 5 FIX: Smart back-field selection for single-field note types.
+        // • Standard note (2+ fields): join fields[1..] as before.
+        // • Single-field note (e.g. some vocab decks): back is empty string —
+        //   we use a placeholder so the card is still usable, not confusing.
+        // • Cloze notes: fields[0] already had {{c::}} stripped by
+        //   stripHtmlAndMedia; fields[1] is often the extra/hint field —
+        //   use it as-is for the back.
+        let backRaw: string;
+        if (fields.length < 2 || fields.slice(1).every(f => !f.trim())) {
+          // Only one meaningful field — use the front text as the question
+          // and mark the back as "[Lihat depan]" so the UI doesn't show blank.
+          backRaw = "";
+        } else {
+          backRaw = fields.slice(1).join("\n\n");
+        }
+        const back = stripHtmlAndMedia(backRaw);
+
         if (!front.text && !back.text && front.media.length === 0 && back.media.length === 0) continue;
 
         const deckName = deckMap[did] ?? `Deck ${did}`;

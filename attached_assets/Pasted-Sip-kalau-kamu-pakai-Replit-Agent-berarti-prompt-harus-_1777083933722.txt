@@ -1,0 +1,216 @@
+Sip, kalau kamu pakai Replit Agent, berarti prompt harus:
+
+* jelas step-by-step
+* langsung bisa dieksekusi
+* tidak terlalu abstrak
+* fokus ke “build + fix + no crash”
+
+Ini saya bikin versi khusus Replit Agent yang lebih “commanding” dan minim ambiguity 👇
+
+⸻
+
+🚀 PROMPT FINAL KHUSUS REPLIT AGENT
+
+Copy paste langsung:
+
+⸻
+
+You are a senior React Native engineer.
+Fix and redesign my flashcard app architecture to handle large Anki .apkg imports (1000–5000 cards) without crashes.
+
+My current app uses SQLite and AsyncStorage but crashes when loading large decks.
+
+⸻
+
+🎯 MAIN GOAL
+
+Build a scalable system with:
+
+* Chunk-based lesson system
+* Lazy loading (pagination)
+* Optimized SQLite usage
+* Smooth UI rendering (no crashes)
+
+⸻
+
+❌ CURRENT PROBLEM
+
+* App crashes when loading 1000+ flashcards
+* Too much data loaded at once
+* Likely memory overload and bad rendering strategy
+
+⸻
+
+✅ TASKS
+
+1. CREATE SQLITE SCHEMA
+
+Create these tables:
+
+CREATE TABLE decks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT
+);
+CREATE TABLE lessons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  deck_id INTEGER,
+  title TEXT,
+  start_index INTEGER,
+  end_index INTEGER
+);
+CREATE TABLE flashcards (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  deck_id INTEGER,
+  lesson_id INTEGER,
+  question TEXT,
+  answer TEXT,
+  media_path TEXT
+);
+
+⸻
+
+2. BUILD APKG IMPORT SYSTEM
+
+* Extract .apkg (zip file)
+* Parse cards gradually (DO NOT load all into memory)
+* Process cards in batches
+
+⸻
+
+3. IMPLEMENT AUTO CHUNKING
+
+Rules:
+
+* If cards ≤ 2000 → chunk size = 100
+* If cards > 2000 → chunk size = 50
+
+Split cards into lessons
+
+Example:
+
+const chunkSize = totalCards > 2000 ? 50 : 100;
+
+For each chunk:
+
+* Create lesson
+* Assign flashcards to lesson_id
+
+⸻
+
+4. OPTIMIZE SQLITE INSERT
+
+Use transaction batching:
+
+db.transaction(tx => {
+  chunk.forEach(card => {
+    tx.executeSql(
+      "INSERT INTO flashcards (deck_id, lesson_id, question, answer, media_path) VALUES (?, ?, ?, ?, ?)",
+      [deckId, lessonId, card.q, card.a, card.media]
+    );
+  });
+});
+
+⸻
+
+5. BUILD PAGINATION SYSTEM
+
+DO NOT load all flashcards
+
+Use:
+
+SELECT * FROM flashcards 
+WHERE lesson_id = ?
+LIMIT 20 OFFSET ?
+
+⸻
+
+6. CREATE PAGINATION HOOK
+
+const PAGE_SIZE = 20;
+function loadMore() {
+  db.executeSql(
+    "SELECT * FROM flashcards WHERE lesson_id=? LIMIT ? OFFSET ?",
+    [lessonId, PAGE_SIZE, offset],
+    (_, result) => {
+      setData(prev => [...prev, ...result.rows._array]);
+      setOffset(offset + PAGE_SIZE);
+    }
+  );
+}
+
+⸻
+
+7. FIX UI RENDERING (CRITICAL)
+
+Replace any .map() rendering with FlatList:
+
+<FlatList
+  data={data}
+  renderItem={renderItem}
+  keyExtractor={(item) => item.id.toString()}
+  onEndReached={loadMore}
+  onEndReachedThreshold={0.5}
+  initialNumToRender={10}
+  maxToRenderPerBatch={10}
+/>
+
+⸻
+
+8. MEMORY RULES
+
+* DO NOT store large data in AsyncStorage
+* DO NOT store base64 media in SQLite
+* Store media files in local filesystem
+* Only store file path in DB
+
+⸻
+
+9. IMPORT PERFORMANCE
+
+* Process cards in batches (50–100 per batch)
+* Add small delay if needed to prevent UI freeze
+* Show progress log
+
+⸻
+
+10. OUTPUT REQUIRED
+
+Generate:
+
+1. SQLite helper module
+2. APKG parser module
+3. Chunking logic
+4. Pagination hook
+5. Flashcard list screen (optimized)
+6. Lesson list screen
+
+⸻
+
+🚨 PRIORITY
+
+* Prevent crashes at 1000–5000 cards
+* Optimize memory usage
+* Ensure smooth scrolling
+* Keep architecture clean and modular
+
+⸻
+
+⚠️ IMPORTANT
+
+Do not rewrite entire app blindly.
+Refactor only necessary parts and keep code maintainable.
+
+⸻
+
+💡 Tips biar Replit Agent lebih “nurut”
+
+Kalau dia masih ngaco, tambahin ini di akhir prompt:
+
+Work step by step. 
+After each step, explain what you changed and why.
+Do not skip implementation details.
+
+⸻
+
+Kalau nanti hasil dari Replit Agent masih error atau setengah jadi, kirim ke sini.
+Saya bisa bantu debug sampai benar-benar stabil, bukan sekadar teori.

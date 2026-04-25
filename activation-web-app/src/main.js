@@ -137,12 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < count; i++) {
                 const ia = issuedAt + i;
                 const ex = expiry + i;
-                const msg = utf8(`${appId}|${ia}|${ex}|${device}`);
+                const msg = utf8(`${appId}|${ia}|${ex}|${device || ""}`);
                 const sig = await ed.signAsync(msg, sk);
                 
-                const license = { appId, issuedAt: ia, expiry: ex };
+                const license = { appId, issuedAt: ia, expiry: ex, signature: toBase64(sig) };
                 if (device) license.deviceId = device;
-                license.signature = toBase64(sig);
+
                 allKeys.push(license);
 
                 const div = document.createElement('div');
@@ -196,30 +196,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const skHex = document.getElementById('buyer-sk').value.trim();
         const bundleId = document.getElementById('buyer-bundle').value.trim();
         const buyerId = document.getElementById('buyer-id').value.trim();
+        const creatorId = document.getElementById('buyer-creator').value.trim();
         const days = parseInt(document.getElementById('buyer-days').value);
 
-        if (!skHex || !bundleId || !buyerId) return showToast('All fields required!', 'error');
+        if (!skHex || !bundleId || !buyerId || !creatorId) return showToast('All fields required!', 'error');
 
         try {
             const sk = fromHex(skHex);
             const issuedAt = Date.now();
             const expiry = issuedAt + days * 86400000;
-            const nonce = toHex(nobleRandom(8));
-            const msg = utf8(`buyer|${bundleId}|${buyerId}|${issuedAt}|${expiry}|${nonce}`);
+            const nonce = toHex(nobleRandom(12));
+            const msg = utf8(`bl1|${bundleId}|${buyerId}|${nonce}|${issuedAt}|${expiry}|${creatorId}`);
             const sig = await ed.signAsync(msg, sk);
 
             const token = {
                 v: 1,
                 bundleId,
                 buyerId,
+                nonce,
                 issuedAt,
                 expiry,
-                nonce,
+                creatorId,
                 signature: toBase64(sig)
             };
 
-            document.getElementById('token-output-json').textContent = JSON.stringify(token, null, 2);
+            document.getElementById('token-output-json').textContent = JSON.stringify(token);
             document.getElementById('token-result').classList.remove('hidden');
+            showToast('Token generated!', 'success');
         } catch (e) {
             showToast('Token gen failed: ' + e.message, 'error');
         }
@@ -240,8 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let msgText = '';
 
             if (data.nonce) {
-                // Buyer Token
-                msgText = `buyer|${data.bundleId}|${data.buyerId}|${data.issuedAt}|${data.expiry}|${data.nonce}`;
+                // Buyer Token (bl1 format)
+                msgText = `bl1|${data.bundleId}|${data.buyerId}|${data.nonce}|${data.issuedAt}|${data.expiry}|${data.creatorId}`;
             } else {
                 // Activation Key
                 msgText = `${data.appId}|${data.issuedAt}|${data.expiry}|${data.deviceId || ""}`;

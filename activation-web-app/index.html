@@ -4,23 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearningPath | Activation Key Manager</title>
-    <!-- Import Map for Clean ESM Management -->
-    <script type="importmap">
-    {
-      "imports": {
-        "lucide": "https://esm.sh/lucide@0.473.0",
-        "@noble/ed25519": "https://esm.sh/@noble/ed25519@3.1.0",
-        "@noble/hashes/sha512": "https://esm.sh/@noble/hashes@1.7.2/sha512",
-        "@noble/hashes/utils": "https://esm.sh/@noble/hashes@1.7.2/utils"
-      }
-    }
-    </script>
+    <!-- Standard Lucide CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         #app { display: flex; height: 100vh; }
         .sidebar { width: 260px; transition: width 0.3s; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
         @media (max-width: 900px) { .sidebar { width: 70px; } }
+        .premium-card { min-height: 100px; }
     </style>
 </head>
 <body>
@@ -137,7 +129,7 @@
                         <div class="grid-2">
                             <div class="input-group">
                                 <label>Master Private Key</label>
-                                <input type="password" id="sign-sk" placeholder="64-char hex" />
+                                <input type="password" id="sign-sk" placeholder="64-char hex master private key" />
                             </div>
                             <div class="input-group">
                                 <label>App ID</label>
@@ -146,19 +138,27 @@
                             <div class="input-group">
                                 <label>Validity (Days)</label>
                                 <select id="sign-days">
-                                    <option value="365">1 Year</option>
+                                    <option value="30">30 Days</option>
+                                    <option value="365" selected>1 Year</option>
                                     <option value="36500">Forever</option>
                                 </select>
                             </div>
                             <div class="input-group">
                                 <label>Batch Count</label>
                                 <select id="sign-count">
-                                    <option value="1">1 Key</option>
+                                    <option value="1" selected>1 Key</option>
                                     <option value="10">10 Keys</option>
                                 </select>
                             </div>
+                            <div class="input-group">
+                                <label>Device ID (Optional)</label>
+                                <input type="text" id="sign-device" placeholder="Unbound if empty" />
+                            </div>
                         </div>
-                        <button class="btn btn-primary mt-20" id="btn-sign">Issue Key</button>
+                        <button class="btn btn-primary mt-20" id="btn-sign">
+                            <i data-lucide="check-circle"></i>
+                            Issue Key
+                        </button>
                         <div id="sign-result" class="mt-20 hidden">
                             <div id="sign-keys-container" class="output-scroll-area"></div>
                         </div>
@@ -175,22 +175,29 @@
                         <div class="grid-2">
                             <div class="input-group">
                                 <label>Creator Private Key</label>
-                                <input type="password" id="buyer-sk" placeholder="Creator hex key" />
+                                <input type="password" id="buyer-sk" placeholder="Creator private key" />
                             </div>
                             <div class="input-group">
                                 <label>Bundle ID</label>
-                                <input type="text" id="buyer-bundle" placeholder="Bundle unique ID" />
+                                <input type="text" id="buyer-bundle" placeholder="e.g. course-physics-1" />
                             </div>
                             <div class="input-group">
                                 <label>Buyer Identity</label>
-                                <input type="text" id="buyer-id" placeholder="Name/Email" />
+                                <input type="text" id="buyer-id" placeholder="Name or Email" />
                             </div>
                             <div class="input-group">
                                 <label>Creator ID</label>
-                                <input type="text" id="buyer-creator" placeholder="MatchingId" />
+                                <input type="text" id="buyer-creator" placeholder="Matches creatorId in bundle" />
+                            </div>
+                            <div class="input-group">
+                                <label>Validity (Days)</label>
+                                <input type="number" id="buyer-days" value="365" />
                             </div>
                         </div>
-                        <button class="btn btn-primary mt-20" id="btn-token">Generate Token</button>
+                        <button class="btn btn-primary mt-20" id="btn-token">
+                            <i data-lucide="ticket"></i>
+                            Generate Token
+                        </button>
                         <div id="token-result" class="mt-20 hidden">
                             <div class="code-box"><code id="token-output-json"></code></div>
                         </div>
@@ -200,13 +207,22 @@
                 <!-- Verify Tab -->
                 <section id="tab-verify" class="tab-panel">
                     <div class="section-header">
-                        <h2>Verify</h2>
+                        <h2>Integrity Check</h2>
                         <p>Verify any key or token offline.</p>
                     </div>
                     <div class="premium-card">
-                        <textarea id="verify-input" placeholder="Paste JSON..."></textarea>
-                        <input type="text" id="verify-pk" placeholder="issuer hex public key" class="mt-10" />
-                        <button class="btn btn-outline mt-20" id="btn-verify">Verify Authority</button>
+                        <div class="input-group">
+                            <label>Data to Verify (JSON)</label>
+                            <textarea id="verify-input" placeholder="Paste Activation Key or Buyer Token..."></textarea>
+                        </div>
+                        <div class="input-group mt-10">
+                            <label>Public Key</label>
+                            <input type="text" id="verify-pk" placeholder="issuer hex public key" />
+                        </div>
+                        <button class="btn btn-outline mt-20" id="btn-verify">
+                            <i data-lucide="search"></i>
+                            Verify Authentication
+                        </button>
                         <div id="verify-status" class="mt-20"></div>
                     </div>
                 </section>
@@ -216,10 +232,8 @@
 
     <div id="toast-root"></div>
 
-    <!-- Bootstrap handles navigation and icons immediately -->
-    <script type="module">
-        import { createIcons } from 'lucide';
-        
+    <!-- Bootstrap Nav -->
+    <script>
         const navItems = document.querySelectorAll('.nav-item');
         const panels = document.querySelectorAll('.tab-panel');
         navItems.forEach(item => {
@@ -231,8 +245,7 @@
                 document.getElementById('tab-' + tab).classList.add('active');
             });
         });
-        createIcons();
-
+        if (window.lucide) window.lucide.createIcons();
         window.showToast = (msg, type = 'info') => {
             const root = document.getElementById('toast-root');
             const t = document.createElement('div');

@@ -567,6 +567,7 @@ async function parseAnkiPackageOnce(
           }
           if (backImages.length > 0) card.backImageUris = backImages;
           if (frontAudios.length > 0) card.frontAudioUris = frontAudios;
+          if (backAudios.length > 0) card.backAudioUris = backAudios;
           const allAudio = [...frontAudios, ...backAudios];
           if (allAudio.length > 0) card.audioUris = allAudio;
 

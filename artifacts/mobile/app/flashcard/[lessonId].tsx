@@ -40,6 +40,31 @@ import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { resolveAssetUri, resolveAssetUris } from "@/utils/path-resolver";
 
+// ─── Defensive coercion helpers ─────────────────────────────────────
+// Anki-imported (or 3rd-party JSON-imported) flashcards can occasionally have
+// fields that don't match the `Flashcard` TypeScript shape — e.g. a string
+// where an array is expected, or a non-primitive where text is expected. The
+// React renderer crashes hard on `<Text>{obj}</Text>` ("Objects are not valid
+// as a React child") or on `arr.length` when arr is `null`. These helpers
+// keep the player resilient to such malformed data instead of taking the
+// whole screen down with a red box.
+function toStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const item of v) {
+    if (typeof item === "string" && item.length > 0) out.push(item);
+  }
+  return out;
+}
+function toText(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  // Objects/arrays — render a short, safe placeholder so the screen still
+  // works rather than crashing the React tree.
+  try { return String(v); } catch { return ""; }
+}
+
 export default function FlashcardScreen() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -75,7 +100,12 @@ export default function FlashcardScreen() {
   // Single shared player whose source is swapped on demand. This lets the
   // same player handle multiple audios per card (front + back, plus extras
   // imported from Anki decks that have several [sound:...] tags).
-  const audioPlayer = useAudioPlayer(null);
+  // NOTE: `undefined` (the documented default) plays nicer with expo-audio's
+  // native AVPlayer/MediaPlayer constructor than a literal `null` source on
+  // iOS/Android — passing null can throw inside `useReleasingSharedObject`
+  // when the screen mounts on certain devices, which manifests as an open-
+  // time crash on Anki-imported flashcard collections.
+  const audioPlayer = useAudioPlayer(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -320,14 +350,18 @@ export default function FlashcardScreen() {
   const progress = (currentIndex / cards.length) * 100;
   const playAudioUri = (uri?: string | null) => {
     const resolved = resolveAssetUri(uri);
-    if (!resolved) return;
+    if (!resolved || typeof resolved !== "string") return;
     try {
       // Swap source then play. expo-audio's `replace` accepts a URI string or
-      // an AudioSource object — the string form matches what we did with
-      // `useAudioPlayer(card.audio)` previously.
-      (audioPlayer as any).replace?.(resolved);
-      audioPlayer.seekTo(0);
-      audioPlayer.play();
+      // an AudioSource object — we use the OBJECT form `{ uri }` because the
+      // native iOS/Android side normalizes it more reliably than a raw string
+      // (the string-form sometimes fails silently for `file://` URIs that
+      // contain extracted Anki media). Each native call is wrapped so a fault
+      // on one method (e.g. seekTo on a not-yet-loaded source) does not bubble
+      // up and tear down the React tree.
+      try { (audioPlayer as any).replace?.({ uri: resolved }); } catch {}
+      try { audioPlayer.seekTo(0); } catch {}
+      try { audioPlayer.play(); } catch {}
     } catch {
       // ignore audio errors
     }
@@ -337,27 +371,33 @@ export default function FlashcardScreen() {
   // Collect every image / audio for the current card, deduplicated and
   // separated by side. The legacy single-value fields (`image`, `audio`) are
   // promoted into the array form so old data keeps working.
+  // We defensively coerce to a string[] so a malformed import (e.g. a JSON
+  // file that put a single string into `images`, or `null` into `imagesBack`)
+  // does not blow up the spread / `.length` calls below — that was the
+  // open-time crash users saw on Anki-imported standalone collections.
   const frontImagesAll = useMemo(() => {
     if (!card) return [] as string[];
     const arr: string[] = [];
-    if (card.images && card.images.length > 0) arr.push(...card.images);
-    else if (card.image) arr.push(card.image);
+    const imgs = toStringArray(card.images);
+    if (imgs.length > 0) arr.push(...imgs);
+    else if (typeof card.image === "string" && card.image) arr.push(card.image);
     return Array.from(new Set(resolveAssetUris(arr)));
   }, [card]);
   const backImagesAll = useMemo(() => {
     if (!card) return [] as string[];
-    return Array.from(new Set(resolveAssetUris(card.imagesBack ?? [])));
+    return Array.from(new Set(resolveAssetUris(toStringArray(card.imagesBack))));
   }, [card]);
   const frontAudiosAll = useMemo(() => {
     if (!card) return [] as string[];
     const arr: string[] = [];
-    if (card.audios && card.audios.length > 0) arr.push(...card.audios);
-    else if (card.audio) arr.push(card.audio);
+    const auds = toStringArray(card.audios);
+    if (auds.length > 0) arr.push(...auds);
+    else if (typeof card.audio === "string" && card.audio) arr.push(card.audio);
     return Array.from(new Set(resolveAssetUris(arr)));
   }, [card]);
   const backAudiosAll = useMemo(() => {
     if (!card) return [] as string[];
-    return Array.from(new Set(resolveAssetUris(card.audiosBack ?? [])));
+    return Array.from(new Set(resolveAssetUris(toStringArray(card.audiosBack))));
   }, [card]);
 
   const frontInterpolate = flipAnim.interpolate({
@@ -465,12 +505,20 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
     ({ item: c, index: i }) => {
       const isAlt = i % 2 === 1;
       const isLast = i === cards.length - 1;
+      const imgsArr = toStringArray(c.images);
       const frontImgs = resolveAssetUris(
-        c.images && c.images.length > 0 ? c.images : c.image ? [c.image] : [],
+        imgsArr.length > 0
+          ? imgsArr
+          : typeof c.image === "string" && c.image
+            ? [c.image]
+            : [],
       );
-      const backImgs = resolveAssetUris(c.imagesBack ?? []);
-      const audCount = (c.audios?.length ?? 0) || (c.audio ? 1 : 0);
-      const backAudCount = c.audiosBack?.length ?? 0;
+      const backImgs = resolveAssetUris(toStringArray(c.imagesBack));
+      const audsArr = toStringArray(c.audios);
+      const audCount = audsArr.length || (typeof c.audio === "string" && c.audio ? 1 : 0);
+      const backAudCount = toStringArray(c.audiosBack).length;
+      const qText = toText(c.question);
+      const aText = toText(c.answer);
       return (
         <View
           style={[
@@ -498,10 +546,10 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
             <Text
               style={[
                 styles.tableCellQ,
-                (c.question?.length ?? 0) > 80 && styles.tableCellQLong,
+                qText.length > 80 && styles.tableCellQLong,
               ]}
             >
-              {c.question}
+              {qText}
             </Text>
             {audCount > 0 && (
               <View style={styles.tableMediaRow}>
@@ -525,7 +573,7 @@ function FlashcardTableList({ cards, colors, styles }: FlashcardTableListProps) 
                 ))}
               </View>
             )}
-            <Text style={styles.tableCellA}>{c.answer}</Text>
+            <Text style={styles.tableCellA}>{aText}</Text>
             {backAudCount > 0 && (
               <View style={styles.tableMediaRow}>
                 <Volume2 size={14} color={colors.primary} />
@@ -662,9 +710,16 @@ function FlashcardCardView({
     );
   };
 
+  // Coerce the three text fields once so a malformed import (object/null in
+  // place of a string) cannot crash the React render with "Objects are not
+  // valid as a React child".
+  const tagText = toText(card.tag);
+  const questionText = toText(card.question);
+  const answerText = toText(card.answer);
+
   return (
     <>
-      {card.tag ? <Text style={styles.cardTag}>{card.tag}</Text> : null}
+      {tagText ? <Text style={styles.cardTag}>{tagText}</Text> : null}
 
       {/* Card */}
       <View style={styles.cardWrap}>
@@ -688,7 +743,7 @@ function FlashcardCardView({
             >
               {!flipped && renderImageStrip(frontImages)}
               <Text style={styles.cardHint}>Pertanyaan</Text>
-              <Text style={styles.cardText}>{card.question}</Text>
+              <Text style={styles.cardText}>{questionText}</Text>
               {!flipped && renderAudioButtons(frontAudios)}
               <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
             </ScrollView>
@@ -709,7 +764,7 @@ function FlashcardCardView({
             >
               {flipped && renderImageStrip(backImages)}
               <Text style={styles.cardHint}>Jawaban</Text>
-              <Text style={styles.cardText}>{card.answer}</Text>
+              <Text style={styles.cardText}>{answerText}</Text>
               {flipped && renderAudioButtons(backAudios)}
             </ScrollView>
           </Animated.View>

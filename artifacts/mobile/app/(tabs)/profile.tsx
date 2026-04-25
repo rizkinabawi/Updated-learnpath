@@ -11,7 +11,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import {
   getUser, getStats, getLearningPaths, clearAllData,
-  importCourse,
+  importCourse, repairFlashcardStorage,
   type User as UserType, type Stats, type CoursePack,
 } from "@/utils/storage";
 import {
@@ -278,6 +278,38 @@ export default function ProfileTab() {
         { text: t.common.cancel, style: "cancel" },
         { text: "Reset", onPress: async () => { const AS = (await import("@react-native-async-storage/async-storage")).default; await AS.removeItem("user"); router.replace("/onboarding"); } },
       ]),
+    },
+    {
+      icon: "tool" as const, label: "Perbaiki Penyimpanan",
+      sub: "Pindai & susun ulang index flashcard jika ada crash sebelumnya",
+      color: colors.teal,
+      onPress: () => Alert.alert(
+        "Perbaiki Penyimpanan Flashcard",
+        "Akan memindai semua kartu, menyusun ulang index, dan mencoba memperbaiki sisa data lama dari sebelum pembaruan. Aman — tidak menghapus kartu apa pun.",
+        [
+          { text: t.common.cancel, style: "cancel" },
+          {
+            text: "Mulai", onPress: async () => {
+              try {
+                const r = await repairFlashcardStorage();
+                const lines: string[] = [
+                  `${r.lessonsScanned} pelajaran dipindai`,
+                  `${r.totalCards} kartu ditemukan`,
+                ];
+                if (r.legacyBlobMigrated) lines.push("Data lama berhasil dipisah ke per-pelajaran");
+                if (r.legacyBlobUnreadable) lines.push("⚠ Data lama belum bisa dibaca di perangkat ini");
+                if (r.reindexedLessons > 0) lines.push(`${r.reindexedLessons} pelajaran ditambahkan ke index`);
+                if (r.removedStaleIndexEntries > 0) lines.push(`${r.removedStaleIndexEntries} entri index basi dihapus`);
+                if (r.corruptedLessons.length > 0) lines.push(`⚠ ${r.corruptedLessons.length} pelajaran rusak (tidak terbaca)`);
+                Alert.alert("Selesai", lines.join("\n"));
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                Alert.alert("Gagal memperbaiki", msg);
+              }
+            },
+          },
+        ],
+      ),
     },
     {
       icon: "trash-2" as const, label: t.profile.delete_all,

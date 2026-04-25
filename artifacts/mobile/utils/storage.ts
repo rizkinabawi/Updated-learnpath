@@ -768,6 +768,140 @@ export const deleteFlashcard = async (id: string) => {
   }
 };
 
+/** Result of a storage repair scan. */
+export interface FlashcardRepairReport {
+  /** Per-lesson card rows discovered on disk. */
+  lessonsScanned: number;
+  /** Total cards counted across all per-lesson rows. */
+  totalCards: number;
+  /** Lesson rows that failed to parse (likely corrupted JSON). */
+  corruptedLessons: string[];
+  /** Lesson rows that existed but were missing from the index (now added). */
+  reindexedLessons: number;
+  /** Index entries removed because their per-lesson row was missing/empty. */
+  removedStaleIndexEntries: number;
+  /** True if the legacy single-blob row was found and successfully migrated. */
+  legacyBlobMigrated: boolean;
+  /** True if the legacy blob existed but couldn't be parsed (kept for manual recovery). */
+  legacyBlobUnreadable: boolean;
+}
+
+/**
+ * Rebuild `flashcards_idx` from disk by scanning every `flashcards_l:*` row,
+ * and re-attempt migration of the legacy single-blob row if it's still
+ * around. Useful when a previous crash left the store in a half-migrated or
+ * inconsistent state. Safe to run any time — it never deletes card data.
+ */
+export const repairFlashcardStorage = async (): Promise<FlashcardRepairReport> => {
+  const report: FlashcardRepairReport = {
+    lessonsScanned: 0,
+    totalCards: 0,
+    corruptedLessons: [],
+    reindexedLessons: 0,
+    removedStaleIndexEntries: 0,
+    legacyBlobMigrated: false,
+    legacyBlobUnreadable: false,
+  };
+
+  // Drop in-memory caches so we re-read everything from disk.
+  invalidateFlashcardsCache();
+
+  let allKeys: readonly string[] = [];
+  try {
+    allKeys = await AsyncStorage.getAllKeys();
+  } catch {
+    allKeys = [];
+  }
+
+  // Step 1: re-attempt legacy migration if the old blob is still around AND
+  // we haven't yet split it. We do NOT remove the legacy row on failure — it
+  // stays so a future repair can try again on a less-loaded device.
+  const legacyRaw = allKeys.includes(STORAGE_KEYS.FLASHCARDS)
+    ? await AsyncStorage.getItem(STORAGE_KEYS.FLASHCARDS).catch(() => null)
+    : null;
+  if (legacyRaw) {
+    try {
+      const cards: Flashcard[] = JSON.parse(legacyRaw) ?? [];
+      const groups = new Map<string, Flashcard[]>();
+      for (const c of cards) {
+        const lid = c.lessonId || "__orphan__";
+        let arr = groups.get(lid);
+        if (!arr) {
+          arr = [];
+          groups.set(lid, arr);
+        }
+        arr.push(c);
+      }
+      // Merge into existing per-lesson rows (don't clobber): newer per-lesson
+      // data takes precedence over legacy by id.
+      for (const [lid, legacyList] of groups) {
+        const key = _flashcardLessonKey(lid);
+        let existing: Flashcard[] = [];
+        try {
+          const raw = await AsyncStorage.getItem(key);
+          if (raw) existing = JSON.parse(raw) ?? [];
+        } catch {
+          existing = [];
+        }
+        const seen = new Set(existing.map((c) => c.id));
+        for (const c of legacyList) if (!seen.has(c.id)) existing.push(c);
+        await AsyncStorage.setItem(key, JSON.stringify(existing));
+      }
+      await AsyncStorage.removeItem(STORAGE_KEYS.FLASHCARDS);
+      report.legacyBlobMigrated = true;
+      // Refresh keys list since we've added rows.
+      allKeys = await AsyncStorage.getAllKeys();
+    } catch {
+      // Legacy blob still unreadable on this device. Leave it untouched.
+      report.legacyBlobUnreadable = true;
+    }
+  }
+
+  // Step 2: walk every per-lesson row and rebuild the index from scratch.
+  const newIndex: Record<string, number> = {};
+  for (const k of allKeys) {
+    if (!k.startsWith(STORAGE_KEYS.FLASHCARDS_LESSON_PREFIX)) continue;
+    const lessonId = k.slice(STORAGE_KEYS.FLASHCARDS_LESSON_PREFIX.length);
+    let raw: string | null = null;
+    try {
+      raw = await AsyncStorage.getItem(k);
+    } catch {
+      raw = null;
+    }
+    if (!raw) continue;
+    try {
+      const list: Flashcard[] = JSON.parse(raw) ?? [];
+      report.lessonsScanned += 1;
+      report.totalCards += list.length;
+      if (list.length > 0) newIndex[lessonId] = list.length;
+    } catch {
+      report.corruptedLessons.push(lessonId);
+    }
+  }
+
+  // Step 3: compare to old index — count fixes for the user-facing report.
+  let oldIndex: Record<string, number> = {};
+  try {
+    const oldRaw = await AsyncStorage.getItem(STORAGE_KEYS.FLASHCARDS_INDEX);
+    if (oldRaw) oldIndex = JSON.parse(oldRaw) ?? {};
+  } catch {
+    oldIndex = {};
+  }
+  for (const k of Object.keys(newIndex)) {
+    if (!(k in oldIndex)) report.reindexedLessons += 1;
+  }
+  for (const k of Object.keys(oldIndex)) {
+    if (!(k in newIndex)) report.removedStaleIndexEntries += 1;
+  }
+
+  // Step 4: persist the rebuilt index and refresh the in-memory cache so
+  // subsequent reads see the new state immediately.
+  await AsyncStorage.setItem(STORAGE_KEYS.FLASHCARDS_INDEX, JSON.stringify(newIndex));
+  _flashcardsIndex = newIndex;
+  _migrated = true;
+  return report;
+};
+
 /** Remove every card belonging to a pack. Touches only the lessons that
  *  contain pack cards. */
 export const deleteFlashcardsByPack = async (packId: string) => {

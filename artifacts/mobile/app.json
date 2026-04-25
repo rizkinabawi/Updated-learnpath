@@ -58,7 +58,8 @@
           "skAdNetworkItems": []
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/with-async-storage-size"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -111,12 +111,15 @@ function looksHierarchical(decks: { name: string }[]): boolean {
 
 /**
  * Maximum number of cards we let live under one lessonId. Each lesson maps to
- * a single AsyncStorage row; on Android the underlying SQLite store has a
- * ~6 MB row size cap and the JS heap struggles with much bigger blobs anyway.
- * Keeping any one lesson at <=1000 cards leaves ample headroom for media
- * URIs and HTML-heavy fronts/backs.
+ * a single AsyncStorage row. Even with the database-size cap raised via the
+ * `with-async-storage-size` Expo plugin, individual rows still need to stay
+ * compact: real-world Anki cards include long media URIs (file://… paths
+ * extracted from .apkg media), ruby/furigana HTML, and tag strings — easily
+ * 3–8 KB per card. A 500-card cap keeps any one row under ~4 MB and leaves
+ * room in the database for many lessons before hitting the (now 256 MB)
+ * total cap. Tune lower if you see SQLITE_FULL on large overall libraries.
  */
-const MAX_CARDS_PER_LESSON = 1000;
+const MAX_CARDS_PER_LESSON = 500;
 
 /** Split an array into fixed-size chunks (last chunk may be smaller). */
 function chunkArray<T>(arr: T[], size: number): T[][] {

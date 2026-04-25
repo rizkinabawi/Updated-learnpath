@@ -28,6 +28,7 @@ import {
   Code2,
   FileText,
   FileImage,
+  BookOpen,
   Clock,
   Eye,
 } from "lucide-react-native";
@@ -44,7 +45,7 @@ import { isCancellationError } from "@/utils/safe-share";
 import { resolveAssetUri } from "@/utils/path-resolver";
 import * as FileSystem from "@/utils/fs-compat";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PLAYER_WIDTH = Math.min(SCREEN_WIDTH - 32, 720);
 const PLAYER_HEIGHT = Math.round((PLAYER_WIDTH * 9) / 16);
 
@@ -235,6 +236,8 @@ export default function MaterialFullView() {
       current?.type === "file" && 
       current.filePath && 
       (
+        current.fileMime?.toLowerCase().includes("epub") || 
+        current.fileName?.toLowerCase().endsWith(".epub") ||
         current.fileMime?.toLowerCase().includes("csv") || 
         current.fileName?.toLowerCase().endsWith(".csv") ||
         current.fileMime === "text/comma-separated-values" ||
@@ -393,7 +396,7 @@ export default function MaterialFullView() {
         </View>
 
         {(current.type === "text" || current.type === "html") && isBookMode ? (
-          <View style={{ height: 500 }}>
+          <View style={{ height: SCREEN_HEIGHT - insets.top - insets.bottom - 160 }}>
             <ScrollView
               horizontal
               pagingEnabled
@@ -409,12 +412,12 @@ export default function MaterialFullView() {
               ).map((pageContent, pidx) => (
                 <View key={pidx} style={{ width: SCREEN_WIDTH - 32, paddingRight: 16 }}>
                   {current.type === "text" ? (
-                    <Text style={styles.bodyText} selectable>{pageContent}</Text>
+                    <Text style={[styles.bodyText, { fontSize: 18 }]} selectable>{pageContent}</Text>
                   ) : (
                     <WebView
                       originWhitelist={["*"]}
-                      source={{ html: `<style>body{font-family:sans-serif;font-size:16px;line-height:1.6;color:${colors.dark};background:transparent;}</style>${pageContent}` }}
-                      style={{ height: 440, backgroundColor: "transparent" }}
+                      source={{ html: `<style>body{font-family:sans-serif;font-size:18px;line-height:1.6;color:${colors.text};background:transparent;margin:0;padding:0;}</style>${pageContent}` }}
+                      style={{ flex: 1, backgroundColor: "transparent" }}
                     />
                   )}
                 </View>
@@ -457,7 +460,7 @@ export default function MaterialFullView() {
                   <WebView
                     originWhitelist={["*"]}
                     source={{ html: current.content }}
-                    style={{ minHeight: 400, borderRadius: 12 }}
+                    style={{ minHeight: SCREEN_HEIGHT - insets.top - insets.bottom - 160, borderRadius: 12 }}
                   />
                 )}
               </View>
@@ -495,6 +498,14 @@ export default function MaterialFullView() {
                 <FileText size={40} color={colors.textMuted} />
                 <Text style={{ color: colors.textMuted, marginTop: 8 }}>File CSV kosong</Text>
               </View>
+            ) : (current.fileMime?.includes("epub") || current.fileName?.toLowerCase().endsWith(".epub")) ? (
+              <View style={[styles.fileBox, { padding: 40, alignItems: "center", backgroundColor: colors.primaryLight }]}>
+                <BookOpen size={48} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: "800", marginTop: 12, fontSize: 16 }}>File EPUB (E-Book)</Text>
+                <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: 6, fontSize: 12 }}>
+                  Gunakan aplikasi eksternal (seperti Google Play Books atau Apple Books) untuk membaca file ini dengan nyaman.
+                </Text>
+              </View>
             ) : (current.fileMime?.includes("pdf") || 
               current.fileMime?.includes("msword") ||
               current.fileMime?.includes("officedocument") ||
@@ -507,7 +518,7 @@ export default function MaterialFullView() {
                 source={{ uri: current.filePath! }}
                 style={{
                   width: "100%",
-                  height: 500,
+                  height: SCREEN_HEIGHT - insets.top - insets.bottom - 160,
                   borderRadius: 16,
                   backgroundColor: colors.surface,
                 }}

@@ -759,35 +759,22 @@ export default function StudyMaterialScreen() {
                   </View>
                 </View>
 
-                {false && (
-                  <View style={styles.matBody as any}>
-                    {mat.type === "text" && (
-                      <ScrollView
-                        style={styles.textScroll}
-                        nestedScrollEnabled
-                      >
-                        <Text style={styles.matText}>{mat.content}</Text>
-                      </ScrollView>
-                    )}
+                <View style={styles.matBody as any}>
+                  {mat.type === "text" && (
+                    <Text style={styles.matText} numberOfLines={4}>{mat.content}</Text>
+                  )}
 
-                    {mat.type === "html" && (
-                      <View style={styles.htmlBox}>
-                        <View style={styles.htmlPreviewBar}>
-                          <Code2 size={13} color={colors.purple} />
-                          <Text style={styles.htmlPreviewLabel}>Konten HTML</Text>
-                          <TouchableOpacity
-                            style={styles.previewBtn}
-                            onPress={() => handlePreviewHtml(mat)}
-                          >
-                            <Eye size={13} color={colors.white} />
-                            <Text style={styles.previewBtnText}>Buka Preview</Text>
-                          </TouchableOpacity>
-                        </View>
-                        <ScrollView style={styles.htmlCodeScroll} nestedScrollEnabled>
-                          <Text style={styles.htmlCode}>{mat.content}</Text>
-                        </ScrollView>
-                      </View>
-                    )}
+                  {mat.type === "html" && (
+                    <View style={{ height: 120, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+                      <WebView
+                        originWhitelist={["*"]}
+                        source={{ html: `<style>body{font-family:sans-serif;font-size:12px;color:${colors.text};background:transparent;margin:0;padding:8px;}</style>${mat.content}` }}
+                        style={{ flex: 1, backgroundColor: "transparent" }}
+                        scrollEnabled={false}
+                        pointerEvents="none"
+                      />
+                    </View>
+                  )}
 
                     {mat.type === "file" && (
                       <View style={styles.fileBox}>
@@ -846,8 +833,7 @@ export default function StudyMaterialScreen() {
                         />
                       </View>
                     )}
-                  </View>
-                )}
+                </View>
               </View>
             );
           })

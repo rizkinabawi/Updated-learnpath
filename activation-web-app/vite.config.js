@@ -1,16 +1,13 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  css: {
-    transformer: false, 
-    minify: false,
-  },
   build: {
+    outDir: 'dist',
     minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      }
-    }
+    cssMinify: 'esbuild',
+    emptyOutDir: true,
+  },
+  server: {
+    port: 3000
   }
 });

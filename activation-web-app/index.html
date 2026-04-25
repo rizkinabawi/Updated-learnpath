@@ -4,262 +4,132 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearningPath | Activation Key Manager</title>
-    <!-- Standard Lucide CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Use local-style CDN but forced as global scripts to match GUI CLI's behavior -->
+    <script src="https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/sha512.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@noble/ed25519@2.0.0/lib/index.js"></script>
     <style>
-        #app { display: flex; height: 100vh; }
-        .sidebar { width: 260px; transition: width 0.3s; }
+        #app { display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; transition: width 0.3s; background: #111520; color: white; display: flex; flex-direction: column; }
+        .main-content { flex: 1; overflow-y: auto; background: #f8fafc; padding: 20px; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-        @media (max-width: 900px) { .sidebar { width: 70px; } }
-        .premium-card { min-height: 100px; }
+        .nav-item { padding: 12px 20px; cursor: pointer; border: none; background: none; color: #8892b0; text-align: left; width: 100%; font-size: 14px; }
+        .nav-item:hover { background: #1e2436; color: white; }
+        .nav-item.active { background: #4f6ef7; color: white; }
+        .premium-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .code-box { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 6px; font-family: monospace; position: relative; margin-top: 10px; word-break: break-all; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
+        .btn-primary { background: #4f6ef7; color: white; }
+        .btn-outline { border: 1px solid #e2e8f0; background: white; color: #64748b; }
+        .hidden { display: none; }
+        .mt-20 { margin-top: 20px; }
+        .alert { padding: 12px; border-radius: 6px; margin-top: 10px; font-weight: 700; }
+        .alert.success { background: #dcfce7; color: #166534; }
+        textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; min-height: 100px; }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- Sidebar Navigation -->
         <aside class="sidebar">
-            <div class="logo-area">
-                <div class="logo-icon">🔐</div>
-                <div class="logo-text">
-                    <h1>LP<span>Key</span></h1>
-                    <p>Manager v2.0</p>
-                </div>
-            </div>
-            
-            <nav class="nav-links">
-                <button class="nav-item active" data-tab="dashboard">
-                    <i data-lucide="layout-dashboard"></i>
-                    <span>Dashboard</span>
-                </button>
-                <button class="nav-item" data-tab="keypair">
-                    <i data-lucide="key"></i>
-                    <span>Keypair</span>
-                </button>
-                <button class="nav-item" data-tab="sign">
-                    <i data-lucide="pen-tool"></i>
-                    <span>Sign Key</span>
-                </button>
-                <button class="nav-item" data-tab="token">
-                    <i data-lucide="ticket"></i>
-                    <span>Buyer Token</span>
-                </button>
-                <button class="nav-item" data-tab="verify">
-                    <i data-lucide="shield-check"></i>
-                    <span>Verify</span>
-                </button>
+            <div style="padding: 24px; font-size: 20px; font-weight: 800;">LP KeyManager</div>
+            <nav>
+                <button class="nav-item active" data-tab="keypair">Keypair</button>
+                <button class="nav-item" data-tab="sign">Issue Key</button>
+                <button class="nav-item" data-tab="token">Buyer Token</button>
+                <button class="nav-item" data-tab="verify">Verify</button>
             </nav>
-
-            <div class="sidebar-footer">
-                <div class="status-badge">
-                    <span class="status-dot"></span>
-                    Secure Shell
-                </div>
-            </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-bar">
-                <div class="search-wrap">
-                    <i data-lucide="info"></i>
-                    <span>100% Client-side Cryptography</span>
+            <section id="tab-keypair" class="tab-panel active">
+                <div class="premium-card">
+                    <h2>Keypair</h2>
+                    <p>Current Ed25519 Engine: <span id="engine-status">Checking...</span></p>
+                    <button class="btn btn-primary" id="btn-keygen">Generate New Keypair</button>
+                    <div id="keygen-result" class="hidden">
+                        <div class="mt-20">
+                            <strong>Private Key:</strong>
+                            <div class="code-box" id="sk-val"></div>
+                        </div>
+                        <div class="mt-20">
+                            <strong>Public Key:</strong>
+                            <div class="code-box" id="pk-val"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="user-pill">
-                    <span class="badge">Offline Verified</span>
+            </section>
+
+            <section id="tab-sign" class="tab-panel">
+                <div class="premium-card">
+                    <h2>Issue Activation Key</h2>
+                    <div class="mt-20">
+                        <label>Master Private Key (Hex)</label><br/>
+                        <input type="text" id="sign-sk" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd;" />
+                    </div>
+                    <div class="mt-20">
+                        <label>App ID</label><br/>
+                        <input type="text" id="sign-appid" value="learningpath" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd;" />
+                    </div>
+                    <button class="btn btn-primary mt-20" id="btn-sign">Generate Signatures</button>
+                    <div id="sign-result" class="mt-20 hidden">
+                        <strong>Result JSON:</strong>
+                        <div class="code-box" id="sign-output"></div>
+                    </div>
                 </div>
-            </header>
+            </section>
 
-            <div class="content-viewport">
-                <!-- Dashboard Tab -->
-                <section id="tab-dashboard" class="tab-panel active">
-                    <div class="welcome-hero">
-                        <h2>Selamat Datang, <span>Creator</span></h2>
-                        <p>Kelola aktivasi aplikasi dan token komersial secara aman dari mana saja.</p>
-                    </div>
-                </section>
+            <section id="tab-token" class="tab-panel">
+                <div class="premium-card">
+                    <h2>Buyer Token</h2>
+                    <input type="text" id="buyer-sk" placeholder="Creator Secret Key" style="width:100%; padding:10px; margin-bottom:10px;" />
+                    <input type="text" id="buyer-bundle" placeholder="Bundle ID" style="width:100%; padding:10px; margin-bottom:10px;" />
+                    <input type="text" id="buyer-id" placeholder="Buyer ID" style="width:100%; padding:10px; margin-bottom:10px;" />
+                    <input type="text" id="buyer-creator" placeholder="Creator ID" style="width:100%; padding:10px; margin-bottom:10px;" />
+                    <button class="btn btn-primary" id="btn-token">Create Token</button>
+                    <div id="token-result" class="hidden"><div class="code-box" id="token-output"></div></div>
+                </div>
+            </section>
 
-                <!-- Keypair Tab -->
-                <section id="tab-keypair" class="tab-panel">
-                    <div class="section-header">
-                        <h2>Master Keypair</h2>
-                        <p>Generate App Master Ed25519 public/private keys.</p>
-                    </div>
-                    <div class="premium-card">
-                        <div class="card-body">
-                            <div class="flex-row gap-10">
-                                <button class="btn btn-primary" id="btn-keygen">
-                                    <i data-lucide="refresh-cw"></i>
-                                    New Keypair
-                                </button>
-                                <label class="btn btn-outline" for="file-key-upload">
-                                    <i data-lucide="upload"></i>
-                                    Load .hex
-                                    <input type="file" id="file-key-upload" class="hidden" accept=".hex,.txt" />
-                                </label>
-                            </div>
-                            <div class="keypair-preview hidden" id="keygen-result">
-                                <div class="key-field">
-                                    <label>Private Key (SECRET)</label>
-                                    <div class="code-box danger">
-                                        <code id="sk-val"></code>
-                                        <button class="btn-icon" data-copy="sk-val"><i data-lucide="copy"></i></button>
-                                    </div>
-                                </div>
-                                <div class="key-field">
-                                    <label>Public Key (Public)</label>
-                                    <div class="code-box success">
-                                        <code id="pk-val"></code>
-                                        <button class="btn-icon" data-copy="pk-val"><i data-lucide="copy"></i></button>
-                                    </div>
-                                </div>
-                                <p class="hint">Simpan private key di tempat aman. Public key digunakan di code app.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Sign Tab -->
-                <section id="tab-sign" class="tab-panel">
-                    <div class="section-header">
-                        <h2>Generate Activation Key</h2>
-                        <p>Issue activation keys for your users.</p>
-                    </div>
-                    <div class="premium-card">
-                        <div class="grid-2">
-                            <div class="input-group">
-                                <label>Master Private Key</label>
-                                <input type="password" id="sign-sk" placeholder="64-char hex master private key" />
-                            </div>
-                            <div class="input-group">
-                                <label>App ID</label>
-                                <input type="text" id="sign-appid" value="learningpath" />
-                            </div>
-                            <div class="input-group">
-                                <label>Validity (Days)</label>
-                                <select id="sign-days">
-                                    <option value="30">30 Days</option>
-                                    <option value="365" selected>1 Year</option>
-                                    <option value="36500">Forever</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label>Batch Count</label>
-                                <select id="sign-count">
-                                    <option value="1" selected>1 Key</option>
-                                    <option value="10">10 Keys</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label>Device ID (Optional)</label>
-                                <input type="text" id="sign-device" placeholder="Unbound if empty" />
-                            </div>
-                        </div>
-                        <button class="btn btn-primary mt-20" id="btn-sign">
-                            <i data-lucide="check-circle"></i>
-                            Issue Key
-                        </button>
-                        <div id="sign-result" class="mt-20 hidden">
-                            <div id="sign-keys-container" class="output-scroll-area"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Buyer Token Tab -->
-                <section id="tab-token" class="tab-panel">
-                    <div class="section-header">
-                        <h2>Buyer Token</h2>
-                        <p>One-time tokens for bundle purchasers.</p>
-                    </div>
-                    <div class="premium-card">
-                        <div class="grid-2">
-                            <div class="input-group">
-                                <label>Creator Private Key</label>
-                                <input type="password" id="buyer-sk" placeholder="Creator private key" />
-                            </div>
-                            <div class="input-group">
-                                <label>Bundle ID</label>
-                                <input type="text" id="buyer-bundle" placeholder="e.g. course-physics-1" />
-                            </div>
-                            <div class="input-group">
-                                <label>Buyer Identity</label>
-                                <input type="text" id="buyer-id" placeholder="Name or Email" />
-                            </div>
-                            <div class="input-group">
-                                <label>Creator ID</label>
-                                <input type="text" id="buyer-creator" placeholder="Matches creatorId in bundle" />
-                            </div>
-                            <div class="input-group">
-                                <label>Validity (Days)</label>
-                                <input type="number" id="buyer-days" value="365" />
-                            </div>
-                        </div>
-                        <button class="btn btn-primary mt-20" id="btn-token">
-                            <i data-lucide="ticket"></i>
-                            Generate Token
-                        </button>
-                        <div id="token-result" class="mt-20 hidden">
-                            <div class="code-box"><code id="token-output-json"></code></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Verify Tab -->
-                <section id="tab-verify" class="tab-panel">
-                    <div class="section-header">
-                        <h2>Integrity Check</h2>
-                        <p>Verify any key or token offline.</p>
-                    </div>
-                    <div class="premium-card">
-                        <div class="input-group">
-                            <label>Data to Verify (JSON)</label>
-                            <textarea id="verify-input" placeholder="Paste Activation Key or Buyer Token..."></textarea>
-                        </div>
-                        <div class="input-group mt-10">
-                            <label>Public Key</label>
-                            <input type="text" id="verify-pk" placeholder="issuer hex public key" />
-                        </div>
-                        <button class="btn btn-outline mt-20" id="btn-verify">
-                            <i data-lucide="search"></i>
-                            Verify Authentication
-                        </button>
-                        <div id="verify-status" class="mt-20"></div>
-                    </div>
-                </section>
-            </div>
+            <section id="tab-verify" class="tab-panel">
+                <div class="premium-card">
+                    <h2>Verify Integrity</h2>
+                    <textarea id="verify-input" placeholder="Paste JSON Key or Token here..."></textarea>
+                    <input type="text" id="verify-pk" placeholder="Hex Public Key" style="width:100%; padding:10px; margin-top:10px;" />
+                    <button class="btn btn-primary mt-20" id="btn-verify">Verify Now</button>
+                    <div id="verify-status"></div>
+                </div>
+            </section>
         </main>
     </div>
 
-    <div id="toast-root"></div>
-
-    <!-- Bootstrap Nav -->
+    <!-- BOOTSTRAP SCRIPT (NO MODULE) -->
     <script>
-        const navItems = document.querySelectorAll('.nav-item');
-        const panels = document.querySelectorAll('.tab-panel');
-        navItems.forEach(item => {
+        document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
-                const tab = item.getAttribute('data-tab');
-                navItems.forEach(i => i.classList.remove('active'));
-                panels.forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
                 item.classList.add('active');
-                document.getElementById('tab-' + tab).classList.add('active');
+                document.getElementById('tab-' + item.dataset.tab).classList.add('active');
             });
         });
-        if (window.lucide) window.lucide.createIcons();
-        window.showToast = (msg, type = 'info') => {
-            const root = document.getElementById('toast-root');
-            const t = document.createElement('div');
-            t.className = 'toast ' + type;
-            t.textContent = msg;
-            root.appendChild(t);
-            setTimeout(() => t.classList.add('show'), 10);
+
+        // Initialize Crypto (Matches GUI CLI EXACTLY)
+        (function() {
             setTimeout(() => {
-                t.classList.remove('show');
-                setTimeout(() => t.remove(), 400);
-            }, 3000);
-        };
+                if (window.nobleEd25519 && window.nobleHashes) {
+                    const ed = window.nobleEd25519;
+                    const hashes = window.nobleHashes;
+                    ed.utils.sha512Sync = (...m) => hashes.sha512(hashes.utils.concatBytes(...m));
+                    document.getElementById('engine-status').textContent = 'Ed25519 Native+SHA512 Ready';
+                } else {
+                    document.getElementById('engine-status').textContent = 'ERROR: No Crypto Library Found';
+                }
+            }, 500);
+        })();
     </script>
-    
+
+    <!-- MAIN SCRIPT (MODULE) -->
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

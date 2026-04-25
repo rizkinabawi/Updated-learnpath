@@ -12,7 +12,13 @@
  *
  * Reference: https://react-native-async-storage.github.io/async-storage/docs/advanced/db_size/
  */
-const { withGradleProperties } = require("@expo/config-plugins");
+// Resolve from the project's own node_modules so this works both when called
+// by the local expo CLI and by the globally-installed eas-cli (which runs
+// plugins in its own module context and can't see the project's packages via
+// a bare require).
+const { withGradleProperties } = require(
+  require.resolve("@expo/config-plugins", { paths: [__dirname, require("path").join(__dirname, "..")] })
+);
 
 const PROP_KEY = "AsyncStorage_db_size_in_MB";
 const PROP_VALUE = "256";

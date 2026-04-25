@@ -30,6 +30,7 @@ import {
   Clock,
   Eye,
 } from "lucide-react-native";
+import { Feather } from "@expo/vector-icons";
 import * as Sharing from "expo-sharing";
 import {
   getStudyMaterials,
@@ -84,8 +85,22 @@ const makeTypeMeta = (colors: ColorScheme): Record<
   image: { label: "Gambar", color: colors.success, bg: colors.successLight, Icon: FileImage },
 });
 
-function YoutubePlayer({ url, linkBoxStyle, mutedColor }: { url: string; linkBoxStyle: any; mutedColor: string }) {
+import { useOverlay } from "@/contexts/OverlayContext";
+
+function YoutubePlayer({ 
+  url, 
+  title, 
+  linkBoxStyle, 
+  mutedColor 
+}: { 
+  url: string; 
+  title?: string;
+  linkBoxStyle: any; 
+  mutedColor: string 
+}) {
+  const { showVideo } = useOverlay();
   const id = extractYoutubeId(url);
+  
   if (!id)
     return (
       <TouchableOpacity
@@ -102,40 +117,56 @@ function YoutubePlayer({ url, linkBoxStyle, mutedColor }: { url: string; linkBox
 
   const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0&modestbranding=1`;
 
-  if ((Platform.OS as string) === "web") {
-    return (
-      // @ts-ignore
-      <iframe
-        src={embedUrl}
-        width={PLAYER_WIDTH}
-        height={PLAYER_HEIGHT}
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        style={{ borderRadius: 12, display: "block" }}
-      />
-    );
-  }
-  const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;background:#000}.w{position:relative;padding-top:56.25%}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><div class="w"><iframe src="${embedUrl}" allow="autoplay;encrypted-media;picture-in-picture;fullscreen" allowfullscreen></iframe></div></body></html>`;
   return (
-    <WebView
-      source={{ html, baseUrl: "https://www.youtube-nocookie.com" }}
-      style={{ width: PLAYER_WIDTH, height: PLAYER_HEIGHT, borderRadius: 12 }}
-      allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
-      javaScriptEnabled
-      allowsFullscreenVideo
-      setSupportMultipleWindows={false}
-      onShouldStartLoadWithRequest={(req) => {
-        const u = req.url;
-        return !(
-          u.startsWith("intent://") ||
-          u.startsWith("vnd.youtube") ||
-          u.startsWith("youtube://") ||
-          u.startsWith("market://")
-        );
-      }}
-    />
+    <View style={{ width: PLAYER_WIDTH, gap: 10 }}>
+      {Platform.OS === "web" ? (
+        // @ts-ignore
+        <iframe
+          src={embedUrl}
+          width={PLAYER_WIDTH}
+          height={PLAYER_HEIGHT}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{ borderRadius: 12, display: "block" }}
+        />
+      ) : (
+        <WebView
+          source={{ 
+            html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;background:#000}.w{position:relative;padding-top:56.25%}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><div class="w"><iframe src="${embedUrl}" allow="autoplay;encrypted-media;picture-in-picture;fullscreen" allowfullscreen></iframe></div></body></html>`, 
+            baseUrl: "https://www.youtube-nocookie.com" 
+          }}
+          style={{ width: PLAYER_WIDTH, height: PLAYER_HEIGHT, borderRadius: 12 }}
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          javaScriptEnabled
+          allowsFullscreenVideo
+          scrollEnabled={false}
+          onShouldStartLoadWithRequest={(req) => {
+            const u = req.url;
+            return !(
+              u.startsWith("intent://") ||
+              u.startsWith("vnd.youtube") ||
+              u.startsWith("youtube://") ||
+              u.startsWith("market://")
+            );
+          }}
+        />
+      )}
+      
+      <TouchableOpacity 
+        style={[linkBoxStyle, { borderStyle: "dashed", borderWidth: 1 }]}
+        onPress={() => {
+          showVideo(id, title);
+          toast.success("Video melayang! Kamu bisa navigasi ke layar lain.");
+        }}
+      >
+        <Feather name="external-link" size={16} color="#FF0000" />
+        <Text style={{ flex: 1, fontWeight: "700", color: "#FF0000" }}>
+          Aktifkan Video Melayang (PIP)
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -325,7 +356,12 @@ export default function MaterialFullView() {
 
         {current.type === "youtube" && (
           <View style={{ alignItems: "center" }}>
-            <YoutubePlayer url={current.videoUrl || current.content} linkBoxStyle={styles.linkBox} mutedColor={colors.textMuted} />
+            <YoutubePlayer 
+              url={current.videoUrl || current.content} 
+              title={current.title}
+              linkBoxStyle={styles.linkBox} 
+              mutedColor={colors.textMuted} 
+            />
           </View>
         )}
 

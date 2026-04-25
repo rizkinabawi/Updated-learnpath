@@ -21,7 +21,7 @@ import * as Haptics from "expo-haptics";
 // initial source — on release builds the native AVPlayer (iOS) / MediaPlayer
 // (Android) constructor throws immediately, causing an open-time crash that
 // is invisible in JS. We lazy-create the player on first use instead.
-import { useAudioPlayer } from "expo-audio";
+import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import {
   getFlashcards,
   saveProgress,
@@ -156,20 +156,12 @@ export default function FlashcardScreen() {
 
   const card = cards[currentIndex];
 
-  // ── Lazy audio player (BUG FIX) ──────────────────────────────────────────
-  // Do NOT call useAudioPlayer() with an undefined/null source at component
-  // mount time. On release builds the native AVPlayer (iOS) / MediaPlayer
-  // (Android) is constructed immediately and will throw NullPointerException /
-  // EXCBadAccess before any JS runs — manifesting as a silent open-time crash
-  // that only affects Anki-imported collections (they are the ones that set
-  // card.audio / card.audios). We use a ref to hold the player instance and
-  // create it lazily the very first time the user taps a play button.
-  //
-  // The hook must still be called unconditionally (Rules of Hooks), but we
-  // pass a stable placeholder URI that the native side will silently fail to
-  // resolve — far safer than undefined/null on the native constructor path.
-  const _audioPlayer = useAudioPlayer({ uri: "" });
-  const _audioPlayerReady = useRef(false);
+  // ── Imperative audio player (BUG FIX) ───────────────────────────────────
+  // We completely removed useAudioPlayer() hook. On release builds, initializing
+  // the hook with no source or a bad source can cause native side-effects
+  // that lead to silent crashes. Instead, we manually manage a single
+  // player instance via a ref and lazy-create it only when play is requested.
+  const audioPlayerRef = useRef<AudioPlayer | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -428,22 +420,36 @@ export default function FlashcardScreen() {
   // Uses the hook-created player but only activates it on first call to avoid
   // the native constructor crash described above.
   const playAudioUri = useCallback((uri?: string | null) => {
+    if (!uri) return;
     const resolved = resolveAssetUri(uri);
-    if (!resolved || typeof resolved !== "string") return;
+    if (!resolved) return;
+
     try {
-      // Mark player as active so we know the native side has been woken up.
-      // On the very first call the player was constructed with uri="" which is
-      // harmless; now we replace the source with the real URI.
-      _audioPlayerReady.current = true;
-      try { (_audioPlayer as any).replace?.({ uri: resolved }); } catch {}
-      try { _audioPlayer.seekTo(0); } catch {}
-      try { _audioPlayer.play(); } catch {}
-    } catch {
-      // Per-audio errors must never propagate to the React tree.
+      if (!audioPlayerRef.current) {
+        audioPlayerRef.current = createAudioPlayer(resolved);
+      } else {
+        audioPlayerRef.current.replace(resolved);
+      }
+      audioPlayerRef.current.play();
+    } catch (e) {
+      console.warn("[flashcard] audio play failed", e);
     }
-  }, [_audioPlayer]);
+  }, []);
 
   const playPrimaryAudio = useCallback(() => playAudioUri(card?.audio), [card?.audio, playAudioUri]);
+
+  // Cleanup player on unmount
+  useEffect(() => {
+    return () => {
+      if (audioPlayerRef.current) {
+        try {
+          audioPlayerRef.current.pause();
+          audioPlayerRef.current.terminate();
+        } catch {}
+        audioPlayerRef.current = null;
+      }
+    };
+  }, []);
 
   // Collect every image / audio for the current card, deduplicated and
   // separated by side. The legacy single-value fields (`image`, `audio`) are

@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearningPath — Activation Key Manager</title>
+  <meta name="description" content="GUI offline untuk generate dan verifikasi activation key LearningPath app. 100% client-side, zero server." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:         #0c0e14;
+      --bg2:        #111520;
+      --surface:    #161b28;
+      --surface2:   #1e2436;
+      --border:     #252d42;
+      --border2:    #2e3858;
+      --primary:    #4f6ef7;
+      --primary-g:  #7c53f5;
+      --success:    #22c55e;
+      --danger:     #ef4444;
+      --warn:       #f59e0b;
+      --text:       #f0f4ff;
+      --text2:      #8892b0;
+      --text3:      #4a5577;
+      --mono:       'JetBrains Mono', monospace;
+      --sans:       'Inter', sans-serif;
+      --radius:     16px;
+      --radius-sm:  10px;
+    }
+    html { font-family: var(--sans); background: var(--bg); color: var(--text); scroll-behavior: smooth; }
+    body { min-height: 100vh; }
+
+    /* ── Scrollbar ─────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ── Layout ────────────────────────────────────────────────── */
+    .app {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────── */
+    .header {
+      text-align: center;
+      padding: 40px 0 32px;
+    }
+    .header-logo {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-g));
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(79,110,247,.35);
+    }
+    .header h1 { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+    .header h1 span { background: linear-gradient(90deg, var(--primary), var(--primary-g)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { color: var(--text2); font-size: 14px; margin-top: 8px; line-height: 1.6; }
+    .header-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 11px; font-weight: 600; color: var(--text2);
+    }
+    .badge.green { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.25); color: var(--success); }
+
+    /* ── Tabs ──────────────────────────────────────────────────── */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 5px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 8px;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--text2); font-family: var(--sans);
+      font-size: 13px; font-weight: 600;
+      border-radius: 11px; transition: all .2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-g));
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(79,110,247,.3);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: fadeUp .25s ease; }
+    @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ── Card ──────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 700; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-sub { font-size: 12px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
+
+    /* ── Form ──────────────────────────────────────────────────── */
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: var(--text2); margin-bottom: 6px; letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+    .field input, .field select, .field textarea {
+      width: 100%; background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px; color: var(--text);
+      font-family: var(--sans); font-size: 14px;
+      transition: border .15s;
+      outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79,110,247,.15);
+    }
+    .field textarea { min-height: 100px; resize: vertical; }
+    .field select { appearance: none; cursor: pointer; }
+    .field-hint { font-size: 11px; color: var(--text3); margin-top: 5px; line-height: 1.5; }
+    .field-mono input, .field-mono textarea {
+      font-family: var(--mono); font-size: 12px; letter-spacing: .3px;
+    }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+
+    /* ── Buttons ───────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 20px; border-radius: var(--radius-sm);
+      font-family: var(--sans); font-size: 14px; font-weight: 700;
+      cursor: pointer; border: none; transition: all .15s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-g));
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(79,110,247,.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(79,110,247,.4); }
+    .btn-primary:active { transform: none; }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border2);
+      color: var(--text2);
+    }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-success { background: rgba(34,197,94,.15); border: 1.5px solid rgba(34,197,94,.3); color: var(--success); }
+    .btn-danger  { background: rgba(239,68,68,.12); border: 1.5px solid rgba(239,68,68,.25); color: var(--danger); }
+    .btn-sm { padding: 7px 14px; font-size: 12px; }
+    .btn-block { width: 100%; justify-content: center; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* ── Output box ────────────────────────────────────────────── */
+    .output-box {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 12px; line-height: 1.7;
+      color: #9fb1d4;
+      word-break: break-all;
+      position: relative;
+      margin-top: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .output-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--text3); text-transform: uppercase;
+      letter-spacing: .5px; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    /* ── Key pair display ──────────────────────────────────────── */
+    .keypair-grid { display: grid; gap: 12px; margin-top: 16px; }
+    .key-block {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+    .key-block .kl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+    .key-block.private .kl { color: var(--danger); }
+    .key-block.public  .kl { color: var(--success); }
+    .key-val {
+      font-family: var(--mono); font-size: 12px;
+      color: var(--text); word-break: break-all;
+      line-height: 1.6;
+    }
+    .key-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* ── Result banner ─────────────────────────────────────────── */
+    .result-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .result-banner.ok   { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); color: var(--success); }
+    .result-banner.err  { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); color: var(--danger); }
+    .result-banner.warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25); color: var(--warn); }
+
+    /* ── Divider ───────────────────────────────────────────────── */
+    .divider { border:none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    /* ── Section title ─────────────────────────────────────────── */
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text3);
+      margin-bottom: 12px;
+    }
+
+    /* ── Token history ─────────────────────────────────────────── */
+    .token-history { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .token-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+    .token-item-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .token-meta { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
+    .meta-chip {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text2); font-weight: 600;
+    }
+    .meta-chip span { color: var(--text); font-weight: 700; }
+    .validity-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .vpill {
+      padding: 6px 14px; border-radius: 20px;
+      border: 1.5px solid var(--border2);
+      background: transparent; color: var(--text2);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: var(--sans); transition: all .15s;
+    }
+    .vpill.active {
+      background: rgba(79,110,247,.15);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* ── Toast ─────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 30px; padding: 10px 20px;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+      z-index: 9999; white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Spinner ───────────────────────────────────────────────── */
+    .spin { display:inline-block; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Info callout ──────────────────────────────────────────── */
+    .callout {
+      background: rgba(79,110,247,.07);
+      border: 1px solid rgba(79,110,247,.2);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 12px; line-height: 1.75;
+      color: var(--text2);
+    }
+    .callout strong { color: var(--text); }
+    .callout ol, .callout ul { padding-left: 18px; margin-top: 6px; }
+    .callout li { margin-bottom: 4px; }
+
+    /* ── Footer ────────────────────────────────────────────────── */
+    footer {
+      text-align: center; color: var(--text3);
+      font-size: 11px; margin-top: 40px; line-height: 1.8;
+    }
+    footer a { color: var(--text2); text-decoration: none; }
+    footer a:hover { color: var(--primary); }
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">🔐</div>
+    <h1>LearningPath <span>Key Manager</span></h1>
+    <p>Tool offline untuk generate & verifikasi activation key dan buyer token.<br/>Semua kriptografi berjalan 100% di browser — tidak ada data yang dikirim ke server.</p>
+    <div class="header-badges">
+      <span class="badge green">✓ 100% Offline</span>
+      <span class="badge">🔑 Ed25519</span>
+      <span class="badge">🔒 AES-256-GCM</span>
+      <span class="badge">⚡ @noble/ed25519 v3</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('keypair')">🗝️ Keypair</button>
+    <button class="tab-btn" onclick="switchTab('sign')">✍️ Sign Aktivasi</button>
+    <button class="tab-btn" onclick="switchTab('buyer')">🎟️ Token Pembeli</button>
+    <button class="tab-btn" onclick="switchTab('verify')">✅ Verifikasi</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- TAB 1: Keypair Generator -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div id="tab-keypair" class="tab-panel active">
+
+    <div class="card">
+      <div class="card-title">🗝️ Generate App Master Keypair</div>
+      <p class="card-sub">
+        Buat pasangan kunci Ed25519 baru. Private key digunakan untuk menandatangani
+        activation key. Public key harus ditanam ke dalam build app di
+        <code>utils/security/master-public-key.ts</code>.
+        <br/><strong style="color:var(--danger)">⚠️ Private key tidak pernah meninggalkan browser ini.</strong>
+      </p>
+
+      <button class="btn btn-primary btn-block" id="btn-keygen" onclick="doKeygen()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        Generate Keypair Baru
+      </button>
+
+      <div id="keypair-result" style="display:none">
+        <hr class="divider" />
+        <div class="keypair-grid">
+          <div class="key-block private">
+            <div class="kl">🔴 Private Key (RAHASIA — simpan offline)</div>
+            <div class="key-val" id="sk-val">—</div>
+            <div class="key-actions">
+              <button class="btn btn-sm btn-danger" onclick="copyText('sk-val','Private key disalin!')">📋 Salin</button>
+              <button class="btn btn-sm btn-outline" onclick="downloadKey('sk-val','app-master-private.hex')">⬇️ Download .hex</button>
+            </div>
+          </div>
+          <div class="key-block public">
+            <div class="kl">🟢 Public Key (embed ke app build)</div>
+            <div class="key-val" id="pk-val">—</div>
+            <div class="key-actions">
+              <button class="btn btn-sm btn-success" onclick="copyText('pk-val','Public key disalin!')">📋 Salin</button>
+              <button class="btn btn-sm btn-outline" onclick="downloadKey('pk-val','app-master-public.hex')">⬇️ Download .hex</button>
+            </div>
+            <div class="field-hint" style="margin-top:10px">
+              Paste nilai ini ke <code>APP_MASTER_PUBLIC_KEY_HEX</code> di <code>utils/security/master-public-key.ts</code> lalu rebuild app.
+            </div>
+          </div>
+        </div>
+
+        <div class="callout" style="margin-top:16px">
+          <strong>Langkah berikutnya:</strong>
+          <ol>
+            <li>Simpan private key di tempat aman (offline, terenkripsi).</li>
+            <li>Update <code>master-public-key.ts</code> dengan public key di atas.</li>
+            <li>Rebuild dan redistribute app.</li>
+            <li>Gunakan tab <strong>Sign Aktivasi</strong> untuk issue key ke pengguna.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📂 Load Keypair dari File</div>
+      <p class="card-sub">Jika sudah punya file <code>.hex</code>, load di sini untuk mengisi private key di tab Sign.</p>
+      <div class="row2">
+        <div class="field field-mono">
+          <label>Private Key (.hex atau paste)</label>
+          <textarea id="import-sk" placeholder="64 karakter hex (32 bytes Ed25519 secret key)…" rows="3"></textarea>
+        </div>
+        <div class="field field-mono">
+          <label>Atau upload file .hex</label>
+          <input type="file" id="import-file" accept=".hex,.txt" onchange="loadHexFile(this)" style="padding:8px" />
+          <div class="field-hint">Pilih app-master-private.hex</div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="loadImportedKey()">
+          ✓ Gunakan Private Key Ini
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /tab-keypair -->
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- TAB 2: Sign App Activation -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div id="tab-sign" class="tab-panel">
+
+    <div class="card">
+      <div class="card-title">✍️ Buat Activation Key</div>
+      <p class="card-sub">Tandatangani activation key dengan App Master private key. Output JSON diberikan ke pengguna untuk di-paste ke layar aktivasi app.</p>
+
+      <div class="field field-mono">
+        <label>App Master Private Key (hex, 64 char) *</label>
+        <input type="text" id="sign-sk" placeholder="e.g. a4f3...c8d1" maxlength="70" autocomplete="off" />
+        <div class="field-hint">Digenerate dari tab Keypair. Tidak tersimpan — hanya ada di memori sesi ini.</div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>App ID</label>
+          <input type="text" id="sign-appid" value="learningpath" />
+        </div>
+        <div class="field">
+          <label>Masa Berlaku</label>
+          <select id="sign-days">
+            <option value="30">30 hari</option>
+            <option value="90">90 hari</option>
+            <option value="180">180 hari</option>
+            <option value="365" selected>1 tahun</option>
+            <option value="730">2 tahun</option>
+            <option value="36500">Selamanya (100 thn)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Device ID (opsional — kosongkan untuk unbound)</label>
+        <input type="text" id="sign-device" placeholder="Contoh: abc123-device-id (biarkan kosong = multi-device)" />
+        <div class="field-hint">Jika diisi, key hanya bisa diaktivasi di device dengan ID tersebut.</div>
+      </div>
+
+      <div id="sign-batch-section">
+        <div class="field">
+          <label>Jumlah Key (batch)</label>
+          <select id="sign-count">
+            <option value="1" selected>1 key</option>
+            <option value="3">3 key</option>
+            <option value="5">5 key</option>
+            <option value="10">10 key</option>
+            <option value="20">20 key</option>
+            <option value="50">50 key</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-sign" onclick="doSign()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138 3.42 3.42 0 0 0 .806 1.946 3.42 3.42 0 0 1 0 4.438 3.42 3.42 0 0 0-.806 1.946 3.42 3.42 0 0 1-3.138 3.138 3.42 3.42 0 0 0-1.946.806 3.42 3.42 0 0 1-4.438 0 3.42 3.42 0 0 0-1.946-.806 3.42 3.42 0 0 1-3.138-3.138 3.42 3.42 0 0 0-.806-1.946 3.42 3.42 0 0 1 0-4.438 3.42 3.42 0 0 0 .806-1.946 3.42 3.42 0 0 1 3.138-3.138z"/></svg>
+        Sign & Buat Activation Key
+      </button>
+
+      <div id="sign-result" style="display:none; margin-top:20px">
+        <hr class="divider" />
+        <p class="section-title">Activation Key(s) — berikan ke pengguna</p>
+        <div id="sign-keys-list"></div>
+        <div class="btn-group">
+          <button class="btn btn-success" onclick="downloadAllKeys()">⬇️ Download Semua (.json)</button>
+          <button class="btn btn-outline" onclick="copyAllKeys()">📋 Salin Semua</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-sign -->
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- TAB 3: Buyer Token Generator -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div id="tab-buyer" class="tab-panel">
+
+    <div class="card">
+      <div class="card-title">🎟️ Generate Token Pembeli</div>
+      <p class="card-sub">
+        Setiap token unik (Ed25519 + nonce random), ditandatangani oleh creator key,
+        dapat diverifikasi pembeli secara offline. Identitas pembeli tertanam — mencegah
+        distribusi ilegal yang mudah dilacak.
+      </p>
+
+      <div class="field field-mono">
+        <label>Creator Private Key (hex, 64 char) *</label>
+        <input type="text" id="buyer-sk" placeholder="Creator private key — dari layar Creator di app" autocomplete="off" />
+        <div class="field-hint">Ini adalah creator key (berbeda dari App Master Key). Generate via menu Creator di mobile app → Salin private key.</div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Bundle ID *</label>
+          <input type="text" id="buyer-bundle" placeholder="contoh: kursus-fisika-vol1" autocomplete="off" />
+          <div class="field-hint">Harus sama persis dengan bundleId saat membuat bundle.</div>
+        </div>
+        <div class="field">
+          <label>Identitas Pembeli *</label>
+          <input type="text" id="buyer-id" placeholder="Nama, email, atau nomor HP" autocomplete="off" />
+          <div class="field-hint">Tertanam di token, tidak bisa diubah pasca-penerbitan.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Masa Berlaku</label>
+        <div class="validity-pills" id="validity-pills">
+          <button class="vpill" onclick="setValidity(7)">7 hari</button>
+          <button class="vpill" onclick="setValidity(30)">30 hari</button>
+          <button class="vpill" onclick="setValidity(90)">90 hari</button>
+          <button class="vpill active" onclick="setValidity(365)">1 tahun</button>
+          <button class="vpill" onclick="setValidity(36500)">Selamanya</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-buyer" onclick="doBuyerToken()">
+        🎟️ Generate Token Unik
+      </button>
+
+      <!-- Token history (in-session) -->
+      <div id="buyer-history" class="token-history"></div>
+    </div>
+
+    <div class="callout">
+      <strong>Cara kerja sistem token pembeli:</strong>
+      <ol>
+        <li>Creator membuat bundle dengan password tertentu di app mobile.</li>
+        <li>Creator generate token unik per pembeli di sini (tool ini).</li>
+        <li>Pembeli menerima: <strong>bundle JSON</strong> + <strong>token JSON</strong> + <strong>password</strong>.</li>
+        <li>App pembeli verifikasi token (offline) → decrypt bundle → belajar.</li>
+        <li>Token tidak bisa dipalsukan tanpa private key creator.</li>
+        <li>Identitas pembeli di token memudahkan pelacakan bocor.</li>
+      </ol>
+    </div>
+  </div><!-- /tab-buyer -->
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- TAB 4: Verify -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div id="tab-verify" class="tab-panel">
+
+    <div class="card">
+      <div class="card-title">✅ Verifikasi Activation Key</div>
+      <p class="card-sub">Verifikasi activation key app menggunakan App Master Public Key. Tanpa private key.</p>
+
+      <div class="field field-mono">
+        <label>App Master Public Key (hex, 64 char)</label>
+        <input type="text" id="verify-pk" value="cb1188467c03070da7da70edab724a59b77a5728183b2132a9bc4d31e4b1965e" placeholder="Public key hex dari master-public-key.ts …" />
+      </div>
+      <div class="field field-mono">
+        <label>Activation Key JSON</label>
+        <textarea id="verify-json" placeholder='{"appId":"learningpath","issuedAt":…,"expiry":…,"signature":"…"}' rows="5"></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="doVerify()">🔍 Verifikasi</button>
+      <div id="verify-result" style="margin-top:16px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎟️ Verifikasi Token Pembeli</div>
+      <p class="card-sub">Verifikasi buyer token menggunakan creator public key (ada di bundle JSON).</p>
+      <div class="row2">
+        <div class="field field-mono">
+          <label>Creator Public Key (base64, dari bundle)</label>
+          <input type="text" id="vt-cpk" placeholder="creatorPublicKey dari bundle JSON …" />
+        </div>
+        <div class="field">
+          <label>Bundle ID</label>
+          <input type="text" id="vt-bid" placeholder="bundleId untuk verifikasi" />
+        </div>
+      </div>
+      <div class="field field-mono">
+        <label>Buyer Token JSON</label>
+        <textarea id="vt-json" placeholder='{"v":1,"bundleId":"…","buyerId":"…","nonce":"…",…}' rows="5"></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="doVerifyToken()">🔍 Verifikasi Token</button>
+      <div id="vt-result" style="margin-top:16px"></div>
+    </div>
+
+  </div><!-- /tab-verify -->
+
+  <footer>
+    LearningPath Activation Key Manager · Semua operasi berjalan di browser · Tidak ada data dikirim ke server<br/>
+    Powered by <a href="https://github.com/paulmillr/noble-ed25519" target="_blank">@noble/ed25519</a> +
+    <a href="https://github.com/paulmillr/noble-hashes" target="_blank">@noble/hashes</a> +
+    <a href="https://github.com/paulmillr/noble-ciphers" target="_blank">@noble/ciphers</a>
+  </footer>
+
+</div><!-- /app -->
+
+<!-- ── Crypto Libraries (CDN, pure ESM) ── -->
+<script type="module">
+// ── Imports dari CDN ─────────────────────────────────────────────────────────
+import * as ed from "https://esm.sh/@noble/ed25519@2.2.3";
+import { sha256, sha512 } from "https://esm.sh/@noble/hashes@1.7.2/sha2.js";
+import { randomBytes as nobleRandom } from "https://esm.sh/@noble/hashes@1.7.2/utils.js";
+
+// Wire SHA-512 into ed25519
+ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
+ed.etc.sha512Async = async (...m) => sha512(ed.etc.concatBytes(...m));
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const toHex  = b => Array.from(b).map(x => x.toString(16).padStart(2,'0')).join('');
+const fromHex = h => {
+  const c = h.replace(/[^0-9a-fA-F]/g,'');
+  if(c.length%2) throw new Error("hex length odd");
+  const o = new Uint8Array(c.length/2);
+  for(let i=0;i<o.length;i++) o[i]=parseInt(c.substr(i*2,2),16);
+  return o;
+};
+
+const B64A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const toBase64 = bytes => {
+  let o='';
+  for(let i=0;i<bytes.length;i+=3){
+    const a=bytes[i],b=i+1<bytes.length?bytes[i+1]:0,c=i+2<bytes.length?bytes[i+2]:0;
+    o+=B64A[a>>2]; o+=B64A[((a&3)<<4)|(b>>4)];
+    o+=i+1<bytes.length?B64A[((b&15)<<2)|(c>>6)]:'=';
+    o+=i+2<bytes.length?B64A[c&63]:'=';
+  }
+  return o;
+};
+const fromBase64 = b64 => {
+  const cl=b64.replace(/[^A-Za-z0-9+/=]/g,'').replace(/=+$/,'');
+  const o=new Uint8Array(Math.floor(cl.length*3/4));
+  let idx=0,buf=0,bits=0;
+  for(let i=0;i<cl.length;i++){
+    const v=B64A.indexOf(cl[i]);
+    if(v<0) throw new Error("invalid base64");
+    buf=(buf<<6)|v; bits+=6;
+    if(bits>=8){bits-=8;o[idx++]=(buf>>bits)&0xff;}
+  }
+  return o.slice(0,idx);
+};
+const utf8    = s => new TextEncoder().encode(s);
+const sha256h = s => sha256(utf8(s)); // returns Uint8Array
+const sha256hex = s => toHex(sha256h(s));
+const randomBytes = n => nobleRandom(n);
+
+// ── Ed25519 ───────────────────────────────────────────────────────────────────
+async function genKeypair() {
+  const sk = ed.utils.randomPrivateKey();
+  const pk = await ed.getPublicKeyAsync(sk);
+  return { sk, pk };
+}
+async function signMsg(sk, msg) { return ed.signAsync(msg, sk); }
+async function verifyMsg(pk, msg, sig) {
+  if(pk.length!==32||sig.length!==64) return false;
+  try{ return await ed.verifyAsync(sig, msg, pk); }catch{ return false; }
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentValidity = 365;
+let generatedKeys = [];
+let buyerHistory  = [];
+let sessionSk     = null; // loaded private key for sign tab
+
+// ── UI Helpers ────────────────────────────────────────────────────────────────
+window.toast = function(msg, dur=2400){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+};
+window.switchTab = function(name){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const idx=['keypair','sign','buyer','verify'].indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+};
+window.copyText = function(elId, msg){
+  const el=document.getElementById(elId);
+  const text=el.value||el.textContent;
+  navigator.clipboard.writeText(text.trim()).then(()=>toast(msg||'Tersalin!'));
+};
+window.downloadKey = function(elId, filename){
+  const el=document.getElementById(elId);
+  const text=(el.value||el.textContent).trim()+'\n';
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
+  a.download=filename; a.click();
+};
+window.loadHexFile = function(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{document.getElementById('import-sk').value=e.target.result.trim();};
+  r.readAsText(f);
+};
+window.loadImportedKey = function(){
+  const hex=document.getElementById('import-sk').value.trim();
+  if(!hex){toast('Masukkan private key terlebih dahulu.');return;}
+  try{
+    const sk=fromHex(hex);
+    if(sk.length!==32){toast('❌ Private key harus 32 bytes (64 hex chars)');return;}
+    sessionSk=sk;
+    document.getElementById('sign-sk').value=hex;
+    switchTab('sign');
+    toast('✓ Private key telah diload ke tab Sign!',3000);
+  }catch(e){toast('❌ Format hex tidak valid: '+e.message);}
+};
+window.setValidity = function(days){
+  currentValidity=days;
+  document.querySelectorAll('.vpill').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+};
+
+// ── TAB 1: Keypair ────────────────────────────────────────────────────────────
+window.doKeygen = async function(){
+  const btn=document.getElementById('btn-keygen');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin">⚙</span> Generating…';
+  try{
+    const {sk,pk}=await genKeypair();
+    document.getElementById('sk-val').textContent=toHex(sk);
+    document.getElementById('pk-val').textContent=toHex(pk);
+    document.getElementById('keypair-result').style.display='block';
+    toast('✓ Keypair berhasil digenerate!',3000);
+  }catch(e){toast('❌ '+e.message);}
+  finally{
+    btn.disabled=false;
+    btn.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> Generate Keypair Baru';
+  }
+};
+
+// ── TAB 2: Sign ───────────────────────────────────────────────────────────────
+window.doSign = async function(){
+  const skHex =document.getElementById('sign-sk').value.trim();
+  const appId =document.getElementById('sign-appid').value.trim()||'learningpath';
+  const days  =parseInt(document.getElementById('sign-days').value);
+  const device=document.getElementById('sign-device').value.trim();
+  const count =parseInt(document.getElementById('sign-count').value)||1;
+
+  if(!skHex){toast('❌ Private key wajib diisi!');return;}
+  let sk;
+  try{
+    sk=fromHex(skHex);
+    if(sk.length!==32){toast('❌ Private key harus 32 bytes (64 hex chars)');return;}
+  }catch{toast('❌ Format private key tidak valid (bukan hex)');return;}
+
+  const btn=document.getElementById('btn-sign');
+  btn.disabled=true; btn.textContent='Signing…';
+
+  try{
+    generatedKeys=[];
+    const issuedAt=Date.now();
+    const expiry=issuedAt+days*86400000;
+
+    for(let i=0;i<count;i++){
+      // Give each batch key a unique issuedAt offset to ensure uniqueness
+      const ia = issuedAt + i;
+      const ex = expiry + i;
+      const msg=utf8(`${appId}|${ia}|${ex}|${device}`);
+      const sig=await signMsg(sk,msg);
+      const license={appId,issuedAt:ia,expiry:ex};
+      if(device) license.deviceId=device;
+      license.signature=toBase64(sig);
+      generatedKeys.push(license);
+    }
+
+    renderSignResult();
+    toast(`✓ ${count} activation key berhasil dibuat!`,3000);
+  }catch(e){toast('❌ Sign gagal: '+e.message);}
+  finally{ btn.disabled=false; btn.textContent='Sign & Buat Activation Key'; }
+};
+
+function renderSignResult(){
+  const list=document.getElementById('sign-keys-list');
+  list.innerHTML='';
+  generatedKeys.forEach((k,i)=>{
+    const json=JSON.stringify(k,null,2);
+    const div=document.createElement('div');
+    div.style='margin-bottom:12px';
+    div.innerHTML=`
+      <div class="output-label">
+        Key #${i+1} — berlaku sampai ${new Date(k.expiry).toLocaleDateString('id-ID',{year:'numeric',month:'long',day:'numeric'})}
+        <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(${JSON.stringify(json)}).then(()=>toast('Key #${i+1} disalin!'))">📋 Salin</button>
+      </div>
+      <div class="output-box" style="max-height:160px">${escHtml(json)}</div>`;
+    list.appendChild(div);
+  });
+  document.getElementById('sign-result').style.display='block';
+}
+
+window.downloadAllKeys = function(){
+  if(!generatedKeys.length) return;
+  const content=generatedKeys.map((k,i)=>
+    `// Key #${i+1} — berlaku s.d. ${new Date(k.expiry).toISOString()}\n${JSON.stringify(k,null,2)}`
+  ).join('\n\n');
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(content);
+  a.download='activation-keys-'+Date.now()+'.json';
+  a.click();
+};
+window.copyAllKeys = function(){
+  const text=generatedKeys.map(k=>JSON.stringify(k)).join('\n\n');
+  navigator.clipboard.writeText(text).then(()=>toast('Semua key disalin!'));
+};
+
+// ── TAB 3: Buyer Token ────────────────────────────────────────────────────────
+window.doBuyerToken = async function(){
+  const skHex   =document.getElementById('buyer-sk').value.trim();
+  const bundleId=document.getElementById('buyer-bundle').value.trim();
+  const buyerId =document.getElementById('buyer-id').value.trim();
+
+  if(!skHex) {toast('❌ Creator private key wajib diisi!');return;}
+  if(!bundleId){toast('❌ Bundle ID wajib diisi!');return;}
+  if(!buyerId) {toast('❌ Identitas pembeli wajib diisi!');return;}
+
+  let sk;
+  try{
+    sk=fromHex(skHex);
+    if(sk.length!==32){toast('❌ Private key harus 32 bytes');return;}
+  }catch{toast('❌ Format private key tidak valid');return;}
+
+  // Derive creator public key and ID
+  const pk=await ed.getPublicKeyAsync(sk);
+  const pkHex=toHex(pk);
+  const creatorId=sha256hex(`creator:${pkHex}`).slice(0,32);
+
+  const btn=document.getElementById('btn-buyer');
+  btn.disabled=true; btn.textContent='Generating…';
+
+  try{
+    const now=Date.now();
+    const expiry=now+currentValidity*86400000;
+    const nonce=toHex(randomBytes(12));
+    const partial={v:1,bundleId,buyerId,nonce,issuedAt:now,expiry,creatorId};
+    const msgStr=`bl1|${bundleId}|${buyerId}|${nonce}|${now}|${expiry}|${creatorId}`;
+    const sig=await signMsg(sk,utf8(msgStr));
+    const token={...partial,signature:toBase64(sig)};
+    const tokenJson=JSON.stringify(token);
+
+    const rec={
+      id:buyerHistory.length+1,
+      bundleId,buyerId,
+      days:currentValidity,
+      expiry:new Date(expiry).toLocaleDateString('id-ID',{year:'numeric',month:'long',day:'numeric'}),
+      tokenJson,
+      time:new Date().toLocaleTimeString('id-ID'),
+    };
+    buyerHistory.unshift(rec);
+    renderBuyerHistory();
+    toast('✓ Token unik berhasil digenerate!',3000);
+  }catch(e){toast('❌ Gagal: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='🎟️ Generate Token Unik';}
+};
+
+function renderBuyerHistory(){
+  const hist=document.getElementById('buyer-history');
+  hist.innerHTML='<p class="section-title" style="margin-top:20px;margin-bottom:12px">Token Diterbitkan ('+buyerHistory.length+')</p>';
+  buyerHistory.forEach(r=>{
+    const div=document.createElement('div');
+    div.className='token-item';
+    div.innerHTML=`
+      <div class="token-item-row">
+        <span style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#22c55e;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">✓ Signed</span>
+        <span style="color:var(--text3);font-size:11px">${r.time}</span>
+      </div>
+      <div class="token-meta">
+        <span class="meta-chip">📦 Bundle: <span>${escHtml(r.bundleId)}</span></span>
+        <span class="meta-chip">👤 Pembeli: <span>${escHtml(r.buyerId)}</span></span>
+        <span class="meta-chip">📅 s.d.: <span>${r.expiry}</span></span>
+      </div>
+      <div class="output-box" style="max-height:56px;font-size:10px">${escHtml(r.tokenJson)}</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-sm btn-outline" style="flex:1" onclick="navigator.clipboard.writeText(${JSON.stringify(r.tokenJson)}).then(()=>toast('Token #${r.id} disalin!'))">📋 Salin Token</button>
+        <button class="btn btn-sm btn-primary" style="flex:1" onclick="shareToken(${JSON.stringify(r.tokenJson)},${JSON.stringify(r.buyerId)})">↗️ Bagikan</button>
+      </div>`;
+    hist.appendChild(div);
+  });
+}
+
+window.shareToken = function(json, buyer){
+  // Web Share API if available
+  if(navigator.share){
+    navigator.share({title:`Token Akses Bundle untuk ${buyer}`,text:json}).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(json).then(()=>toast('Token disalin (Share API tidak tersedia di browser ini)'));
+  }
+};
+
+// ── TAB 4: Verify ─────────────────────────────────────────────────────────────
+window.doVerify = async function(){
+  const pkHex =document.getElementById('verify-pk').value.trim();
+  const jsonRaw=document.getElementById('verify-json').value.trim();
+  const res   =document.getElementById('verify-result');
+
+  if(!pkHex||!jsonRaw){toast('❌ Semua field wajib diisi!');return;}
+
+  let pk;
+  try{ pk=fromHex(pkHex); if(pk.length!==32) throw new Error('public key bukan 32 bytes'); }
+  catch(e){ res.innerHTML=banner('err',`❌ Public key tidak valid: ${escHtml(e.message)}`); return;}
+
+  let license;
+  try{ license=JSON.parse(jsonRaw); }
+  catch{ res.innerHTML=banner('err','❌ JSON tidak valid'); return;}
+
+  const required=['appId','issuedAt','expiry','signature'];
+  if(required.some(f=>!(f in license))){
+    res.innerHTML=banner('err','❌ Field tidak lengkap: '+required.filter(f=>!(f in license)).join(', '))+infoTable(license);
+    return;
+  }
+
+  let sig;
+  try{ sig=fromBase64(license.signature); }
+  catch{ res.innerHTML=banner('err','❌ Signature bukan base64 valid'); return;}
+  if(sig.length!==64){ res.innerHTML=banner('err','❌ Signature harus 64 bytes'); return;}
+
+  const msg=utf8(`${license.appId}|${license.issuedAt}|${license.expiry}|${license.deviceId??''}`);
+  const ok=await verifyMsg(pk,msg,sig);
+
+  if(!ok){ res.innerHTML=banner('err','❌ Signature TIDAK VALID — key dipalsukan atau public key salah')+infoTable(license); return;}
+
+  const now=Date.now();
+  if(now>license.expiry){
+    res.innerHTML=banner('warn','⚠️ Signature VALID tetapi key sudah KEDALUWARSA sejak '+new Date(license.expiry).toLocaleString('id-ID'))+infoTable(license);
+    return;
+  }
+  res.innerHTML=banner('ok','✅ Signature VALID — Activation key sah')+infoTable(license);
+};
+
+window.doVerifyToken = async function(){
+  const cpkB64 =document.getElementById('vt-cpk').value.trim();
+  const bundleId=document.getElementById('vt-bid').value.trim();
+  const jsonRaw =document.getElementById('vt-json').value.trim();
+  const res    =document.getElementById('vt-result');
+
+  if(!cpkB64||!bundleId||!jsonRaw){toast('❌ Semua field wajib diisi!');return;}
+
+  let cpk;
+  try{ cpk=fromBase64(cpkB64); if(cpk.length!==32) throw new Error('bukan 32 bytes'); }
+  catch(e){ res.innerHTML=banner('err',`❌ Creator public key tidak valid: ${escHtml(e.message)}`); return;}
+
+  let token;
+  try{ token=JSON.parse(jsonRaw); }
+  catch{ res.innerHTML=banner('err','❌ JSON token tidak valid'); return;}
+
+  if(token.v!==1||!token.bundleId||!token.buyerId||!token.nonce||!token.issuedAt||!token.expiry||!token.signature){
+    res.innerHTML=banner('err','❌ Format token tidak valid atau field hilang'); return;
+  }
+
+  if(token.bundleId!==bundleId){
+    res.innerHTML=banner('err',`❌ WRONG_BUNDLE — Token untuk "${escHtml(token.bundleId)}" bukan "${escHtml(bundleId)}"`); return;
+  }
+
+  let sig;
+  try{ sig=fromBase64(token.signature); }
+  catch{ res.innerHTML=banner('err','❌ Signature tidak valid'); return;}
+  if(sig.length!==64){ res.innerHTML=banner('err','❌ Signature harus 64 bytes'); return;}
+
+  const {signature:_,...partial}=token;
+  const msgStr=`bl1|${partial.bundleId}|${partial.buyerId}|${partial.nonce}|${partial.issuedAt}|${partial.expiry}|${partial.creatorId}`;
+  const ok=await verifyMsg(cpk,utf8(msgStr),sig);
+
+  if(!ok){ res.innerHTML=banner('err','❌ Signature token TIDAK VALID — token dipalsukan atau public key salah')+infoTable(token); return;}
+  if(Date.now()>token.expiry){
+    res.innerHTML=banner('warn',`⚠️ Signature VALID tetapi token sudah kedaluwarsa sejak ${new Date(token.expiry).toLocaleString('id-ID')}.`)+infoTable(token); return;
+  }
+  res.innerHTML=banner('ok',`✅ Token VALID<br/>📦 Bundle: ${escHtml(token.bundleId)}<br/>👤 Pembeli: ${escHtml(token.buyerId)}`)+infoTable(token);
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function banner(type, html){
+  return `<div class="result-banner ${type}">${html}</div>`;
+}
+function infoTable(obj){
+  const rows=Object.entries(obj).map(([k,v])=>{
+    let val=typeof v==='number'&&(k==='expiry'||k==='issuedAt')
+      ?`${v} (${new Date(v).toLocaleString('id-ID')})`
+      :String(v);
+    return `<tr><td style="padding:5px 10px 5px 0;font-weight:600;color:var(--text2);white-space:nowrap">${escHtml(k)}</td><td style="padding:5px 0;font-family:var(--mono);font-size:11px;word-break:break-all">${escHtml(val)}</td></tr>`;
+  }).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">${rows}</table>`;
+}
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-fill sign-sk from session if set via keypair tab
+document.getElementById('sign-sk').addEventListener('focus',function(){
+  if(!this.value&&sessionSk) this.value=toHex(sessionSk);
+});
+
+</script>
+</body>
+</html>

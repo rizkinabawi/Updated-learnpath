@@ -2,7 +2,7 @@ import React from "react";
 
 interface AdBannerProps {
   size?: "banner" | "largeBanner" | "adaptiveBanner";
-  style?: object;
+  style?: any;
 }
 
 export function AdBanner(_props: AdBannerProps) {

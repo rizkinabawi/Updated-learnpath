@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
   getUser, getLearningPaths, getModules, getLessons, getStats, getWrongAnswers,
+  getCompletedLessons,
   type User, type LearningPath, type Module, type Lesson, type Stats,
 } from "@/utils/storage";
 import { CARD_GRADIENTS, type ColorScheme } from "@/constants/colors";
@@ -78,14 +79,17 @@ export default function Dashboard() {
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [wrongCount, setWrongCount] = useState(0);
+  const [completions, setCompletions] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
-    const [u, p, mods, lessons, s, w] = await Promise.all([
+    const [u, p, mods, lessons, s, w, c] = await Promise.all([
       getUser(), getLearningPaths(), getModules(), getLessons(), getStats(), getWrongAnswers(),
+      getCompletedLessons(),
     ]);
     if (!u) { router.replace("/onboarding"); return; }
     setUser(u); setPaths(p); setAllModules(mods); setAllLessons(lessons); setStats(s); setWrongCount(w.length);
+    setCompletions(c);
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));
@@ -208,9 +212,18 @@ export default function Dashboard() {
                 </Text>
                 <View style={styles.continueFooter}>
                   <View style={styles.continueBar}>
-                    <View style={[styles.continueBarFill, { width: `${Math.min(accuracy, 100)}%` }]} />
+                    <View 
+                      style={[
+                        styles.continueBarFill, 
+                        { 
+                          width: `${Math.round((allLessons.filter(l => completions.includes(l.id) && allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length / (allLessons.filter(l => allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length || 1)) * 100)}%` 
+                        }
+                      ]} 
+                    />
                   </View>
-                  <Text style={styles.continueBarLabel}>{accuracy}% selesai</Text>
+                  <Text style={styles.continueBarLabel}>
+                    {Math.round((allLessons.filter(l => completions.includes(l.id) && allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length / (allLessons.filter(l => allModules.find(m => m.id === l.moduleId)?.pathId === paths[0].id).length || 1)) * 100)}% selesai
+                  </Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -278,8 +291,10 @@ export default function Dashboard() {
                           <Text style={[styles.courseStatText, { color: grad[0] }]}>{pathMods.length} modul</Text>
                         </View>
                         <View style={styles.courseStatChip}>
-                          <Feather name="book-open" size={10} color={grad[0]} />
-                          <Text style={[styles.courseStatText, { color: grad[0] }]}>{pathLessons.length} pelajaran</Text>
+                          <Feather name="check-circle" size={10} color={grad[0]} />
+                          <Text style={[styles.courseStatText, { color: grad[0] }]}>
+                            {Math.round((pathLessons.filter(l => completions.includes(l.id)).length / (pathLessons.length || 1)) * 100)}%
+                          </Text>
                         </View>
                       </View>
                     </View>

@@ -22,6 +22,8 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { isAppActivated } from "@/utils/security/app-license";
 import ActivateScreen from "./activate";
+import { OverlayProvider } from "@/contexts/OverlayContext";
+import { FloatingOverlay } from "@/components/FloatingOverlay";
 
 // Suppress share-cancellation noise in dev overlay
 LogBox.ignoreLogs([
@@ -372,6 +374,7 @@ export default function RootLayout() {
       >
         <ThemeProvider>
         <LanguageProvider>
+        <OverlayProvider>
           <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
               {licensed ? (
@@ -380,9 +383,11 @@ export default function RootLayout() {
                 // Hard gate — no Stack while locked, so no other route is reachable.
                 <ActivateScreen />
               )}
+              <FloatingOverlay />
               <ToastContainer />
             </GestureHandlerRootView>
           </QueryClientProvider>
+        </OverlayProvider>
         </LanguageProvider>
         </ThemeProvider>
       </ErrorBoundary>

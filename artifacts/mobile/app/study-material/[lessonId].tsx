@@ -308,7 +308,7 @@ function ExtraImagesEditor({
           {images.map((uri, i) => (
             <View key={`${uri}-${i}`} style={{ position: "relative" }}>
               <Image
-                source={{ uri }}
+                source={{ uri: resolveAssetUri(uri) }}
                 style={{ width: 84, height: 84, borderRadius: 10, backgroundColor: "#eee" }}
               />
               <TouchableOpacity

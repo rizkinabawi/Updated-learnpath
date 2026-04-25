@@ -61,89 +61,76 @@ async function getNative(): Promise<typeof webStub> {
   if (Platform.OS === "web") return webStub;
   if (_native) return _native;
 
-  const { Paths, File, Directory } = await import("expo-file-system");
+  const FileSystem = await import("expo-file-system");
 
   _native = {
-    cacheDirectory: Paths.cache.uri,
-    documentDirectory: Paths.document.uri,
+    cacheDirectory: FileSystem.Paths?.cache?.uri || FileSystem.cacheDirectory || null,
+    documentDirectory: FileSystem.Paths?.document?.uri || FileSystem.documentDirectory || null,
 
     async getInfoAsync(fileUri: string): Promise<FileInfo> {
-      const isDir = fileUri.endsWith("/");
       try {
-        if (isDir) {
-          const d = new Directory(fileUri);
-          if (!d.exists) return { exists: false, uri: fileUri, isDirectory: true };
-          return { exists: true, uri: fileUri, isDirectory: true };
-        }
-        const f = new File(fileUri);
-        if (!f.exists) return { exists: false, uri: fileUri };
-        const info = f.info();
-        return { exists: true, uri: fileUri, size: info.size ?? undefined };
+        const info = await FileSystem.getInfoAsync(fileUri);
+        return {
+          exists: info.exists,
+          uri: info.uri,
+          size: (info as any).size,
+          isDirectory: (info as any).isDirectory,
+        };
       } catch {
-        try {
-          const d = new Directory(fileUri);
-          if (d.exists) return { exists: true, uri: fileUri, isDirectory: true };
-        } catch {}
         return { exists: false, uri: fileUri };
       }
     },
 
     async readAsStringAsync(fileUri: string, options?: { encoding?: "utf8" | "base64" }): Promise<string> {
-      const f = new File(fileUri);
-      if (options?.encoding === "base64") return await f.base64();
-      return await f.text();
-    },
-
-    async writeAsStringAsync(fileUri: string, contents: string): Promise<void> {
-      const f = new File(fileUri);
-      f.write(contents);
-    },
-
-    async makeDirectoryAsync(fileUri: string, options?: { intermediates?: boolean }): Promise<void> {
-      const d = new Directory(fileUri);
-      if (d.exists) return;
-      d.create({ intermediates: options?.intermediates ?? false });
-    },
-
-    async deleteAsync(fileUri: string): Promise<void> {
-      try {
-        const f = new File(fileUri);
-        if (f.exists) f.delete();
-      } catch {
-        try {
-          const d = new Directory(fileUri);
-          if (d.exists) d.delete();
-        } catch {}
-      }
-    },
-
-    async copyAsync(options: { from: string; to: string }): Promise<void> {
-      const src = new File(options.from);
-      src.copy(new File(options.to));
-    },
-
-    async readDirectoryAsync(fileUri: string): Promise<string[]> {
-      const d = new Directory(fileUri);
-      return d.list().map((entry) => {
-        const uri = entry.uri.replace(/\/$/, "");
-        return uri.split("/").pop() ?? uri;
+      return await FileSystem.readAsStringAsync(fileUri, {
+        encoding: options?.encoding === "base64" ? FileSystem.EncodingType.Base64 : FileSystem.EncodingType.UTF8,
       });
     },
 
+    async writeAsStringAsync(fileUri: string, contents: string, options?: { encoding?: "utf8" | "base64" }): Promise<void> {
+      await FileSystem.writeAsStringAsync(fileUri, contents, {
+        encoding: options?.encoding === "base64" ? FileSystem.EncodingType.Base64 : FileSystem.EncodingType.UTF8,
+      });
+    },
+
+    async makeDirectoryAsync(fileUri: string, options?: { intermediates?: boolean }): Promise<void> {
+      await FileSystem.makeDirectoryAsync(fileUri, options);
+    },
+
+    async deleteAsync(fileUri: string): Promise<void> {
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    },
+
+    async copyAsync(options: { from: string; to: string }): Promise<void> {
+      await FileSystem.copyAsync({ from: options.from, to: options.to });
+    },
+
+    async readDirectoryAsync(fileUri: string): Promise<string[]> {
+      return await FileSystem.readDirectoryAsync(fileUri);
+    },
+
     async downloadAsync(url: string, fileUri: string): Promise<{ uri: string }> {
-      const f = new File(fileUri);
-      await f.download(url);
-      return { uri: fileUri };
+      const res = await FileSystem.downloadAsync(url, fileUri);
+      return { uri: res.uri };
     },
 
     async readAsBytesAsync(fileUri: string): Promise<Uint8Array> {
-      const f = new File(fileUri);
-      return await f.bytes();
+      if ((FileSystem as any).readAsBytesAsync) {
+        return await (FileSystem as any).readAsBytesAsync(fileUri);
+      }
+      const b64 = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.Base64 });
+      const { decode } = await import("base64-js");
+      return decode(b64);
     },
 
     async writeAsBytesAsync(fileUri: string, bytes: Uint8Array): Promise<void> {
-      const f = new File(fileUri);
-      f.write(bytes);
+      if ((FileSystem as any).writeAsBytesAsync) {
+        await (FileSystem as any).writeAsBytesAsync(fileUri, bytes);
+        return;
+      }
+      const { fromByteArray } = await import("base64-js");
+      const b64 = fromByteArray(bytes);
+      await FileSystem.writeAsStringAsync(fileUri, b64, { encoding: FileSystem.EncodingType.Base64 });
     },
   };
 

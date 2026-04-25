@@ -16,12 +16,11 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { type ColorScheme } from "@/constants/colors";
 import { useColors } from "@/contexts/ThemeContext";
+import { useOverlay, TimerMode as OverlayTimerMode } from "@/contexts/OverlayContext";
 
 const WORK_DURATION = 25 * 60;
 const BREAK_DURATION = 5 * 60;
 const LONG_BREAK = 15 * 60;
-
-type Phase = "work" | "break" | "long-break";
 
 function fmtTime(sec: number) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -31,8 +30,8 @@ function fmtTime(sec: number) {
 
 const makePhaseConfig = (colors: ColorScheme) => ({
   work: { label: "Fokus Belajar", emoji: "🎯", grad: [colors.primary, colors.purple] as [string, string] },
-  break: { label: "Istirahat Sebentar", emoji: "☕", grad: [colors.success, colors.emerald] as [string, string] },
-  "long-break": { label: "Istirahat Panjang", emoji: "🌴", grad: [colors.teal, "#0EA5E9"] as [string, string] },
+  shortBreak: { label: "Istirahat Sebentar", emoji: "☕", grad: [colors.success, colors.emerald] as [string, string] },
+  longBreak: { label: "Istirahat Panjang", emoji: "🌴", grad: [colors.teal, "#0EA5E9"] as [string, string] },
 });
 
 export default function PomodoroScreen() {
@@ -44,16 +43,19 @@ export default function PomodoroScreen() {
   const insets = useSafeAreaInsets();
   const C = useColors();
 
-  const [phase, setPhase] = useState<Phase>("work");
-  const [timeLeft, setTimeLeft] = useState(WORK_DURATION);
-  const [running, setRunning] = useState(false);
+  const { timer, startTimer, pauseTimer, resumeTimer, setMinimizeTimer, stopTimer } = useOverlay();
+
+  // Mapping internal Phase to OverlayTimerMode
+  const phase = timer.mode;
+  const timeLeft = timer.timeLeft;
+  const running = timer.isActive;
+
   const [session, setSession] = useState(0);
   const [totalWork, setTotalWork] = useState(0);
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ringAnim = useRef(new Animated.Value(0)).current;
 
-  const maxTime = phase === "work" ? WORK_DURATION : phase === "break" ? BREAK_DURATION : LONG_BREAK;
+  const maxTime = phase === "work" ? WORK_DURATION : phase === "shortBreak" ? BREAK_DURATION : LONG_BREAK;
   const progress = 1 - timeLeft / maxTime;
   const cfg = PHASE_CONFIG[phase];
 
@@ -73,34 +75,24 @@ export default function PomodoroScreen() {
   }, [running]);
 
   useEffect(() => {
-    if (!running) return;
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(intervalRef.current!);
-          setRunning(false);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-          handlePhaseComplete();
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(intervalRef.current!);
-  }, [running, phase]);
+    if (timeLeft === 0 && timer.isActive === false) {
+      handlePhaseComplete();
+    }
+  }, [timeLeft, timer.isActive]);
 
   const handlePhaseComplete = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     if (phase === "work") {
       const newSession = session + 1;
       setSession(newSession);
       setTotalWork((w) => w + WORK_DURATION);
       if (newSession % 4 === 0) {
         Alert.alert("🌴 Waktunya Istirahat Panjang!", "Kamu sudah selesai 4 sesi. Istirahat 15 menit!", [
-          { text: "Mulai Istirahat", onPress: () => startPhase("long-break") },
+          { text: "Mulai Istirahat", onPress: () => startPhase("longBreak") },
         ]);
       } else {
         Alert.alert("☕ Sesi Selesai!", "Istirahat 5 menit dulu ya!", [
-          { text: "Mulai Istirahat", onPress: () => startPhase("break") },
+          { text: "Mulai Istirahat", onPress: () => startPhase("shortBreak") },
         ]);
       }
     } else {
@@ -110,23 +102,33 @@ export default function PomodoroScreen() {
     }
   };
 
-  const startPhase = (p: Phase) => {
-    setPhase(p);
-    setTimeLeft(p === "work" ? WORK_DURATION : p === "break" ? BREAK_DURATION : LONG_BREAK);
-    setRunning(false);
+  const startPhase = (p: OverlayTimerMode) => {
+    const dur = p === "work" ? WORK_DURATION : p === "shortBreak" ? BREAK_DURATION : LONG_BREAK;
+    startTimer(dur, p);
   };
 
   const toggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    setRunning((r) => !r);
+    if (running) {
+      pauseTimer();
+    } else {
+      if (timeLeft === 0) {
+        startPhase(phase);
+      } else {
+        resumeTimer();
+      }
+    }
   };
 
   const reset = () => {
-    setRunning(false);
-    setTimeLeft(maxTime);
+    stopTimer();
   };
 
-  const circumference = 2 * Math.PI * 110;
+  const handleMinimize = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setMinimizeTimer(true);
+    router.back();
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
@@ -137,7 +139,13 @@ export default function PomodoroScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
+        
         <Text style={styles.headerTitle}>Pomodoro Timer</Text>
+        
+        <TouchableOpacity style={styles.minimizeBtn} onPress={handleMinimize}>
+          <Feather name="minimize-2" size={18} color="#fff" />
+        </TouchableOpacity>
+
         <View style={styles.sessionBadge}>
           <Text style={styles.sessionText}>Sesi {session + 1}</Text>
         </View>
@@ -146,7 +154,7 @@ export default function PomodoroScreen() {
       <View style={styles.body}>
         {/* Phase pills */}
         <View style={styles.phaseRow}>
-          {(["work", "break", "long-break"] as Phase[]).map((p) => (
+          {(["work", "shortBreak", "longBreak"] as OverlayTimerMode[]).map((p) => (
             <TouchableOpacity
               key={p}
               style={[styles.phasePill, phase === p && styles.phasePillActive]}
@@ -154,7 +162,7 @@ export default function PomodoroScreen() {
               activeOpacity={0.75}
             >
               <Text style={[styles.phasePillText, phase === p && styles.phasePillTextActive]}>
-                {p === "work" ? "Fokus" : p === "break" ? "Break" : "Long Break"}
+                {p === "work" ? "Fokus" : p === "shortBreak" ? "Break" : "Long Break"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -193,7 +201,7 @@ export default function PomodoroScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.ctrlBtn, { backgroundColor: C.surface }]} onPress={() => !running && startPhase(phase === "work" ? "break" : "work")}>
+          <TouchableOpacity style={[styles.ctrlBtn, { backgroundColor: C.surface }]} onPress={() => !running && startPhase(phase === "work" ? "shortBreak" : "work")}>
             <Feather name="skip-forward" size={20} color={C.textMuted} />
           </TouchableOpacity>
         </View>
@@ -249,6 +257,17 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: { fontSize: 18, fontWeight: "900", color: "#fff", marginBottom: 6 },
+  minimizeBtn: {
+    position: "absolute",
+    right: 20,
+    top: Platform.OS === "web" ? 56 : 52,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sessionBadge: {
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 12,

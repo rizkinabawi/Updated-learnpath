@@ -245,6 +245,7 @@ const STORAGE_KEYS = {
   SPACED_REP: "spaced_rep",
   THEME: "theme",
   STANDALONE_COLLECTIONS: "standalone_collections",
+  COMPLETED_LESSONS: "completed_lessons",
 };
 
 export const generateId = () =>
@@ -987,6 +988,40 @@ export const clearAllData = async () => {
   // Reset the per-lesson sharded flashcard caches so the next read re-runs
   // migration cleanly against the (now empty) store.
   invalidateFlashcardsCache();
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const perLessonKeys = allKeys.filter((k) => k.startsWith(STORAGE_KEYS.FLASHCARDS_LESSON_PREFIX));
+    if (perLessonKeys.length > 0) {
+      await AsyncStorage.multiRemove(perLessonKeys);
+    }
+  } catch {}
+  await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+};
+
+/** Helper to update streak based on activity */
+export const updateStreak = async () => {
+  const stats = await getStats();
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  
+  if (stats.lastStudyDate === today) return; // Already updated today
+
+  let newStreak = stats.streak;
+  if (!stats.lastStudyDate) {
+    newStreak = 1;
+  } else {
+    const last = new Date(stats.lastStudyDate);
+    const diffDays = Math.floor((now.getTime() - last.getTime()) / 86400000);
+    
+    if (diffDays === 1) {
+      newStreak += 1;
+    } else if (diffDays > 1) {
+      newStreak = 1;
+    }
+  }
+  
+  await updateStats({ streak: newStreak, lastStudyDate: today });
+};
 
   // Remove every per-lesson flashcard row (`flashcards_l:<lessonId>`) in
   // addition to the top-level keys — those don't appear in STORAGE_KEYS and
@@ -1286,4 +1321,54 @@ export const importCourse = async (pack: CoursePack): Promise<number> => {
   for (const n of pack.notes ?? []) { await saveNote(n); imported++; }
 
   return imported;
+};
+// ─── Lesson Progress & Completion ──────────────────────────────
+export const getCompletedLessons = async (): Promise<string[]> => {
+  return getFromStorage<string>(STORAGE_KEYS.COMPLETED_LESSONS);
+};
+
+export const isLessonCompleted = async (lessonId: string): Promise<boolean> => {
+  const completed = await getCompletedLessons();
+  return completed.includes(lessonId);
+};
+
+export const setLessonCompleted = async (lessonId: string, completed: boolean) => {
+  const list = await getCompletedLessons();
+  const index = list.indexOf(lessonId);
+  
+  if (completed && index === -1) {
+    list.push(lessonId);
+    await updateStreak(); // Boost streak when completing a lesson
+  } else if (!completed && index !== -1) {
+    list.splice(index, 1);
+  }
+  
+  await saveToStorage(STORAGE_KEYS.COMPLETED_LESSONS, list);
+};
+
+/** Calculates overall progress for a course/path */
+export const getCourseProgress = async (pathId: string): Promise<{
+  total: number;
+  completed: number;
+  percentage: number;
+}> => {
+  const modules = await getModules(pathId);
+  let total = 0;
+  let completed = 0;
+  
+  const completedList = await getCompletedLessons();
+  
+  for (const mod of modules) {
+    const lessons = await getLessons(mod.id);
+    total += lessons.length;
+    for (const l of lessons) {
+      if (completedList.includes(l.id)) completed++;
+    }
+  }
+  
+  return {
+    total,
+    completed,
+    percentage: total > 0 ? (completed / total) * 100 : 0
+  };
 };

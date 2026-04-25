@@ -208,10 +208,23 @@ export default function AnkiImportScreen() {
   // Selected path id, or "__new__" to create one inline
   const [selectedPathId, setSelectedPathId] = useState<string>("__new__");
   const [newPathName, setNewPathName] = useState("");
+  const [engineOk, setEngineOk] = useState<boolean | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
+      // System Health Audit: Check if native SQLite engine is functional.
+      // If it fails, we guide the user to the Text (.txt) import backup.
+      try {
+        const SQLite = await import("expo-sqlite");
+        const db = await SQLite.openDatabaseAsync("__health_check__");
+        await db.closeAsync();
+        setEngineOk(true);
+      } catch (e) {
+        console.warn("[AnkiImport] SQLite engine health check failed:", e);
+        setEngineOk(false);
+      }
+
       const ps = await getLearningPaths();
       if (!alive) return;
       setPaths(ps);
@@ -271,12 +284,24 @@ export default function AnkiImportScreen() {
   const pickFile = async () => {
     try {
       setStatus(null);
+      console.log("[AnkiImport] Opening document picker...");
       const result = await DocumentPicker.getDocumentAsync({
         type: ["*/*"],
         copyToCacheDirectory: true,
       });
-      if (result.canceled) return;
-      const asset = result.assets[0]!;
+      if (result.canceled) {
+        console.log("[AnkiImport] Picker canceled.");
+        return;
+      }
+      
+      const asset = result.assets?.[0];
+      if (!asset) {
+        console.warn("[AnkiImport] No asset selected.");
+        setStatus({ type: "err", msg: "Tidak ada file yang dipilih." });
+        return;
+      }
+
+      console.log("[AnkiImport] Picked:", asset.name, "URI:", asset.uri);
       const name = (asset.name ?? "").toLowerCase();
       setBusy(true);
       setDecks([]);
@@ -287,6 +312,7 @@ export default function AnkiImportScreen() {
       });
 
       if (name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".tsv")) {
+        console.log("[AnkiImport] Processing as text file...");
         const text = await FileSystem.readAsStringAsync(asset.uri, {
           encoding: "utf8",
         });
@@ -305,6 +331,7 @@ export default function AnkiImportScreen() {
           });
         }
       } else if (name.endsWith(".apkg") || name.endsWith(".colpkg")) {
+        console.log("[AnkiImport] Processing as Anki package...");
         setPickedFile((prev) => (prev ? { ...prev, uri: asset.uri } : prev));
         await runApkgParse(asset.uri);
         return;
@@ -316,6 +343,7 @@ export default function AnkiImportScreen() {
         });
       }
     } catch (e) {
+      console.error("[AnkiImport] Pick error:", e);
       const msg = e instanceof Error ? e.message : String(e);
       setStatus({ type: "err", msg: `Gagal: ${msg}` });
     } finally {
@@ -649,6 +677,20 @@ export default function AnkiImportScreen() {
               </View>
             </View>
           </LinearGradient>
+
+          {engineOk === false && (
+            <View style={{ marginHorizontal: 20, marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: colors.dangerLight, flexDirection: "row", gap: 10, borderWidth: 1, borderColor: colors.danger + "22" }}>
+              <Feather name="alert-triangle" size={18} color={colors.danger} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "900", color: colors.danger }}>Native SQLite Engine Tidak Tersedia</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
+                  Versi sistem ini tidak mendukung file .apkg secara langsung. Gunakan backup metode:
+                  <Text style={{ fontWeight: "bold" }}> Ekspor deck dari Anki sebagai file Teks (.txt) </Text>
+                  dan import file tersebut sebagai gantinya.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Upload Zone */}
           <View style={[styles.card, shadowSm]}>

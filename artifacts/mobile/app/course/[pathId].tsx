@@ -21,7 +21,7 @@ import {
   getLearningPaths, getModules, getLessons,
   getFlashcards, getQuizzes, getNotes, getStudyMaterials,
   saveModule, saveLesson, deleteModule, deleteLesson,
-  generateId,
+  generateId, getCompletedLessons, setLessonCompleted,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
 import { type ColorScheme } from "@/constants/colors";
@@ -54,6 +54,7 @@ export default function CourseDetailPage() {
   const [lessons, setLessons] = useState<Record<string, Lesson[]>>({});
   const [counts, setCounts] = useState<Record<string, ModCounts>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [completions, setCompletions] = useState<string[]>([]);
 
   const { t } = useTranslation();
   const [showNewModule, setShowNewModule] = useState(false);
@@ -88,6 +89,7 @@ export default function CourseDetailPage() {
     }
     setLessons(lMap);
     setCounts(cMap);
+    setCompletions(await getCompletedLessons());
   };
 
   useFocusEffect(useCallback(() => { loadData(); }, [pathId]));
@@ -142,6 +144,24 @@ export default function CourseDetailPage() {
   const toggleExpand = (modId: string) =>
     setExpanded((prev) => ({ ...prev, [modId]: !prev[modId] }));
 
+  const toggleComplete = async (lessonId: string) => {
+    const isDone = completions.includes(lessonId);
+    await setLessonCompleted(lessonId, !isDone);
+    setCompletions(await getCompletedLessons());
+  };
+
+  const courseProgress = useMemo(() => {
+    let total = 0;
+    let done = 0;
+    Object.values(lessons).forEach(list => {
+      total += list.length;
+      list.forEach(l => {
+        if (completions.includes(l.id)) done++;
+      });
+    });
+    return { done, total, pct: total > 0 ? (done / total) : 0 };
+  }, [lessons, completions]);
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -179,6 +199,20 @@ export default function CourseDetailPage() {
         {!!path?.description && (
           <Text style={styles.headerDesc} numberOfLines={2}>{path.description}</Text>
         )}
+
+        {/* PROGRESS BAR */}
+        <View style={styles.progContainer}>
+          <View style={styles.progHeader}>
+            <Text style={styles.progLabel}>Progres Belajar</Text>
+            <Text style={styles.progVal}>{Math.round(courseProgress.pct * 100)}%</Text>
+          </View>
+          <View style={styles.progTrack}>
+            <View style={[styles.progFill, { width: `${courseProgress.pct * 100}%` }]} />
+          </View>
+          <Text style={styles.progSub}>
+            {courseProgress.done} dari {courseProgress.total} materi selesai
+          </Text>
+        </View>
       </LinearGradient>
 
       {/* MODULE LIST */}
@@ -258,7 +292,27 @@ export default function CourseDetailPage() {
 
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={styles.lessonTitleRow}>
-                            <Text style={[styles.lessonName, { flex: 1 }]} numberOfLines={1}>{lesson.name}</Text>
+                            <TouchableOpacity 
+                              onPress={() => toggleComplete(lesson.id)}
+                              style={[
+                                styles.checkCircle, 
+                                completions.includes(lesson.id) && { backgroundColor: "#fff", borderColor: "#fff" }
+                              ]}
+                            >
+                              {completions.includes(lesson.id) && (
+                                <Feather name="check" size={10} color={grad[0]} />
+                              )}
+                            </TouchableOpacity>
+                            <Text 
+                              style={[
+                                styles.lessonName, 
+                                { flex: 1 },
+                                completions.includes(lesson.id) && { textDecorationLine: "line-through", opacity: 0.6 }
+                              ]} 
+                              numberOfLines={1}
+                            >
+                              {lesson.name}
+                            </Text>
                             <TouchableOpacity
                               onPress={() => handleDeleteLesson(lesson)}
                               style={styles.lessonDeleteBtn}
@@ -268,7 +322,9 @@ export default function CourseDetailPage() {
                             </TouchableOpacity>
                           </View>
                           {!!lesson.description && (
-                            <Text style={styles.lessonDesc} numberOfLines={1}>{lesson.description}</Text>
+                            <Text style={[styles.lessonDesc, completions.includes(lesson.id) && { opacity: 0.6 }]} numberOfLines={1}>
+                              {lesson.description}
+                            </Text>
                           )}
 
                           {/* Action pills */}
@@ -426,6 +482,15 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   headerSub: { fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: "700", letterSpacing: 1.5 },
   headerTitle: { fontSize: 22, fontWeight: "900", color: "#fff", letterSpacing: -0.3 },
   headerDesc: { fontSize: 13, color: "rgba(255,255,255,0.65)", fontWeight: "500", marginTop: 6 },
+  
+  progContainer: { marginTop: 12, gap: 6 },
+  progHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  progLabel: { fontSize: 11, fontWeight: "800", color: "#fff", textTransform: "uppercase", opacity: 0.8 },
+  progVal: { fontSize: 12, fontWeight: "900", color: "#fff" },
+  progTrack: { height: 6, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 3, overflow: "hidden" },
+  progFill: { height: "100%", backgroundColor: "#fff", borderRadius: 3 },
+  progSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "600" },
+
   addBtn: { borderRadius: 13, overflow: "hidden" },
   addGrad: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
 
@@ -464,6 +529,16 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   lessonNum: { width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center", marginTop: 2 },
   lessonNumText: { fontSize: 11, fontWeight: "900", color: "#fff" },
+  checkCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: c.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
   lessonTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 1 },
   lessonName: { fontSize: 13, fontWeight: "700", color: c.dark },
   lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },

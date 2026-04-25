@@ -40,6 +40,7 @@ import {
 import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { resolveAssetUri } from "@/utils/path-resolver";
 
 const NOTES_DIR = ((FileSystem as any).documentDirectory ?? "") + "notes/";
 const ensureNotesDir = async () => {
@@ -367,7 +368,7 @@ export default function NotesScreen() {
                   {images.map((uri, i) => (
                     <View key={`${uri}-${i}`} style={{ position: "relative" }}>
                       <Image
-                        source={{ uri }}
+                        source={{ uri: resolveAssetUri(uri) }}
                         style={{ width: 84, height: 84, borderRadius: 10, backgroundColor: "#eee" }}
                       />
                       <TouchableOpacity

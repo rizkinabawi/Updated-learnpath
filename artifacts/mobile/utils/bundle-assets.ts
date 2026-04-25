@@ -106,20 +106,41 @@ function collectLocalUris(pack: CoursePack): string[] {
 
 // ─── Embed: local files → base64 inside pack ─────────────────────────────────
 
+/**
+ * Process an async function over an array with bounded concurrency.
+ * Prevents the OOM that `Promise.all(arr.map(...))` causes when `arr` has
+ * thousands of entries (each base64 read can be MBs in memory).
+ *
+ * Also yields to the UI thread between batches so the app stays responsive
+ * during big exports/imports of decks with 1000s of cards & media files.
+ */
+async function processInBatches<T>(
+  items: T[],
+  batchSize: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  for (let i = 0; i < items.length; i += batchSize) {
+    const slice = items.slice(i, i + batchSize);
+    await Promise.all(slice.map((it, j) => worker(it, i + j)));
+    // Yield to UI thread between batches.
+    await new Promise<void>((r) => setTimeout(r, 0));
+  }
+}
+
 export const embedAssetsInPack = async (pack: CoursePack): Promise<CoursePack> => {
   if (Platform.OS === "web") return { ...pack, version: 2 };
 
   const assetData: Record<string, string> = { ...(pack.assetData ?? {}) };
   const uris = collectLocalUris(pack);
 
-  await Promise.all(
-    uris.map(async (uri) => {
-      if (assetData[uri]) return; // already embedded from a previous pass
-      const b64 = await readBase64Safe(uri);
-      if (b64) assetData[uri] = b64;
-      // If b64 is null the file is missing; silently skip (don't embed broken refs)
-    })
-  );
+  // Bounded concurrency: read 4 files at a time. With base64 padding a single
+  // 5MB image becomes ~6.7MB in JS memory; doing 5000 of them at once OOMs.
+  await processInBatches(uris, 4, async (uri) => {
+    if (assetData[uri]) return; // already embedded from a previous pass
+    const b64 = await readBase64Safe(uri);
+    if (b64) assetData[uri] = b64;
+    // If b64 is null the file is missing; silently skip (don't embed broken refs)
+  });
 
   return { ...pack, version: 2, assetData };
 };
@@ -140,17 +161,16 @@ export const extractAssetsFromPack = async (pack: CoursePack): Promise<CoursePac
   const entries = Object.entries(pack.assetData);
   const uriMap: Record<string, string> = {};
 
-  await Promise.all(
-    entries.map(async ([originalUri, base64], index) => {
-      if (!base64 || base64.length === 0) return; // skip empty/corrupt entries
-      try {
-        const newUri = await writeBase64Asset(base64, originalUri, index);
-        uriMap[originalUri] = newUri;
-      } catch {
-        // Asset could not be written — leave URI unmapped; viewer will handle missing file
-      }
-    })
-  );
+  // Bounded concurrency: write 4 files at a time. Same OOM concern as embed.
+  await processInBatches(entries, 4, async ([originalUri, base64], index) => {
+    if (!base64 || base64.length === 0) return; // skip empty/corrupt entries
+    try {
+      const newUri = await writeBase64Asset(base64, originalUri, index);
+      uriMap[originalUri] = newUri;
+    } catch {
+      // Asset could not be written — leave URI unmapped; viewer will handle missing file
+    }
+  });
 
   // Remap all URI references in study materials
   const remappedMaterials: StudyMaterial[] = (pack.materials ?? []).map((mat) => {

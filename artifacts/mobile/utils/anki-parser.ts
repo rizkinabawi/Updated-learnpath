@@ -489,7 +489,9 @@ async function parseAnkiPackageOnce(
     const backMediaByCard = new Map<AnkiCard, string[]>();
 
     if (rows[0]?.values) {
-      for (const row of rows[0].values) {
+      const allRows = rows[0].values;
+      let processed = 0;
+      for (const row of allRows) {
         const did = String(row[0] ?? "0");
         const flds = String(row[1] ?? "");
         const tags = String(row[2] ?? "").trim();
@@ -511,6 +513,18 @@ async function parseAnkiPackageOnce(
         frontMediaByCard.set(card, front.media.filter(Boolean));
         backMediaByCard.set(card, back.media.filter(Boolean));
         buckets.set(deckName, arr);
+
+        // Yield to UI thread every 500 rows so the app stays responsive
+        // when parsing decks with thousands of cards.
+        processed++;
+        if (processed % 500 === 0) {
+          onProgress?.({
+            stage: "building-decks",
+            message: `Memproses kartu... (${processed}/${allRows.length})`,
+            percent: Math.min(95, Math.round((processed / allRows.length) * 70)),
+          });
+          await new Promise<void>((r) => setTimeout(r, 0));
+        }
       }
     }
 
@@ -523,6 +537,8 @@ async function parseAnkiPackageOnce(
     // the player can show the correct media on the correct side.
     if (mediaDirUri) {
       onProgress?.({ stage: "building-decks", message: "Mengekstrak media..." });
+      const totalCardsForMedia = decks.reduce((s, d) => s + d.cards.length, 0);
+      let cardsProcessed = 0;
       for (const deck of decks) {
         for (const card of deck.cards) {
           const frontNames = frontMediaByCard.get(card) ?? [];
@@ -551,9 +567,21 @@ async function parseAnkiPackageOnce(
           }
           if (backImages.length > 0) card.backImageUris = backImages;
           if (frontAudios.length > 0) card.frontAudioUris = frontAudios;
-          if (backAudios.length > 0) card.backAudioUris = backAudios;
           const allAudio = [...frontAudios, ...backAudios];
           if (allAudio.length > 0) card.audioUris = allAudio;
+
+          // Yield to UI thread every 25 cards during media extraction.
+          // File I/O already yields, but a fast disk + many empty cards can
+          // still starve the UI thread for noticeable periods.
+          cardsProcessed++;
+          if (cardsProcessed % 25 === 0) {
+            onProgress?.({
+              stage: "building-decks",
+              message: `Mengekstrak media... (${cardsProcessed}/${totalCardsForMedia})`,
+              percent: Math.min(99, 70 + Math.round((cardsProcessed / totalCardsForMedia) * 28)),
+            });
+            await new Promise<void>((r) => setTimeout(r, 0));
+          }
         }
       }
     }

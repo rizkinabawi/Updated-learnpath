@@ -13,6 +13,7 @@ import {
   InteractionManager,
   Modal,
   TouchableWithoutFeedback,
+  Alert,
   type ListRenderItem,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -342,16 +343,19 @@ export default function FlashcardScreen() {
 
   const speakText = useCallback(async (text: string) => {
     if (!text) return;
+    Alert.alert("TTS DEBUG", "Tombol ditekan: " + text.slice(0, 30));
     try {
       await Speech.stop();
       const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+      
       Speech.speak(cleanText, {
         language: "ja-JP",
         rate: 0.9,
         volume: 1.0,
       });
     } catch (e) {
-      console.error("TTS Error:", e);
+      console.error("Critical TTS Error:", e);
+      Alert.alert("Error", "Gagal memutar suara.");
     }
   }, []);
 

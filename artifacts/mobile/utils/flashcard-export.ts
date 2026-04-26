@@ -14,24 +14,32 @@ function generateQRCodeImg(id: string, type: "flashcard" | "quiz"): string {
   `;
 }
 
-/**
- * Memotong jawaban panjang menjadi maksimal 'limit' sampel.
- * @param startIndex Indeks awal baris yang dianggap sebagai 'jawaban' (default 1 untuk skip Kanji).
- */
-function truncateAnswer(text: string, limit: number = 5, startIndex: number = 1): string {
+function truncateAnswer(text: string, charLimit: number = 220): string {
   if (!text) return "";
   
-  const cleanText = text.replace(/<[^>]*>?/gm, "").trim();
-  const parts = cleanText.split(/\n|\. /).filter(p => p.trim().length > 0);
+  const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
   
-  // Jika parts sangat sedikit, jangan dipotong agar tidak kosong
-  if (parts.length <= startIndex) return cleanText;
+  if (cleanText.length <= charLimit) return cleanText;
   
-  // Ambil mulai dari startIndex, maksimal 'limit' sampel
-  const samples = parts.slice(startIndex, startIndex + limit);
-  const result = samples.join(". ");
-  
-  return result + (parts.length > startIndex + limit ? "..." : "");
+  // Find a smart stopping point among . , ; within the limit
+  const sub = cleanText.substring(0, charLimit);
+  // Find last index of punctuation
+  const lastStop = Math.max(
+    sub.lastIndexOf(". "),
+    sub.lastIndexOf(", "),
+    sub.lastIndexOf("; "),
+    sub.lastIndexOf("。"),
+    sub.lastIndexOf("、")
+  );
+
+  // If we found a punctuation point nearby, cut there
+  if (lastStop > charLimit * 0.6) {
+    return cleanText.substring(0, lastStop + 1) + " ...";
+  }
+
+  // Fallback to word boundary if no punctuation
+  const lastSpace = sub.lastIndexOf(" ");
+  return cleanText.substring(0, lastSpace > 0 ? lastSpace : charLimit) + " ...";
 }
 
 export async function exportFlashcardsToPDF(
@@ -60,7 +68,7 @@ export async function exportFlashcardsToPDF(
         <td class="q-cell"><strong>${q}</strong></td>
       </tr>
       <tr style="background: #fcfcfc">
-        <td class="a-cell">${a}</td>
+        <td class="a-cell">${truncateAnswer(a)}</td>
       </tr>
       ${isPageBreak ? '</tbody></table><div style="page-break-after: always;"></div><table><tbody>' : ''}
     `;

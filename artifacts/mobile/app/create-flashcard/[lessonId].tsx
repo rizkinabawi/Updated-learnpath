@@ -1564,4 +1564,5 @@ const makeStyles = (c: ColorScheme) => {
     gap: 6, paddingVertical: 13, borderRadius: 12,
   },
   askAiBtnText: { fontSize: 13, fontWeight: "900", color: "#fff" },
-});
+  });
+};

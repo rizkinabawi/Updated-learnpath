@@ -2,6 +2,7 @@ const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
+config.resolver.assetExts.push("wasm");
 
 // Stub Node.js built-in modules that sql.js tries to require (it wraps them in
 // try/catch, but Metro's strict `node:` resolution rejects them before the

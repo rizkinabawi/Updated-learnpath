@@ -46,18 +46,23 @@ export async function exportFlashcardsToPDF(
   const tableRows = items.map((item, i) => {
     let q = item.question.replace(/<[^>]*>?/gm, "").trim();
     let a = item.answer.replace(/<[^>]*>?/gm, "").trim();
-
+    
     // Cloze Deletion Detection: {{text}} -> [...]
-    const clozeMatch = q.match(/{{(.*?)}}/);
-    if (clozeMatch) {
+    if (q.match(/{{(.*?)}}/)) {
       q = q.replace(/{{.*?}}/g, "[ ... ]");
     }
 
+    const isPageBreak = (i + 1) % 10 === 0 && i !== items.length - 1;
+
     return `
-      <tr style="background: ${i % 2 === 0 ? "#ffffff" : "#f8fafc"}">
-        <td style="width: 40%; font-weight: 600; color: #1a202c;">${q}</td>
-        <td style="color: #4a5568;">${truncateAnswer(item.answer, 5, startIndex)}</td>
+      <tr style="background: #ffffff">
+        <td class="num-cell" rowspan="2">${startIndex + i + 1}</td>
+        <td class="q-cell"><strong>${q}</strong></td>
       </tr>
+      <tr style="background: #fcfcfc">
+        <td class="a-cell">${a}</td>
+      </tr>
+      ${isPageBreak ? '</tbody></table><div style="page-break-after: always;"></div><table><tbody>' : ''}
     `;
   }).join("");
 
@@ -98,29 +103,34 @@ export async function exportFlashcardsToPDF(
           .header p { margin: 0; color: #718096; font-size: 9pt; font-weight: bold; }
           
           table { width: 100%; border-collapse: collapse; table-layout: fixed; background: transparent; }
-          th { 
-            background: #2c5282; 
-            color: white; 
-            text-align: left; 
-            padding: 8px 12px; 
-            font-size: 9pt; 
-            text-transform: uppercase; 
-            -webkit-print-color-adjust: exact;
-          }
-          tr { 
-            page-break-inside: avoid;
-            break-inside: avoid;
-            background: transparent !important;
-          }
-          tr:nth-child(even) {
-            background: rgba(248, 250, 252, 0.7) !important;
-          }
           td { 
             vertical-align: top; 
             word-wrap: break-word; 
-            padding: 8px 12px; 
-            border-bottom: 1px solid #e2e8f0; 
-            font-size: 10pt;
+            padding: 10px 14px; 
+            border: 1px solid #e2e8f0;
+          }
+          .num-cell { 
+            width: 35px; 
+            background: #f1f5f9; 
+            text-align: center; 
+            vertical-align: middle; 
+            font-weight: bold; 
+            color: #475569; 
+            font-size: 9pt;
+          }
+          .q-cell { 
+            font-size: 11pt; 
+            color: #1e293b; 
+            background: #ffffff; 
+            border-bottom: none;
+          }
+          .a-cell { 
+            font-size: 10pt; 
+            color: #4a5568; 
+            background: #fafafa; 
+            font-style: italic; 
+            border-top: 1px dashed #e2e8f0;
+            padding-bottom: 12px;
           }
           .footer { 
             margin-top: 15px; 
@@ -134,17 +144,11 @@ export async function exportFlashcardsToPDF(
       </head>
       <body>
         <div class="header">
-          <div><p>Flashcard Study Module</p><h1>${topic}</h1><p>Generated on ${dateStr}</p></div>
+          <div><p>Flashcard Workbook</p><h1>${topic}</h1><p>Generated on ${dateStr}</p></div>
           ${qrHtml}
         </div>
         
         <table>
-          <thead>
-            <tr>
-              <th style="width: 40%">Question</th>
-              <th>Answer (Sample)</th>
-            </tr>
-          </thead>
           <tbody>
             ${tableRows}
           </tbody>

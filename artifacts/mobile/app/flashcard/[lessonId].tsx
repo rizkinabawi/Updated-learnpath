@@ -340,12 +340,19 @@ export default function FlashcardScreen() {
     }
   }, []);
 
-  const speakText = useCallback((text: string) => {
+  const speakText = useCallback(async (text: string) => {
     if (!text) return;
-    Speech.speak(text.replace(/<[^>]*>?/gm, "").trim(), {
-      language: "ja-JP", // Default to Japanese as many cards are Japanese
-      rate: 0.9,
-    });
+    try {
+      await Speech.stop();
+      const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+      Speech.speak(cleanText, {
+        language: "ja-JP",
+        rate: 0.9,
+        volume: 1.0,
+      });
+    } catch (e) {
+      console.error("TTS Error:", e);
+    }
   }, []);
 
   const playPrimaryAudio = useCallback(() => playAudioUri(card?.audio), [card?.audio, playAudioUri]);

@@ -16,7 +16,7 @@
  * offline using the creator public key embedded in the bundle.
  */
 
-import React, { useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -41,6 +41,8 @@ import {
   deleteIssuedToken,
   type IssuedTokenRecord,
 } from "@/utils/storage";
+import { getCreatorIdentityWithKey } from "@/utils/security/creator";
+import { generateBuyerToken } from "@/utils/security/bundle-license";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

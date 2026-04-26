@@ -1231,11 +1231,8 @@ export const deleteStandaloneCollection = async (id: string): Promise<void> => {
     STORAGE_KEYS.STANDALONE_COLLECTIONS,
     all.filter((c) => c.id !== id)
   );
-  const cards = await getFromStorage<Flashcard>(STORAGE_KEYS.FLASHCARDS);
-  await saveToStorage(
-    STORAGE_KEYS.FLASHCARDS,
-    cards.filter((c) => c.lessonId !== id)
-  );
+  // Delete all flashcards belonging to this collection shard.
+  await _writeLessonFlashcards(id, []);
   const quizzes = await getFromStorage<Quiz>(STORAGE_KEYS.QUIZZES);
   await saveToStorage(
     STORAGE_KEYS.QUIZZES,
@@ -1248,12 +1245,18 @@ export const assignStandaloneCollection = async (
   colId: string,
   targetLessonId: string
 ): Promise<void> => {
-  const cards = await getFromStorage<Flashcard>(STORAGE_KEYS.FLASHCARDS);
-  const updatedCards = cards.map((c) =>
-    c.lessonId === colId ? { ...c, lessonId: targetLessonId } : c
-  );
-  await saveToStorage(STORAGE_KEYS.FLASHCARDS, updatedCards);
+  // Use the sharded-aware getter to find cards belonging to this collection.
+  // This works for both migrated legacy cards and new Anki-imported cards.
+  const cards = await getFlashcards(colId);
+  const updatedCards = cards.map((c) => ({ ...c, lessonId: targetLessonId }));
+  
+  // Bulk-save into the new shards.
+  await saveFlashcardsBulk(updatedCards);
 
+  // Delete from the old shard (collection ID).
+  await _writeLessonFlashcards(colId, []);
+
+  // Handle quizzes (quizzes are still in one blob, so this part is okay, but let's be safe)
   const quizzes = await getFromStorage<Quiz>(STORAGE_KEYS.QUIZZES);
   const updatedQuizzes = quizzes.map((q) =>
     q.lessonId === colId ? { ...q, lessonId: targetLessonId } : q
@@ -1270,29 +1273,69 @@ export const assignStandaloneCollection = async (
 export const importCourse = async (pack: CoursePack): Promise<number> => {
   let imported = 0;
 
+  // 0. Restore Assets (Version 2+)
+  // We restore assets FIRST so that the URIs in the JSON correctly point to the
+  // NEW local paths on this specific device.
+  const uriMap = new Map<string, string>(); // originalUri -> localUri
+  if (pack.assetData && Object.keys(pack.assetData).length > 0 && documentDirectory) {
+    const assetDir = `${documentDirectory}assets/imported-${Date.now()}/`;
+    await makeDirectoryAsync(assetDir, { intermediates: true });
+    
+    for (const [origUri, b64] of Object.entries(pack.assetData)) {
+      try {
+        const ext = origUri.split(".").pop()?.split("?")[0] ?? "dat";
+        const localPath = `${assetDir}${generateId()}.${ext}`;
+        await writeAsStringAsync(localPath, b64, { encoding: "base64" });
+        uriMap.set(origUri, localPath);
+      } catch (e) {
+        console.warn("[storage] Failed to restore asset:", origUri, e);
+      }
+    }
+  }
+
+  // Helper to re-map URIs in any object
+  const remapUris = <T extends any>(obj: T): T => {
+    if (!obj || typeof obj !== "object") return obj;
+    const res = { ...obj };
+    const keys = ["image", "audio", "Avatar", "avatar", "icon", "filePath", "imageLocalPath"];
+    for (const k of keys) {
+      if (res[k] && uriMap.has(res[k])) res[k] = uriMap.get(res[k])!;
+    }
+    // Deep remap for arrays
+    const arrayKeys = ["images", "imagesBack", "audios", "audiosBack"];
+    for (const k of arrayKeys) {
+      if (Array.isArray(res[k])) {
+        res[k] = res[k].map((u: string) => uriMap.get(u) || u);
+      }
+    }
+    return res;
+  };
+
   // 1. Core Structure
   for (const p of pack.paths ?? []) { 
-    await saveLearningPath({ ...p, isLocked: true }); 
+    await saveLearningPath(remapUris({ ...p, isLocked: true })); 
     imported++; 
   }
-  for (const m of pack.modules ?? []) { await saveModule(m); imported++; }
-  for (const l of pack.lessons ?? []) { await saveLesson(l); imported++; }
-  for (const p of pack.flashcardPacks ?? []) { await saveFlashcardPack(p); }
-  for (const p of pack.quizPacks ?? []) { await saveQuizPack(p); }
+  for (const m of pack.modules ?? []) { await saveModule(remapUris(m)); imported++; }
+  for (const l of pack.lessons ?? []) { await saveLesson(remapUris(l)); imported++; }
+  for (const p of pack.flashcardPacks ?? []) { await saveFlashcardPack(remapUris(p)); }
+  for (const p of pack.quizPacks ?? []) { await saveQuizPack(remapUris(p)); }
 
   // 2. High-volume items (Bulk)
   if ((pack.flashcards ?? []).length > 0) {
-    await saveFlashcardsBulkChunked(pack.flashcards!);
-    imported += pack.flashcards!.length;
+    const remappedCards = pack.flashcards!.map(c => remapUris(c));
+    await saveFlashcardsBulkChunked(remappedCards);
+    imported += remappedCards.length;
   }
   if ((pack.quizzes ?? []).length > 0) {
-    await saveQuizzesBulk(pack.quizzes!);
-    imported += pack.quizzes!.length;
+    const remappedQuizzes = pack.quizzes!.map(q => remapUris(q));
+    await saveQuizzesBulk(remappedQuizzes);
+    imported += remappedQuizzes.length;
   }
 
   // 3. Supporting content
-  for (const m of pack.materials ?? []) { await saveStudyMaterial(m); imported++; }
-  for (const n of pack.notes ?? []) { await saveNote(n); imported++; }
+  for (const m of pack.materials ?? []) { await saveStudyMaterial(remapUris(m)); imported++; }
+  for (const n of pack.notes ?? []) { await saveNote(remapUris(n)); imported++; }
 
   return imported;
 };
@@ -1335,8 +1378,46 @@ export const exportCourse = async (pathId: string): Promise<CoursePack> => {
     lessonIds.includes(n.lessonId)
   );
 
+  // ─── Version 2: Asset Embedding ───
+  // Scan all filtered items for local URIs and convert to base64.
+  const assetData: Record<string, string> = {};
+  const localUris = new Set<string>();
+
+  const collect = (uri?: string) => {
+    if (uri && (uri.startsWith("file://") || (documentDirectory && uri.startsWith(documentDirectory)))) {
+      localUris.add(uri);
+    }
+  };
+
+  path.avatar && collect(path.avatar);
+  modules.forEach(m => m.icon && collect(m.icon));
+  filteredFlashcards.forEach(c => {
+    collect(c.image);
+    collect(c.audio);
+    c.images?.forEach(collect);
+    c.imagesBack?.forEach(collect);
+    c.audios?.forEach(collect);
+    c.audiosBack?.forEach(collect);
+  });
+  quizzes.forEach(q => { collect(q.image); collect(q.audio); });
+  materials.forEach(m => { 
+    collect(m.imageLocalPath); 
+    collect(m.filePath); 
+    m.images?.forEach(collect);
+  });
+  notes.forEach(n => n.images?.forEach(collect));
+
+  for (const uri of localUris) {
+    try {
+      const b64 = await readAsStringAsync(uri, { encoding: "base64" });
+      assetData[uri] = b64;
+    } catch (e) {
+      console.warn("[storage] Export skipping asset (read fail):", uri, e);
+    }
+  }
+
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     paths: [path],
     modules,
@@ -1347,6 +1428,7 @@ export const exportCourse = async (pathId: string): Promise<CoursePack> => {
     quizzes,
     materials,
     notes,
+    assetData: Object.keys(assetData).length > 0 ? assetData : undefined,
   };
 };
 

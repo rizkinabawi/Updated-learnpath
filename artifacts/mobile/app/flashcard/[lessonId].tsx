@@ -600,7 +600,13 @@ export default function FlashcardScreen() {
       {/* Tag */}
       {viewMode === "table" ? (
         <CardErrorBoundary styles={styles} colors={colors}>
-          <FlashcardTableList cards={cards} colors={colors} styles={styles} onImagePress={setFullscreenImg} />
+          <FlashcardTableList 
+            cards={cards} 
+            colors={colors} 
+            styles={styles} 
+            onImagePress={setFullscreenImg} 
+            speakText={speakText}
+          />
         </CardErrorBoundary>
       ) : (
         <CardErrorBoundary
@@ -658,9 +664,10 @@ interface FlashcardTableListProps {
   colors: ColorScheme;
   styles: ReturnType<typeof makeStyles>;
   onImagePress: (uri: string) => void;
+  speakText: (text: string) => void;
 }
 
-function FlashcardTableList({ cards, colors, styles, onImagePress }: FlashcardTableListProps) {
+function FlashcardTableList({ cards, colors, styles, onImagePress, speakText }: FlashcardTableListProps) {
   const renderItem = React.useCallback<ListRenderItem<Flashcard>>(
     ({ item: c, index: i }) => {
       const isAlt = i % 2 === 1;
@@ -721,14 +728,20 @@ function FlashcardTableList({ cards, colors, styles, onImagePress }: FlashcardTa
               <Text style={[styles.tableCellQ, { fontSize: qFontSizeTable, lineHeight: Math.round(qFontSizeTable * 1.25) }]}>
                 {qText}
               </Text>
-              {(audCount > 0 || backAudCount > 0) && (
-                <View style={[styles.tableMediaRow, { marginTop: 4 }]}>
+              <View style={{ flexDirection: "row", gap: 10, alignItems: "center", marginTop: 6 }}>
+                <TouchableOpacity onPress={() => speakText(qText)} style={styles.tableTtsBtn}>
                   <Volume2 size={12} color={colors.primary} />
-                  <Text style={styles.tableMediaText}>
-                    {(audCount + backAudCount) > 1 ? `${audCount + backAudCount} audio` : "audio"}
-                  </Text>
-                </View>
-              )}
+                  <Text style={styles.tableTtsText}>TTS</Text>
+                </TouchableOpacity>
+                {(audCount > 0 || backAudCount > 0) && (
+                  <View style={styles.tableMediaRow}>
+                    <Feather name="music" size={10} color={colors.primary} />
+                    <Text style={styles.tableMediaText}>
+                      {(audCount + backAudCount) > 1 ? `${audCount + backAudCount} audio` : "audio"}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </ScrollView>
           </View>
           <View style={styles.colA}>
@@ -740,6 +753,10 @@ function FlashcardTableList({ cards, colors, styles, onImagePress }: FlashcardTa
               <Text style={[styles.tableCellA, { fontSize: aFontSizeTable, lineHeight: Math.round(aFontSizeTable * 1.25) }]}>
                 {aText}
               </Text>
+              <TouchableOpacity onPress={() => speakText(aText)} style={[styles.tableTtsBtn, { marginTop: 6, alignSelf: "flex-start" }]}>
+                <Volume2 size={12} color={colors.primary} />
+                <Text style={styles.tableTtsText}>TTS</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -1168,6 +1185,16 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  tableTtsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.2)" : c.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  tableTtsText: { fontSize: 10, fontWeight: "800", color: c.primary },
   tableCell: { fontSize: 13, color: c.text, lineHeight: 19 },
   tableCellQ: {
     fontSize: 16,

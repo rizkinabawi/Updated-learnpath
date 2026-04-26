@@ -39,6 +39,7 @@ import { CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type Co
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { exportProgressReport } from "@/utils/flashcard-export";
 
 type Tab = "stats" | "classify" | "prompts";
 
@@ -144,46 +145,20 @@ export default function ProgressTab() {
     }
     setPdfLoading(true);
     try {
-      const html = await generateReportHTML();
-      
-      if (!Print || !Sharing) {
-        throw new Error("Modul Print/Sharing tidak termuat. Coba restart Expo Go.");
-      }
-      
-      // Smart detection for iOS/Android variations
-      const printToFile = Print.printToFileAsync || (Print as any).default?.printToFileAsync;
-      const printDirect = Print.printAsync || (Print as any).default?.printAsync;
-
-      if (!printToFile && !printDirect) {
-        throw new Error("Fitur cetak (Print) tidak ditemukan di sistem Expo Go.");
-      }
-
-      // Attempt 1: Print to file and Share
-      try {
-        if (!printToFile) throw new Error("printToFileAsync unavailable");
-        
-        const { uri } = await printToFile({ html, base64: false });
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: t.progress.share_image });
-          toast.success(t.progress.pdf_success);
-        } else {
-          toast.info(t.progress.pdf_saved);
-        }
-      } catch (innerErr) {
-        // Attempt 2: Direct Print Dialog
-        console.warn("PrintToFile failed, falling back to direct PrintAsync", innerErr);
-        if (printDirect) {
-           await printDirect({ html, orientation: Print.Orientation.portrait });
-        } else {
-           throw innerErr;
-        }
-      }
-
+      if (!stats) return;
+      // Get streak from stats or calculate it
+      const days = stats.streak || 0;
+      await exportProgressReport(user?.name || "User", { 
+        totalAnswers: stats.totalAnswers, 
+        correctAnswers: stats.correctAnswers, 
+        level: stats.level || 1, 
+        xp: stats.xp || 0,
+        days: days 
+      });
+      toast.success(t.progress.pdf_success);
     } catch (e) {
       console.error("Critical PDF Error:", e);
-      const msg = e instanceof Error ? e.message : "Gagal menyusun dokumen.";
-      Alert.alert("Error PDF", msg);
+      Alert.alert("Error PDF", "Gagal menyusun dokumen.");
     } finally {
       setPdfLoading(false);
     }

@@ -26,6 +26,8 @@ import {
 } from "@/utils/storage";
 import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { exportCourseCertificate } from "@/utils/flashcard-export";
+import { getUser } from "@/utils/storage";
 
 const makeGradPalette = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
@@ -163,6 +165,15 @@ export default function CourseDetailPage() {
     return { done, total, pct: total > 0 ? (done / total) : 0 };
   }, [lessons, completions]);
 
+  const handleClaimCertificate = async () => {
+    try {
+      const user = await getUser();
+      await exportCourseCertificate(user?.name || "Lulusan LearnPath", path?.name || "Kursus Tanpa Nama");
+    } catch (e) {
+      Alert.alert("Gagal", "Terjadi kesalahan saat membuat sertifikat.");
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -214,6 +225,23 @@ export default function CourseDetailPage() {
             {courseProgress.done} dari {courseProgress.total} materi selesai
           </Text>
         </View>
+
+        {courseProgress.pct === 1 && courseProgress.total > 0 && (
+          <TouchableOpacity 
+            style={styles.certClaimCard} 
+            onPress={handleClaimCertificate}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={["#F59E0B", "#D97706"]} style={styles.certClaimGrad} start={{x:0,y:0}} end={{x:1,y:1}}>
+              <Feather name="award" size={20} color="#fff" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.certClaimTitle}>Kursus Selesai!</Text>
+                <Text style={styles.certClaimSub}>Klik untuk klaim Sertifikat Kelulusan Anda</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </LinearGradient>
 
       {/* MODULE LIST */}
@@ -582,4 +610,23 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   mBtnOk: { flex: 1, borderRadius: 999, overflow: "hidden" },
   mBtnOkGrad: { paddingVertical: 14, alignItems: "center" },
   mBtnOkText: { fontSize: 14, fontWeight: "900", color: "#fff" },
+
+  certClaimCard: {
+    marginTop: 18,
+    borderRadius: 16,
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  certClaimGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+  },
+  certClaimTitle: { fontSize: 15, fontWeight: "900", color: "#fff" },
+  certClaimSub: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "600" },
 });

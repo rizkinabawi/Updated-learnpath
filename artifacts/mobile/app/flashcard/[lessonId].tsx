@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, Plus, RotateCcw, Check, Volume2 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 // NOTE: Do NOT call useAudioPlayer() at module scope with undefined/null as the
 // initial source — on release builds the native AVPlayer (iOS) / MediaPlayer
 // (Android) constructor throws immediately, causing an open-time crash that
@@ -339,6 +340,14 @@ export default function FlashcardScreen() {
     }
   }, []);
 
+  const speakText = useCallback((text: string) => {
+    if (!text) return;
+    Speech.speak(text.replace(/<[^>]*>?/gm, "").trim(), {
+      language: "ja-JP", // Default to Japanese as many cards are Japanese
+      rate: 0.9,
+    });
+  }, []);
+
   const playPrimaryAudio = useCallback(() => playAudioUri(card?.audio), [card?.audio, playAudioUri]);
 
   // Cleanup player on unmount
@@ -582,6 +591,7 @@ export default function FlashcardScreen() {
             handleAnswer={handleAnswer}
             playAudio={playPrimaryAudio}
             playAudioUri={playAudioUri}
+            speakText={speakText}
             frontImages={frontImagesAll}
             backImages={backImagesAll}
             frontAudios={frontAudiosAll}
@@ -746,6 +756,7 @@ interface FlashcardCardViewProps {
   handleAnswer: (correct: boolean) => void;
   playAudio: () => void;
   playAudioUri: (uri?: string | null) => void;
+  speakText: (text: string) => void;
   frontImages: string[];
   backImages: string[];
   frontAudios: string[];
@@ -762,6 +773,7 @@ function FlashcardCardView({
   handleAnswer,
   playAudio,
   playAudioUri,
+  speakText,
   frontImages,
   backImages,
   frontAudios,
@@ -868,6 +880,12 @@ function FlashcardCardView({
               {!flipped && renderImageStrip(frontImages)}
               <Text style={styles.cardHint}>Pertanyaan</Text>
               <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }]}>{questionText}</Text>
+              <View style={styles.ttsRow}>
+                <TouchableOpacity onPress={(e) => { e.stopPropagation(); speakText(questionText); }} style={styles.ttsBtn}>
+                  <Volume2 size={16} color={colors.primary} />
+                  <Text style={styles.ttsText}>TTS</Text>
+                </TouchableOpacity>
+              </View>
               {!flipped && renderAudioButtons(frontAudios)}
               <Text style={styles.tapHint}>{t.flashcard.card_hint}</Text>
             </ScrollView>
@@ -889,6 +907,12 @@ function FlashcardCardView({
               {flipped && renderImageStrip(backImages)}
               <Text style={styles.cardHint}>Jawaban</Text>
               <Text style={[styles.cardText, { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }]}>{answerText}</Text>
+              <View style={styles.ttsRow}>
+                <TouchableOpacity onPress={(e) => { e.stopPropagation(); speakText(answerText); }} style={styles.ttsBtn}>
+                  <Volume2 size={16} color={colors.primary} />
+                  <Text style={styles.ttsText}>TTS</Text>
+                </TouchableOpacity>
+              </View>
               {flipped && renderAudioButtons(backAudios)}
             </ScrollView>
           </Animated.View>
@@ -1061,9 +1085,24 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   },
   audioBtnText: {
     fontSize: 12,
-    fontWeight: "700",
     color: c.primary,
   },
+  ttsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  ttsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.2)" : c.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  ttsText: { fontSize: 11, fontWeight: "800", color: c.primary },
   tableScroll: { paddingHorizontal: 16, paddingBottom: 28 },
   tableCard: {
     backgroundColor: c.surface,

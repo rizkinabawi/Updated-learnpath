@@ -94,9 +94,27 @@ export default function QuizBrowseAll() {
         Alert.alert("Kosong", "Tidak ada kuis untuk diekspor.");
         return;
       }
-      await exportQuizzesToPDF(name, quizzes);
+      await exportQuizzesToPDF(name, quizzes, id, false);
     } catch (e) {
       Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Lembar Ujian.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportExamShuffled = async (id: string, name: string) => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const quizzes = await getQuizzes(id);
+      if (quizzes.length === 0) {
+        Alert.alert("Kosong", "Tidak ada kuis untuk diekspor.");
+        return;
+      }
+      // Shuffle mode enabled
+      await exportQuizzesToPDF(name, quizzes, id, true);
+    } catch (e) {
+      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Lembar Ujian Teracak.");
     } finally {
       setExporting(false);
     }
@@ -297,6 +315,12 @@ export default function QuizBrowseAll() {
                               <View style={[styles.countChip, { backgroundColor: grad[0] + "18" }]}>
                                 <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count}</Text>
                               </View>
+                              <TouchableOpacity 
+                                style={[styles.startBtn, { backgroundColor: colors.surface, borderStyle: "dashed", borderWidth: 1, borderColor: grad[0] + "80", marginRight: 4 }]}
+                                onPress={() => handleExportExamShuffled(row.lesson.id, row.lesson.name)}
+                              >
+                                <Feather name="shuffle" size={12} color={grad[0]} />
+                              </TouchableOpacity>
                               <TouchableOpacity 
                                 style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: grad[0] + "40", marginRight: 4 }]}
                                 onPress={() => handleExportExamPDF(row.lesson.id, row.lesson.name)}

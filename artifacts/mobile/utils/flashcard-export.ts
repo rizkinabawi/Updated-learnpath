@@ -3,6 +3,17 @@ import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
 import { FlashcardItem, QuizItem } from "./json-export";
 
+function generateQRCodeImg(id: string, type: "flashcard" | "quiz"): string {
+  const deepLink = `learningpath://${type}/${id}`;
+  const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(deepLink)}&size=80x80&bgcolor=ffffff&color=2c5282&margin=0`;
+  return `
+    <div style="text-align: center; border: 1px solid #e2e8f0; padding: 4px; border-radius: 8px; background: #fff;">
+      <img src="${apiUrl}" alt="QR" width="60" height="60" />
+      <p style="margin: 2px 0 0 0; font-size: 6pt; color: #94a3b8; font-weight: bold;">SCAN TO OPEN</p>
+    </div>
+  `;
+}
+
 /**
  * Memotong jawaban panjang menjadi maksimal 'limit' sampel.
  * @param startIndex Indeks awal baris yang dianggap sebagai 'jawaban' (default 1 untuk skip Kanji).
@@ -26,24 +37,29 @@ function truncateAnswer(text: string, limit: number = 5, startIndex: number = 1)
 export async function exportFlashcardsToPDF(
   topic: string, 
   items: FlashcardItem[], 
+  id?: string,
   startIndex: number = 1
 ): Promise<void> {
-  const dateStr = new Date().toLocaleDateString("id-ID", { 
-    year: "numeric", 
-    month: "long", 
-    day: "numeric" 
-  });
+  const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
+  const qrHtml = id ? generateQRCodeImg(id, "flashcard") : "";
 
-  const tableRows = items.map((item, i) => `
-    <tr style="background: ${i % 2 === 0 ? "#ffffff" : "#f8fafc"}">
-      <td style="width: 40%; font-weight: 600; color: #1a202c;">
-        ${item.question.replace(/<[^>]*>?/gm, "").trim()}
-      </td>
-      <td style="color: #4a5568;">
-        ${truncateAnswer(item.answer, 5, startIndex)}
-      </td>
-    </tr>
-  `).join("");
+  const tableRows = items.map((item, i) => {
+    let q = item.question.replace(/<[^>]*>?/gm, "").trim();
+    let a = item.answer.replace(/<[^>]*>?/gm, "").trim();
+
+    // Cloze Deletion Detection: {{text}} -> [...]
+    const clozeMatch = q.match(/{{(.*?)}}/);
+    if (clozeMatch) {
+      q = q.replace(/{{.*?}}/g, "[ ... ]");
+    }
+
+    return `
+      <tr style="background: ${i % 2 === 0 ? "#ffffff" : "#f8fafc"}">
+        <td style="width: 40%; font-weight: 600; color: #1a202c;">${q}</td>
+        <td style="color: #4a5568;">${truncateAnswer(item.answer, 5, startIndex)}</td>
+      </tr>
+    `;
+  }).join("");
 
   const html = `
     <!DOCTYPE html>
@@ -118,9 +134,8 @@ export async function exportFlashcardsToPDF(
       </head>
       <body>
         <div class="header">
-          <p>Flashcard Study Module</p>
-          <h1>${topic}</h1>
-          <p>Generated on ${dateStr}</p>
+          <div><p>Flashcard Study Module</p><h1>${topic}</h1><p>Generated on ${dateStr}</p></div>
+          ${qrHtml}
         </div>
         
         <table>
@@ -227,10 +242,19 @@ function generateExamExtras(items: QuizItem[]): string {
   return answerSheetHtml + answerKeyHtml;
 }
 
-export async function exportQuizzesToPDF(topic: string, items: QuizItem[]): Promise<void> {
+export async function exportQuizzesToPDF(topic: string, items: QuizItem[], id?: string, shuffle: boolean = false): Promise<void> {
   const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
+  const qrHtml = id ? generateQRCodeImg(id, "quiz") : "";
 
-  const quizBlocks = items.map((item, i) => `
+  let displayItems = [...items];
+  if (shuffle) {
+    displayItems = displayItems.sort(() => Math.random() - 0.5).map(item => ({
+      ...item,
+      options: [...item.options].sort(() => Math.random() - 0.5)
+    }));
+  }
+
+  const quizBlocks = displayItems.map((item, i) => `
     <div class="quiz-item">
       <div class="question">
         <span class="q-num">${i + 1}.</span> ${item.question.replace(/<[^>]*>?/gm, "").trim()}
@@ -274,9 +298,8 @@ export async function exportQuizzesToPDF(topic: string, items: QuizItem[]): Prom
       </head>
       <body>
         <div class="header">
-          <p>LEARNPATH EXAM PAPER — SIMULATION</p>
-          <h1>${topic.toUpperCase()}</h1>
-          <p>Generated on ${dateStr}</p>
+          <div><p>LEARNPATH EXAM PAPER — SIMULATION ${shuffle ? '(SET SHUFFLE)' : ''}</p><h1>${topic.toUpperCase()}</h1><p>Generated on ${dateStr}</p></div>
+          ${qrHtml}
         </div>
         <div class="content">${quizBlocks}</div>
         <div class="footer">Simulasi Ujian LearnPath - Kerjakan dengan jujur.</div>
@@ -484,5 +507,180 @@ export async function exportFlashcardWorksheetToPDF(
   try {
     const { uri } = await Print.printToFileAsync({ html });
     await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Worksheet - ${topic}` });
+  } catch (e) { console.error(e); }
+}
+
+/**
+ * Professional Course Certificate
+ */
+export async function exportCourseCertificate(
+  userName: string, 
+  courseName: string
+): Promise<void> {
+  const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @page { margin: 0; size: A4 landscape; }
+          body { 
+            font-family: 'Helvetica', 'Arial', sans-serif; 
+            padding: 0; margin: 0;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+          }
+          .cert-border {
+            width: 90%;
+            height: 85%;
+            border: 15px solid #2c5282;
+            padding: 40px;
+            position: relative;
+            background: #fff;
+            text-align: center;
+          }
+          .cert-inner-border {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #2c5282;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+          .brand { font-size: 28pt; color: #2c5282; font-weight: 900; margin-bottom: 40px; letter-spacing: 2px; }
+          .title { font-size: 36pt; color: #1a202c; margin-bottom: 20px; text-transform: uppercase; }
+          .subtitle { font-size: 14pt; color: #718096; margin-bottom: 50px; font-style: italic; }
+          .name { font-size: 42pt; color: #2c5282; font-weight: bold; border-bottom: 2px solid #e2e8f0; display: inline-block; padding: 0 40px 10px; margin-bottom: 30px; }
+          .course-text { font-size: 16pt; color: #4a5568; margin-bottom: 10px; }
+          .course-name { font-size: 24pt; color: #2d3748; font-weight: 800; margin-bottom: 60px; }
+          
+          .footer-grid { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 40px; }
+          .signature { width: 200px; border-top: 1.5px solid #2d3748; padding-top: 10px; font-size: 12pt; font-weight: bold; }
+          .verify { font-size: 10pt; color: #718096; }
+          
+          .seal { 
+            position: absolute; bottom: 60px; right: 60px; 
+            width: 120px; height: 120px; border-radius: 60px; 
+            background: #2c5282; color: #fff; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 8pt; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            -webkit-print-color-adjust: exact;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="cert-border">
+          <div class="cert-inner-border">
+            <div class="brand">LEARNPATH</div>
+            <div class="title">CERTIFICATE of ACHIEVEMENT</div>
+            <div class="subtitle">Sertifikat ini dengan bangga dipersembahkan kepada:</div>
+            <div class="name">${userName.toUpperCase()}</div>
+            <div class="course-text">telah berhasil menyelesaikan kursus:</div>
+            <div class="course-name">${courseName}</div>
+            
+            <div class="footer-grid">
+              <div>
+                <div class="signature">Direktur Pengajaran</div>
+                <div style="font-size: 10pt; color: #718096; margin-top: 4px;">LearnPath Academy</div>
+              </div>
+              <div class="verify">
+                Dikeluarkan pada: ${dateStr}<br/>
+                ID Verifikasi: LP-${Math.random().toString(36).substr(2, 9).toUpperCase()}
+              </div>
+              <div>
+                <div class="signature">Instruktur Utama</div>
+              </div>
+            </div>
+            
+            <div class="seal">
+              <div style="font-size: 12pt;">OFFICIAL</div>
+              <div>GUARANTEE</div>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const { uri } = await Print.printToFileAsync({ html });
+    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Certificate - ${userName}`, UTI: "com.adobe.pdf" });
+  } catch (e) { console.error(e); }
+}
+
+/**
+ * Visual Progress Report PDF
+ */
+export async function exportProgressReport(
+  userName: string, 
+  stats: { totalAnswers: number; correctAnswers: number; level: number; xp: number; days: number }
+): Promise<void> {
+  const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
+  const accuracy = stats.totalAnswers > 0 ? Math.round((stats.correctAnswers / stats.totalAnswers) * 100) : 0;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @page { margin: 15mm; size: A4; }
+          body { font-family: 'Helvetica', 'Arial', sans-serif; color: #2d3748; line-height: 1.5; }
+          .header { border-bottom: 2px solid #2c5282; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .header h1 { margin: 0; color: #2c5282; font-size: 22pt; }
+          
+          .profile { background: #f8fafc; border-radius: 16px; padding: 20px; margin-bottom: 30px; border: 1px solid #e2e8f0; }
+          .profile h2 { margin: 0 0 10px 0; font-size: 16pt; color: #2c5282; }
+          
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+          .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; }
+          .card-val { font-size: 24pt; font-weight: bold; color: #2c5282; }
+          .card-lbl { font-size: 10pt; color: #718096; text-transform: uppercase; font-weight: bold; }
+          
+          .chart-area { margin-top: 40px; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; text-align: center; }
+          .progress-bar { width: 100%; height: 30px; background: #edf2f7; border-radius: 15px; overflow: hidden; margin: 15px 0; }
+          .progress-fill { height: 100%; background: #2c5282; border-radius: 15px; }
+          
+          .footer { margin-top: 60px; text-align: center; font-size: 9pt; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>LEARNPATH PROGRESS REPORT</h1>
+          <p style="font-size: 10pt; font-weight: bold;">${dateStr}</p>
+        </div>
+        
+        <div class="profile">
+          <h2>STUDENT: ${userName}</h2>
+          <p>Laporan ini merangkum pencapaian belajar Anda sejauh ini.</p>
+        </div>
+        
+        <div class="grid">
+          <div class="card"><div class="card-val">${stats.xp}</div><div class="card-lbl">Total Experience (XP)</div></div>
+          <div class="card"><div class="card-val">${accuracy}%</div><div class="card-lbl">Akurasi Jawaban</div></div>
+          <div class="card"><div class="card-val">${stats.totalAnswers}</div><div class="card-lbl">Total Latihan</div></div>
+          <div class="card"><div class="card-val">${stats.days}</div><div class="card-lbl">Hari Beruntun (Streak)</div></div>
+        </div>
+        
+        <div class="chart-area">
+          <div class="card-lbl">Level Kemajuan (Level ${stats.level})</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${Math.min(100, (stats.xp % 1000) / 10)}%"></div>
+          </div>
+          <p style="font-size: 9pt; color: #718096;">Dibutuhkan ${1000 - (stats.xp % 1000)} XP lagi untuk mencapai Level ${stats.level + 1}</p>
+        </div>
+        
+        <div class="footer">LearnPath Academy - Teruslah belajar untuk masa depan yang lebih cerah.</div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const { uri } = await Print.printToFileAsync({ html });
+    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Progress Report - ${userName}`, UTI: "com.adobe.pdf" });
   } catch (e) { console.error(e); }
 }

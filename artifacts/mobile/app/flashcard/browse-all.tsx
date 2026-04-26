@@ -311,7 +311,7 @@ export default function FlashcardBrowseAll() {
                               name.toLowerCase().includes("dek");
       const startIndex = isLanguageTopic ? 1 : 0;
 
-      await exportFlashcardsToPDF(name, cards, startIndex);
+      await exportFlashcardsToPDF(name, cards, id, startIndex);
     } catch (e) {
       Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor PDF.");
     } finally {

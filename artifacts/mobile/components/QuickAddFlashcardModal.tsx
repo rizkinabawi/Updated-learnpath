@@ -43,30 +43,47 @@ const LANG_LABELS: Record<string, string> = {
   "Korean": "Korean (한국어)",
 };
 
-const buildFlashcardPrompt = (topic: string, count: number, difficulty: string, language: string, customNote: string) => {
+const buildFlashcardPrompt = (
+  topic: string,
+  count: number,
+  difficulty: string,
+  language: string,
+  customNote: string,
+  forceTemplate: "standard" | "listening" = "standard"
+) => {
   const diffLabel = difficulty === "easy" ? "mudah (untuk pemula)" : difficulty === "hard" ? "sulit (level lanjut)" : "sedang (level menengah)";
   const langLabel = LANG_LABELS[language] ?? language;
   const noteSection = customNote.trim() ? `\nCatatan tambahan: ${customNote.trim()}` : "";
-  return `Buatkan ${count} flashcard belajar tentang "${topic}" dengan tingkat kesulitan ${diffLabel}. Gunakan bahasa ${langLabel}.${noteSection}
+  return `Buatkan ${count} flashcard belajar tentang "${topic}" with tingkat kesulitan ${diffLabel}. Gunakan bahasa ${langLabel}.${noteSection}
 
 PENTING: Balas HANYA dengan array JSON murni. Jangan tambahkan teks, penjelasan, markdown, atau blok kode (\`\`\`). Langsung mulai dengan tanda [ dan akhiri dengan ].
 
 Format JSON yang WAJIB digunakan (contoh):
 [
   {
-    "question": "Apa yang dimaksud dengan fotosintesis?",
-    "answer": "Fotosintesis adalah proses di mana tumbuhan mengubah cahaya matahari, air, dan CO₂ menjadi glukosa dan oksigen menggunakan klorofil.",
-    "tag": "biologi-dasar"
+    "question": "What is Photosynthesis?",
+    "answer": "The process by which plants use sunlight to synthesize foods.",
+    "tag": "biology",
+    "template": "standard"
+  },
+  {
+    "question": "Dengarkan percakapan singkat ini.",
+    "answer": "Pria menyapa wanita.",
+    "tag": "conversation",
+    "template": "listening",
+    "ttsScript": "[M]Ohayou! [F]Ohayou gozaimasu!"
   }
 ]
 
 ATURAN WAJIB — wajib diikuti untuk setiap kartu:
-1. Field "question": string berisi pertanyaan atau konsep yang ingin diuji
-2. Field "answer": string berisi jawaban lengkap dan jelas (boleh beberapa kalimat)
-3. Field "tag": string kata kunci singkat tanpa spasi (gunakan tanda hubung jika perlu)
-4. Tidak ada field lain selain "question", "answer", "tag"
-5. Jawaban harus informatif dan edukatif, bukan sekadar satu kata
-6. Minimum ${Math.max(count, 3)} kartu
+1. Field "question": string pertanyaan/depan kartu.
+2. Field "answer": string jawaban/belakang kartu.
+3. Field "tag": string kata kunci singkat.
+4. Field "template" (Wajib): isi dengan "${forceTemplate}".
+5. Field "ttsScript" (${forceTemplate === "listening" ? "Wajib" : "Opsional"}): naskah suara.
+   KHUSUS PERCAKAPAN: Gunakan tag [M] untuk suara Pria dan [F] untuk suara Wanita.
+   Contoh: "[M]Ohayou! [F]Ohayou!"
+6. Minimum ${Math.max(count, 3)} kartu.
 7. Topik: ${topic}`;
 };
 
@@ -148,6 +165,8 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [tag, setTag] = useState("");
+  const [template, setTemplate] = useState<"standard" | "listening">("standard");
+  const [ttsScript, setTtsScript] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -164,6 +183,7 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   const [promptTopic, setPromptTopic] = useState("");
   const [promptCount, setPromptCount] = useState("10");
   const [promptDifficulty, setPromptDifficulty] = useState("medium");
+  const [promptTemplate, setPromptTemplate] = useState<"standard" | "listening">("standard");
   const [promptLanguage, setPromptLanguage] = useState("Bahasa Indonesia");
   const [promptCustomNote, setPromptCustomNote] = useState("");
   const [promptCopied, setPromptCopied] = useState(false);
@@ -199,9 +219,11 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   const reset = () => {
     setActiveTab("manual");
     setQuestion(""); setAnswer(""); setTag(""); setImageUri(null);
+    setTemplate("standard"); setTtsScript("");
     setSelCourse(null); setSelModule(null); setSelLesson(null); setPickerStep(null);
     setCollectionName("");
     setPromptTopic(""); setPromptCount("10"); setPromptDifficulty("medium");
+    setPromptTemplate("standard");
     setPromptLanguage("Bahasa Indonesia"); setPromptCustomNote(""); setGeneratedPrompt(""); setPromptCopied(false);
     setImportJson("");
     setShowAISheet(false); setAiLoading(false);
@@ -210,7 +232,7 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   const handleAskAI = async (provider: AIProvider, key: AIKey) => {
     if (!promptTopic.trim()) { toast.error("Isi topik terlebih dahulu"); return; }
     const count = parseInt(promptCount) || 10;
-    const prompt = buildFlashcardPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote);
+    const prompt = buildFlashcardPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote, promptTemplate);
     setGeneratedPrompt(prompt);
     setShowAISheet(false);
     setAiLoading(true);
@@ -257,7 +279,17 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
         catch { savedImage = imageUri; }
       } else if (imageUri) { savedImage = imageUri; }
       const lessonId = await resolveTargetId("Koleksi Flashcard Baru");
-      const card: Flashcard = { id, lessonId, question: question.trim(), answer: answer.trim(), tag: tag.trim(), image: savedImage, createdAt: new Date().toISOString() };
+      const card: Flashcard = {
+        id,
+        lessonId,
+        question: question.trim(),
+        answer: answer.trim(),
+        tag: tag.trim(),
+        template,
+        ttsScript: template === "listening" ? ttsScript.trim() : undefined,
+        image: savedImage,
+        createdAt: new Date().toISOString()
+      };
       await saveFlashcard(card);
       toast.success(selLesson ? "Flashcard berhasil ditambahkan!" : "Flashcard disimpan ke koleksi baru!");
       onSaved(); onClose();
@@ -268,7 +300,7 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   const handleGeneratePrompt = async () => {
     if (!promptTopic.trim()) { toast.error("Isi topik terlebih dahulu"); return; }
     const count = parseInt(promptCount) || 10;
-    const prompt = buildFlashcardPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote);
+    const prompt = buildFlashcardPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote, promptTemplate);
     setGeneratedPrompt(prompt);
     await Clipboard.setStringAsync(prompt);
     setPromptCopied(true);
@@ -294,7 +326,16 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
         const a = String(item.answer ?? item.back ?? item.jawaban ?? "").trim();
         const tg = String(item.tag ?? item.kategori ?? "").trim();
         if (!q) continue;
-        await saveFlashcard({ id: generateId(), lessonId, question: q, answer: a, tag: tg, createdAt: new Date().toISOString() });
+        await saveFlashcard({
+          id: generateId(),
+          lessonId,
+          question: q,
+          answer: a,
+          tag: tg,
+          template: item.template === "listening" ? "listening" : "standard",
+          ttsScript: item.ttsScript ? String(item.ttsScript).trim() : (item.template === "listening" ? q : undefined),
+          createdAt: new Date().toISOString()
+        });
       }
       toast.success(`${valid.length} flashcard berhasil diimport!`);
       onSaved(); onClose();
@@ -372,12 +413,44 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
               {/* ══════════ MANUAL TAB ══════════ */}
               {activeTab === "manual" && (
                 <>
+                  <Text style={styles.label}>Template Flashcard</Text>
+                  <View style={styles.tabRow}>
+                    {(["standard", "listening"] as const).map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.tab, template === t && styles.tabActive, { marginHorizontal: 0 }]}
+                        onPress={() => setTemplate(t)}
+                      >
+                        <Feather name={t === "standard" ? "layout" : "music"} size={14} color={template === t ? colors.primary : colors.textMuted} />
+                        <Text style={[styles.tabText, template === t && styles.tabTextActive]}>
+                          {t === "standard" ? "Standard" : "Listening"}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
                   <Text style={[styles.label, { marginTop: 14 }]}>Pertanyaan / Depan Kartu *</Text>
                   <TextInput style={styles.input} multiline placeholder="Tulis pertanyaan..." placeholderTextColor={colors.textMuted} value={question} onChangeText={setQuestion} textAlignVertical="top" />
                   <Text style={styles.label}>Jawaban / Belakang Kartu *</Text>
                   <TextInput style={[styles.input, { minHeight: 80 }]} multiline placeholder="Tulis jawaban..." placeholderTextColor={colors.textMuted} value={answer} onChangeText={setAnswer} textAlignVertical="top" />
                   <Text style={styles.label}>Tag (opsional)</Text>
                   <TextInput style={[styles.input, { minHeight: 44 }]} placeholder="contoh: biologi-sel" placeholderTextColor={colors.textMuted} value={tag} onChangeText={setTag} />
+
+                  {template === "listening" && (
+                    <>
+                      <Text style={styles.label}>Naskah Suara (TTS) *</Text>
+                      <TextInput
+                        style={[styles.input, { minHeight: 60 }]}
+                        multiline
+                        placeholder="Teks yang akan dibacakan sistem..."
+                        placeholderTextColor={colors.textMuted}
+                        value={ttsScript}
+                        onChangeText={setTtsScript}
+                        textAlignVertical="top"
+                      />
+                    </>
+                  )}
+
                   <TouchableOpacity style={styles.imgBtn} onPress={pickImage}>
                     <Feather name="image" size={16} color={colors.primary} />
                     <Text style={styles.imgBtnText}>{imageUri ? "Ganti Gambar" : "Tambah Gambar (opsional)"}</Text>
@@ -417,9 +490,20 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
 
                   <Text style={styles.label}>Tingkat Kesulitan</Text>
                   <View style={styles.diffRow}>
-                    {DIFFICULTIES.map((d) => (
-                      <TouchableOpacity key={d.key} style={[styles.diffChip, promptDifficulty === d.key && styles.diffChipActive]} onPress={() => setPromptDifficulty(d.key)}>
-                        <Text style={[styles.diffChipText, promptDifficulty === d.key && styles.diffChipTextActive]}>{d.label}</Text>
+                    ))}
+                  </View>
+
+                  <Text style={styles.label}>Template Output</Text>
+                  <View style={styles.diffRow}>
+                    {(["standard", "listening"] as const).map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.diffChip, promptTemplate === t && styles.diffChipActive]}
+                        onPress={() => setPromptTemplate(t)}
+                      >
+                        <Text style={[styles.diffChipText, promptTemplate === t && styles.diffChipTextActive]}>
+                          {t === "standard" ? "Standard" : "Listening"}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>

@@ -17,7 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, ChevronRight, Check, Plus, RotateCcw, Volume2, Timer as TimerIcon } from "lucide-react-native";
 import { useAudioPlayer } from "expo-audio";
 import { Feather } from "@expo/vector-icons";
-import * as Speech from "expo-speech";
+import { speak, stop } from "@/utils/tts";
+import { TTSConfigModal } from "@/components/TTSConfigModal";
+import { Settings2 } from "lucide-react-native";
 import { AdBanner } from "@/components/AdBanner";
 import * as Haptics from "expo-haptics";
 import {
@@ -69,6 +71,7 @@ export default function QuizScreen() {
   const [examInput, setExamInput] = useState("10");
   const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [showTTSConfig, setShowTTSConfig] = useState(false);
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -115,17 +118,7 @@ export default function QuizScreen() {
   const playTTS = useCallback(async (text: string) => {
     if (!text) return;
     try {
-      await Speech.stop();
-      const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
-      let lang = "id-ID";
-      const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(cleanText);
-      if (hasJapanese) lang = "ja-JP";
-
-      await Speech.speak(cleanText, {
-        language: lang,
-        rate: 0.9,
-        volume: 1.0,
-      });
+      await speak(text);
     } catch (e) {
       console.error("Critical TTS Error:", e);
     }
@@ -149,7 +142,7 @@ export default function QuizScreen() {
       }
     }
     return () => {
-      Speech.stop();
+      stop();
     };
   }, [currentIndex, quizzes, playTTS, playQuestionAudio]);
 
@@ -337,6 +330,9 @@ export default function QuizScreen() {
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity onPress={() => setShowExamModal(true)} style={styles.navBtn}>
             <TimerIcon size={18} color={examTime > 0 ? colors.primary : colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowTTSConfig(true)} style={styles.navBtn}>
+            <Settings2 size={18} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
             <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : colors.textMuted} />
@@ -527,6 +523,11 @@ export default function QuizScreen() {
         visible={showPopup}
         entry={activeWord}
         onClose={() => setShowPopup(false)}
+      />
+
+      <TTSConfigModal 
+        visible={showTTSConfig}
+        onClose={() => setShowTTSConfig(false)}
       />
     </View>
   );

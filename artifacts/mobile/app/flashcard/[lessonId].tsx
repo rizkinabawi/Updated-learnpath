@@ -19,7 +19,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, Plus, RotateCcw, Check, Volume2 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import * as Speech from "expo-speech";
+import { speak, stop } from "@/utils/tts";
+import { TTSConfigModal } from "@/components/TTSConfigModal";
+import { Settings2 } from "lucide-react-native";
 // NOTE: Do NOT call useAudioPlayer() at module scope with undefined/null as the
 // initial source — on release builds the native AVPlayer (iOS) / MediaPlayer
 // (Android) constructor throws immediately, causing an open-time crash that
@@ -165,6 +167,7 @@ export default function FlashcardScreen() {
   // Dictionary Popup State
   const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [showTTSConfig, setShowTTSConfig] = useState(false);
 
   const card = cards[currentIndex];
 
@@ -369,39 +372,7 @@ export default function FlashcardScreen() {
   const speakText = useCallback(async (text: string) => {
     if (!text) return;
     try {
-      await Speech.stop();
-      const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
-      
-      // Auto Detection Logic
-      let lang = "id-ID"; // Default to Indonesian
-      
-      // Detect Japanese: Kanji (\u4e00-\u9faf), Hiragana (\u3040-\u309f), Katakana (\u30a0-\u30ff)
-      const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(cleanText);
-      if (hasJapanese) {
-        lang = "ja-JP";
-      } else {
-        // Detect English (very basic: frequent English words or just fallback if not JP)
-        const hasEnglish = /[a-zA-Z]/.test(cleanText) && !hasJapanese;
-        // If it's mostly Latin characters, we can try to guess English vs Indonesian
-        // But for this app, id-ID is a safe priority for the user.
-        // We'll use id-ID as default unless it looks purely English.
-        if (/^[a-zA-Z\s.,!?'-]+$/.test(cleanText) && cleanText.split(" ").length > 2) {
-           // If mostly long English-looking sentences without common ID words
-           // But actually, id-ID engine reads English "okay-ish", while en-US reads ID very badly.
-           // So id-ID is safer as default.
-           lang = "id-ID"; 
-        }
-      }
-
-      Speech.speak(cleanText, {
-        language: lang,
-        rate: 0.9,
-        volume: 1.0,
-        onError: (err) => {
-          console.warn("Speech Error:", err);
-          Speech.speak(cleanText, { rate: 0.9, volume: 1.0 });
-        }
-      });
+      await speak(text);
     } catch (e) {
       console.error("Critical TTS Error:", e);
     }
@@ -600,6 +571,9 @@ export default function FlashcardScreen() {
               color={colors.text}
             />
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowTTSConfig(true)} style={styles.navBtn}>
+            <Settings2 size={18} color={colors.text} />
+          </TouchableOpacity>
           {viewMode === "card" && (
             <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
               <Feather
@@ -687,6 +661,11 @@ export default function FlashcardScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <TTSConfigModal 
+        visible={showTTSConfig}
+        onClose={() => setShowTTSConfig(false)}
+      />
     </View>
   );
 }

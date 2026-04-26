@@ -34,7 +34,14 @@ const LANG_LABELS: Record<string, string> = {
   "Korean": "Korean (한국어)",
 };
 
-const buildQuizPrompt = (topic: string, count: number, difficulty: string, language: string, customNote: string) => {
+const buildQuizPrompt = (
+  topic: string,
+  count: number,
+  difficulty: string,
+  language: string,
+  customNote: string,
+  forceTemplate: "standard" | "listening" = "standard"
+) => {
   const diffLabel = difficulty === "easy" ? "mudah (untuk pemula)" : difficulty === "hard" ? "sulit (level lanjut)" : "sedang (level menengah)";
   const langLabel = LANG_LABELS[language] ?? language;
   const noteSection = customNote.trim() ? `\nCatatan tambahan: ${customNote.trim()}` : "";
@@ -45,26 +52,32 @@ PENTING: Balas HANYA dengan array JSON murni. Jangan tambahkan teks, penjelasan,
 Format JSON yang WAJIB digunakan (contoh):
 [
   {
-    "question": "Apa fungsi dari useEffect di React?",
-    "options": [
-      "Mengelola side effects setelah render",
-      "Menyimpan state lokal komponen",
-      "Membuat komponen baru",
-      "Menghapus elemen dari DOM"
-    ],
-    "correct_answer": "Mengelola side effects setelah render",
-    "explanation": "useEffect dijalankan setelah setiap render dan digunakan untuk side effects seperti fetching data, subscription, atau manipulasi DOM."
+    "question": "What is 2+2?",
+    "options": ["3", "4", "5", "6"],
+    "correct_answer": "4",
+    "explanation": "Simple arithmetic.",
+    "template": "standard"
+  },
+  {
+    "question": "Dengarkan percakapan berikut.",
+    "options": ["Pria", "Wanita", "Anak-anak", "Guru"],
+    "correct_answer": "Wanita",
+    "explanation": "Audio menggunakan suara perempuan.",
+    "template": "listening",
+    "ttsScript": "[M]Halo, kamu siapa? [F]Saya adalah seorang guru."
   }
 ]
 
 ATURAN WAJIB — wajib diikuti untuk setiap soal:
-1. Field "question": string berisi pertanyaan yang jelas
-2. Field "options": array berisi TEPAT 4 string pilihan jawaban (teks lengkap, BUKAN huruf A/B/C/D)
-3. Field "correct_answer": string yang IDENTIK SAMA PERSIS dengan salah satu elemen di "options"
-4. Field "explanation": string penjelasan singkat mengapa jawaban tersebut benar
-5. JANGAN gunakan "A","B","C","D" sebagai nilai "correct_answer" — gunakan teks lengkap opsinya
-6. Tidak ada field lain selain "question", "options", "correct_answer", "explanation"
-7. Minimum ${Math.max(count, 5)} soal
+1. Field "question": string pertanyaan.
+2. Field "options": array TEPAT 4 string pilihan jawaban.
+3. Field "correct_answer": string yang IDENTIK SAMA PERSIS dengan salah satu elemen di "options".
+4. Field "explanation": string penjelasan.
+5. Field "template" (Wajib): isi dengan "${forceTemplate}".
+6. Field "ttsScript" (${forceTemplate === "listening" ? "Wajib" : "Opsional"}): naskah suara.
+   KHUSUS PERCAKAPAN: Gunakan tag [M] untuk suara Pria dan [F] untuk suara Wanita.
+   Contoh: "[M]Ohayou! [F]Ohayou!"
+7. Minimum ${count} soal.
 8. Topik: ${topic}`;
 };
 
@@ -167,6 +180,8 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   const [options, setOptions] = useState(["", "", "", ""]);
   const [answerIndex, setAnswerIndex] = useState<number | null>(null);
   const [tfAnswer, setTfAnswer] = useState<"Benar" | "Salah" | null>(null);
+  const [template, setTemplate] = useState<"standard" | "listening">("standard");
+  const [ttsScript, setTtsScript] = useState("");
   const [explanation, setExplanation] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -183,6 +198,7 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   const [promptTopic, setPromptTopic] = useState("");
   const [promptCount, setPromptCount] = useState("10");
   const [promptDifficulty, setPromptDifficulty] = useState("medium");
+  const [promptTemplate, setPromptTemplate] = useState<"standard" | "listening">("standard");
   const [promptLanguage, setPromptLanguage] = useState("Bahasa Indonesia");
   const [promptCustomNote, setPromptCustomNote] = useState("");
   const [promptCopied, setPromptCopied] = useState(false);
@@ -219,9 +235,11 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
     setActiveTab("manual");
     setQuizType("multiple-choice"); setQuestion(""); setOptions(["", "", "", ""]);
     setAnswerIndex(null); setTfAnswer(null); setExplanation("");
+    setTemplate("standard"); setTtsScript("");
     setSelCourse(null); setSelModule(null); setSelLesson(null); setPickerStep(null);
     setCollectionName("");
     setPromptTopic(""); setPromptCount("10"); setPromptDifficulty("medium");
+    setPromptTemplate("standard");
     setPromptLanguage("Bahasa Indonesia"); setPromptCustomNote(""); setGeneratedPrompt(""); setPromptCopied(false);
     setImportJson("");
     setShowAISheet(false); setAiLoading(false);
@@ -230,7 +248,7 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   const handleAskAI = async (provider: AIProvider, key: AIKey) => {
     if (!promptTopic.trim()) { toast.error("Isi topik terlebih dahulu"); return; }
     const count = parseInt(promptCount) || 10;
-    const prompt = buildQuizPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote);
+    const prompt = buildQuizPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote, promptTemplate);
     setGeneratedPrompt(prompt);
     setShowAISheet(false);
     setAiLoading(true);
@@ -277,7 +295,18 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
     setSaving(true);
     try {
       const lessonId = await resolveTargetId("Koleksi Soal Baru");
-      const quiz: Quiz = { id: generateId(), lessonId, question: question.trim(), options: finalOptions, answer: finalAnswer, type: quizType, explanation: explanation.trim() || undefined, createdAt: new Date().toISOString() };
+      const quiz: Quiz = {
+        id: generateId(),
+        lessonId,
+        question: question.trim(),
+        options: finalOptions,
+        answer: finalAnswer,
+        type: quizType,
+        template,
+        ttsScript: template === "listening" ? ttsScript.trim() : undefined,
+        explanation: explanation.trim() || undefined,
+        createdAt: new Date().toISOString()
+      };
       await saveQuiz(quiz);
       toast.success(selLesson ? "Soal berhasil ditambahkan!" : "Soal disimpan ke koleksi baru!");
       onSaved(); onClose();
@@ -288,7 +317,7 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
   const handleGeneratePrompt = async () => {
     if (!promptTopic.trim()) { toast.error("Isi topik terlebih dahulu"); return; }
     const count = parseInt(promptCount) || 10;
-    const prompt = buildQuizPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote);
+    const prompt = buildQuizPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote, promptTemplate);
     setGeneratedPrompt(prompt);
     await Clipboard.setStringAsync(prompt);
     setPromptCopied(true);
@@ -315,7 +344,18 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
       for (const item of valid) {
         const { opts, answer } = resolveAnswer(item);
         if (!answer) continue;
-        await saveQuiz({ id: generateId(), lessonId, question: String(item.question).trim(), options: opts, answer, explanation: item.explanation ? String(item.explanation).trim() : undefined, type: "multiple-choice", createdAt: new Date().toISOString() });
+        await saveQuiz({
+          id: generateId(),
+          lessonId,
+          question: String(item.question).trim(),
+          options: opts,
+          answer,
+          template: item.template === "listening" ? "listening" : "standard",
+          ttsScript: item.ttsScript ? String(item.ttsScript).trim() : (item.template === "listening" ? String(item.question).trim() : undefined),
+          explanation: item.explanation ? String(item.explanation).trim() : undefined,
+          type: "multiple-choice",
+          createdAt: new Date().toISOString()
+        });
       }
       toast.success(`${valid.length} soal berhasil diimport!`);
       onSaved(); onClose();
@@ -404,6 +444,22 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
                     ))}
                   </View>
 
+                  <Text style={styles.label}>Template Soal</Text>
+                  <View style={styles.typeRow}>
+                    {(["standard", "listening"] as const).map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.typeBtn, template === t && { ...styles.typeBtnActive, backgroundColor: QUIZ_COLOR, borderColor: QUIZ_COLOR }]}
+                        onPress={() => setTemplate(t)}
+                      >
+                        <Feather name={t === "standard" ? "layout" : "music"} size={15} color={template === t ? "#fff" : colors.textMuted} />
+                        <Text style={[styles.typeBtnText, template === t && styles.typeBtnTextActive]}>
+                          {t === "standard" ? "Standard" : "Listening"}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
                   <Text style={styles.label}>Pertanyaan *</Text>
                   <TextInput style={[styles.input, { minHeight: 72 }]} multiline placeholder="Tulis pertanyaan..." placeholderTextColor={colors.textMuted} value={question} onChangeText={setQuestion} textAlignVertical="top" />
 
@@ -432,6 +488,21 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
                           </TouchableOpacity>
                         ))}
                       </View>
+                    </>
+                  )}
+
+                  {template === "listening" && (
+                    <>
+                      <Text style={styles.label}>Naskah Suara (TTS) *</Text>
+                      <TextInput
+                        style={[styles.input, { minHeight: 60 }]}
+                        multiline
+                        placeholder="Teks yang akan dibacakan sistem..."
+                        placeholderTextColor={colors.textMuted}
+                        value={ttsScript}
+                        onChangeText={setTtsScript}
+                        textAlignVertical="top"
+                      />
                     </>
                   )}
 
@@ -470,6 +541,21 @@ export function QuickAddQuizModal({ visible, onClose, onSaved }: Props) {
                     {DIFFICULTIES.map((d) => (
                       <TouchableOpacity key={d.key} style={[styles.diffChip, promptDifficulty === d.key && { ...styles.diffChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]} onPress={() => setPromptDifficulty(d.key)}>
                         <Text style={[styles.diffChipText, promptDifficulty === d.key && { color: QUIZ_COLOR }]}>{d.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={styles.label}>Template Output</Text>
+                  <View style={styles.typeRow}>
+                    {(["standard", "listening"] as const).map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.diffChip, promptTemplate === t && { ...styles.diffChipActive, borderColor: QUIZ_COLOR, backgroundColor: QUIZ_LIGHT }]}
+                        onPress={() => setPromptTemplate(t)}
+                      >
+                        <Text style={[styles.diffChipText, promptTemplate === t && { color: QUIZ_COLOR }]}>
+                          {t === "standard" ? "Standard" : "Listening"}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>

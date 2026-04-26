@@ -149,6 +149,7 @@ artifacts/mobile/
 - Icons: Feather dari `@expo/vector-icons`
 - Data: hanya AsyncStorage, tidak ada API/database
 - `utils/fs-compat.ts`: web-safe wrapper untuk expo-file-system (Platform check)
+- **PWA web build**: `@expo-google-fonts/inter@0.4.2` ships without `react`/`expo-font` peer deps, so under pnpm it pulled in a duplicate `react@18.3.1` (from `activation-web-app`). That caused `Cannot read properties of null (reading 'useState')` at runtime because the React 18 dispatcher was null while the app rendered with React 19. Fixed via `pnpm.packageExtensions` in root `package.json` declaring `react` + `expo-font` as peer deps of `@expo-google-fonts/inter`, which forces it to share the app's `react@19.1.0`.
 
 ## Monorepo Structure
 

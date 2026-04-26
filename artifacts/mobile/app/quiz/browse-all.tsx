@@ -15,6 +15,8 @@ import {
 import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddQuizModal } from "@/components/QuickAddQuizModal";
+import { exportQuizzesToPDF, exportMultipleQuizzesToPDF } from "@/utils/flashcard-export";
+import { Alert } from "react-native";
 
 interface LessonRow {
   path: LearningPath;
@@ -46,10 +48,59 @@ export default function QuizBrowseAll() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [selMode, setSelMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadAll();
   }, []);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBatchExport = async () => {
+    if (selectedIds.size === 0) return;
+    setExporting(true);
+    try {
+      const batches: { topic: string; items: any[] }[] = [];
+      for (const id of selectedIds) {
+        const row = rows.find(r => r.lesson.id === id);
+        if (row) {
+          const quizzes = await getQuizzes(id);
+          batches.push({ topic: row.lesson.name, items: quizzes });
+        }
+      }
+      await exportMultipleQuizzesToPDF("Batch Exam", batches);
+      setSelMode(false);
+      setSelectedIds(new Set());
+    } catch (e) {
+      Alert.alert("Gagal", "Ekspor batch kuis gagal.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportExamPDF = async (id: string, name: string) => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const quizzes = await getQuizzes(id);
+      if (quizzes.length === 0) {
+        Alert.alert("Kosong", "Tidak ada kuis untuk diekspor.");
+        return;
+      }
+      await exportQuizzesToPDF(name, quizzes);
+    } catch (e) {
+      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Lembar Ujian.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const loadAll = async () => {
     setLoading(true);
@@ -107,13 +158,25 @@ export default function QuizBrowseAll() {
       />
 
       {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 24 }]}
-        onPress={() => setShowAdd(true)}
-        activeOpacity={0.85}
-      >
-        <Feather name="plus" size={24} color="#fff" />
-      </TouchableOpacity>
+      {selMode ? (
+        <TouchableOpacity
+          style={[styles.batchFab, { bottom: insets.bottom + 24, opacity: selectedIds.size > 0 ? 1 : 0.6 }]}
+          onPress={handleBatchExport}
+          disabled={selectedIds.size === 0 || exporting}
+          activeOpacity={0.85}
+        >
+          {exporting ? <ActivityIndicator color="#fff" /> : <Feather name="download" size={24} color="#fff" />}
+          <View style={styles.batchCount}><Text style={styles.batchCountText}>{selectedIds.size}</Text></View>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[styles.fab, { bottom: insets.bottom + 24 }]}
+          onPress={() => setShowAdd(true)}
+          activeOpacity={0.85}
+        >
+          <Feather name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       <LinearGradient
         colors={[colors.accent, colors.amber]}
@@ -130,6 +193,12 @@ export default function QuizBrowseAll() {
             <Text style={styles.headerSub}>{t.common.quiz.toUpperCase()}</Text>
             <Text style={styles.headerTitle}>{t.browse.quiz_header}</Text>
           </View>
+          <TouchableOpacity 
+            style={[styles.backBtn, { marginRight: 8, backgroundColor: selMode ? colors.primary : "rgba(255,255,255,0.2)" }]} 
+            onPress={() => { setSelMode(!selMode); setSelectedIds(new Set()); }}
+          >
+            <Feather name={selMode ? "x" : "check-square"} size={18} color="#fff" />
+          </TouchableOpacity>
           <View style={styles.countBadge}>
             <Text style={styles.countBadgeText}>{totalQuizzes}</Text>
             <Text style={styles.countBadgeSub}>{t.common.quiz.toLowerCase()}</Text>
@@ -203,12 +272,16 @@ export default function QuizBrowseAll() {
                     {lessons.map((row) => (
                       <TouchableOpacity
                         key={row.lesson.id}
-                        style={[styles.lessonRow, { opacity: row.count === 0 ? 0.5 : 1 }]}
+                        style={[styles.lessonRow, { opacity: row.count === 0 ? 0.5 : 1 }, selectedIds.has(row.lesson.id) && { backgroundColor: colors.accent + "15", borderColor: colors.accent, borderWidth: 1 }]}
                         onPress={() => {
-                          if (row.count > 0) router.push(`/quiz/${row.lesson.id}`);
+                          if (selMode) toggleSelect(row.lesson.id);
+                          else if (row.count > 0) router.push(`/quiz/${row.lesson.id}`);
                         }}
                         activeOpacity={0.7}
                       >
+                        {selMode && (
+                          <Feather name={selectedIds.has(row.lesson.id) ? "check-square" : "square"} size={18} color={selectedIds.has(row.lesson.id) ? colors.accent : colors.textMuted} style={{ marginRight: 10 }} />
+                        )}
                         <View style={styles.lessonLeft}>
                           <View style={styles.lessonDot} />
                           <View style={{ flex: 1 }}>
@@ -224,6 +297,12 @@ export default function QuizBrowseAll() {
                               <View style={[styles.countChip, { backgroundColor: grad[0] + "18" }]}>
                                 <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count}</Text>
                               </View>
+                              <TouchableOpacity 
+                                style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: grad[0] + "40", marginRight: 4 }]}
+                                onPress={() => handleExportExamPDF(row.lesson.id, row.lesson.name)}
+                              >
+                                <Feather name="file-text" size={12} color={grad[0]} />
+                              </TouchableOpacity>
                               <View style={[styles.startBtn, { backgroundColor: grad[0] }]}>
                                 <Feather name="play" size={11} color="#fff" />
                               </View>
@@ -300,4 +379,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     zIndex: 50, shadowColor: c.accent, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 10,
   },
+  batchFab: { position: "absolute", right: 20, width: 64, height: 64, borderRadius: 24, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", zIndex: 60, shadowColor: c.accent, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 12 },
+  batchCount: { position: "absolute", top: -5, right: -5, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.accent },
+  batchCountText: { fontSize: 12, fontWeight: "900", color: c.accent },
 });

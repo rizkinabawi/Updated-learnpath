@@ -14,10 +14,12 @@ import {
   getStandaloneCollections, saveStandaloneCollection,
   deleteStandaloneCollection, assignStandaloneCollection,
   type LearningPath, type Module, type Lesson, type StandaloneCollection,
+  type FlashcardItem
 } from "@/utils/storage";
 import Colors, { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddFlashcardModal } from "@/components/QuickAddFlashcardModal";
+import { exportFlashcardsToPDF, exportMultipleFlashcardsToPDF, exportFlashcardWorksheetToPDF } from "@/utils/flashcard-export";
 
 interface LessonRow {
   path: LearningPath;
@@ -248,8 +250,91 @@ export default function FlashcardBrowseAll() {
   const [showAdd, setShowAdd] = useState(false);
   const [editCol, setEditCol] = useState<StandaloneCollection | null>(null);
   const [assignCol, setAssignCol] = useState<CollectionRow | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [selMode, setSelMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { loadAll(); }, []);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBatchExport = async () => {
+    if (selectedIds.size === 0) return;
+    setExporting(true);
+    try {
+      const batches: { topic: string; items: FlashcardItem[]; startIndex: number }[] = [];
+      
+      // Collect all selected lessons from rows and collections
+      for (const id of selectedIds) {
+        const row = rows.find(r => r.lesson.id === id);
+        if (row) {
+          const cards = await getFlashcards(id);
+          const startIndex = (row.lesson.name.toLowerCase().includes("kanji") || row.lesson.name.toLowerCase().includes("vocab")) ? 1 : 0;
+          batches.push({ topic: row.lesson.name, items: cards, startIndex });
+        } else {
+          const colRow = collections.find(c => c.col.id === id);
+          if (colRow) {
+            const cards = await getFlashcards(id);
+            const startIndex = (colRow.col.name.toLowerCase().includes("kanji") || colRow.col.name.toLowerCase().includes("vocab")) ? 1 : 0;
+            batches.push({ topic: colRow.col.name, items: cards, startIndex });
+          }
+        }
+      }
+
+      await exportMultipleFlashcardsToPDF("Batch Export", batches);
+      setSelMode(false);
+      setSelectedIds(new Set());
+    } catch (e) {
+      Alert.alert("Gagal", "Ekspor batch gagal.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = async (id: string, name: string) => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const cards: FlashcardItem[] = await getFlashcards(id);
+      if (cards.length === 0) {
+        Alert.alert("Kosong", "Tidak ada kartu untuk diekspor.");
+        return;
+      }
+      // Smart Detection: Skip index 0 jika topik berkaitan dengan Kanji/Bahasa Jepang
+      const isLanguageTopic = name.toLowerCase().includes("kanji") || 
+                              name.toLowerCase().includes("vocab") || 
+                              name.toLowerCase().includes("dek");
+      const startIndex = isLanguageTopic ? 1 : 0;
+
+      await exportFlashcardsToPDF(name, cards, startIndex);
+    } catch (e) {
+      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor PDF.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportWS = async (id: string, name: string) => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const cards = await getFlashcards(id);
+      if (cards.length === 0) {
+        Alert.alert("Kosong", "Tidak ada kartu untuk diekspor.");
+        return;
+      }
+      await exportFlashcardWorksheetToPDF(name, cards, "answer");
+    } catch (e) {
+      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Worksheet.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -372,13 +457,25 @@ export default function FlashcardBrowseAll() {
       )}
 
       {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 24 }]}
-        onPress={() => setShowAdd(true)}
-        activeOpacity={0.85}
-      >
-        <Feather name="plus" size={24} color="#fff" />
-      </TouchableOpacity>
+      {selMode ? (
+        <TouchableOpacity
+          style={[styles.batchFab, { bottom: insets.bottom + 24, opacity: selectedIds.size > 0 ? 1 : 0.6 }]}
+          onPress={handleBatchExport}
+          disabled={selectedIds.size === 0 || exporting}
+          activeOpacity={0.85}
+        >
+          {exporting ? <ActivityIndicator color="#fff" /> : <Feather name="download" size={24} color="#fff" />}
+          <View style={styles.batchCount}><Text style={styles.batchCountText}>{selectedIds.size}</Text></View>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[styles.fab, { bottom: insets.bottom + 24 }]}
+          onPress={() => setShowAdd(true)}
+          activeOpacity={0.85}
+        >
+          <Feather name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       {/* Header */}
       <LinearGradient
@@ -396,6 +493,12 @@ export default function FlashcardBrowseAll() {
             <Text style={styles.headerSub}>{t.common.cards.toUpperCase()}</Text>
             <Text style={styles.headerTitle}>{t.browse.flash_header}</Text>
           </View>
+          <TouchableOpacity 
+            style={[styles.backBtn, { marginRight: 8, backgroundColor: selMode ? colors.primary : "rgba(255,255,255,0.15)" }]} 
+            onPress={() => { setSelMode(!selMode); setSelectedIds(new Set()); }}
+          >
+            <Feather name={selMode ? "x" : "check-square"} size={18} color="#fff" />
+          </TouchableOpacity>
           <View style={styles.countBadge}>
             <Text style={styles.countBadgeText}>{totalCards}</Text>
             <Text style={styles.countBadgeSub}>{t.common.cards.toLowerCase()}</Text>
@@ -466,10 +569,18 @@ export default function FlashcardBrowseAll() {
                   return (
                     <TouchableOpacity
                       key={cr.col.id}
-                      style={[styles.colCard, shadowSm]}
-                      onPress={() => cr.count > 0 && router.push(`/flashcard/${cr.col.id}` as any)}
+                      style={[styles.colCard, shadowSm, selectedIds.has(cr.col.id) && { borderColor: colors.primary, borderWidth: 2 }]}
+                      onPress={() => {
+                        if (selMode) toggleSelect(cr.col.id);
+                        else if (cr.count > 0) router.push(`/flashcard/${cr.col.id}` as any);
+                      }}
                       activeOpacity={0.8}
                     >
+                      {selMode && (
+                        <View style={styles.selCheck}>
+                          <Feather name={selectedIds.has(cr.col.id) ? "check-circle" : "circle"} size={20} color={selectedIds.has(cr.col.id) ? colors.primary : colors.textMuted} />
+                        </View>
+                      )}
                       {/* Color accent bar */}
                       <LinearGradient colors={grad} style={styles.colCardBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
 
@@ -531,6 +642,22 @@ export default function FlashcardBrowseAll() {
                               <Feather name="play" size={14} color={colors.success} />
                               <Text style={[styles.colActionText, { color: colors.success }]}>Main</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.colAction}
+                              onPress={() => handleExportPDF(cr.col.id, cr.col.name)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="file-text" size={14} color={colors.primary} />
+                              <Text style={[styles.colActionText, { color: colors.primary }]}>PDF</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.colAction}
+                              onPress={() => handleExportWS(cr.col.id, cr.col.name)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="edit-3" size={14} color={colors.accent} />
+                              <Text style={[styles.colActionText, { color: colors.accent }]}>WS</Text>
+                            </TouchableOpacity>
                             <View style={styles.colActionDivider} />
                           </>
                         )}
@@ -585,12 +712,16 @@ export default function FlashcardBrowseAll() {
                     {lessons.map((row) => (
                       <TouchableOpacity
                         key={row.lesson.id}
-                        style={[styles.lessonRow, { opacity: row.count === 0 ? 0.5 : 1 }]}
+                        style={[styles.lessonRow, { opacity: row.count === 0 ? 0.5 : 1 }, selectedIds.has(row.lesson.id) && { backgroundColor: colors.primary + "10", borderColor: colors.primary, borderWidth: 1 }]}
                         onPress={() => {
-                          if (row.count > 0) router.push(`/flashcard/${row.lesson.id}` as any);
+                          if (selMode) toggleSelect(row.lesson.id);
+                          else if (row.count > 0) router.push(`/flashcard/${row.lesson.id}` as any);
                         }}
                         activeOpacity={0.7}
                       >
+                        {selMode && (
+                          <Feather name={selectedIds.has(row.lesson.id) ? "check-square" : "square"} size={18} color={selectedIds.has(row.lesson.id) ? colors.primary : colors.textMuted} style={{ marginRight: 10 }} />
+                        )}
                         <View style={styles.lessonLeft}>
                           <View style={styles.lessonDot} />
                           <View style={{ flex: 1 }}>
@@ -606,6 +737,18 @@ export default function FlashcardBrowseAll() {
                               <View style={[styles.countChip, { backgroundColor: grad[0] + "18" }]}>
                                 <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count} kartu</Text>
                               </View>
+                              <TouchableOpacity 
+                                style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: grad[0] + "40", marginRight: 6 }]}
+                                onPress={() => handleExportPDF(row.lesson.id, row.lesson.name)}
+                              >
+                                <Feather name="file-text" size={12} color={grad[0]} />
+                              </TouchableOpacity>
+                              <TouchableOpacity 
+                                style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accent + "60", marginRight: 6 }]}
+                                onPress={() => handleExportWS(row.lesson.id, row.lesson.name)}
+                              >
+                                <Feather name="edit-3" size={12} color={colors.accent} />
+                              </TouchableOpacity>
                               <View style={[styles.startBtn, { backgroundColor: grad[0] }]}>
                                 <Feather name="play" size={12} color="#fff" />
                               </View>
@@ -729,4 +872,8 @@ const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   amItemSub: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   amEmpty: { alignItems: "center", paddingVertical: 36, gap: 10 },
   amEmptyText: { fontSize: 14, color: c.textMuted, fontWeight: "600" },
+  batchFab: { position: "absolute", right: 20, width: 64, height: 64, borderRadius: 24, backgroundColor: c.primary, alignItems: "center", justifyContent: "center", zIndex: 60, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 12 },
+  batchCount: { position: "absolute", top: -5, right: -5, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.primary },
+  batchCountText: { fontSize: 12, fontWeight: "900", color: c.primary },
+  selCheck: { position: "absolute", top: 12, right: 12, zIndex: 10 },
 });

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "exportedAt": "2026-04-26T12:08:36.266Z",
+  "paths": [
+    {
+      "id": "lp-N2-1777205316279n52mabb",
+      "name": "JLPT N2 Practice",
+      "description": "Collection of exams and exercises for JLPT N2 level.",
+      "userId": "local",
+      "tags": [
+        "JLPT",
+        "N2"
+      ],
+      "createdAt": "2026-04-26T12:08:36.266Z"
+    }
+  ],
+  "modules": [
+    {
+      "id": "mod-1-1777205316279hpai6uv",
+      "pathId": "lp-N2-1777205316279n52mabb",
+      "name": "Exam #1",
+      "description": "Full JLPT practice exam number 1",
+      "order": 1,
+      "createdAt": "2026-04-26T12:08:36.266Z"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "les-0-1777205316279pcaz0zc",
+      "moduleId": "mod-1-1777205316279hpai6uv",
+      "name": "Từ Vựng (文字語彙) — Kosakata",
+      "description": "Đề thi JLPT N2 phần Từ Vựng,Ngữ pháp tháng 1 tahun 1 - dethitiengnhat.com",
+      "order": 1,
+      "createdAt": "2026-04-26T12:08:36.266Z"
+    }
+  ],
+  "flashcardPacks": [],
+  "quizPacks": [
+    {
+      "id": "qp-les-0-1777205316279pcaz0zc",
+      "lessonId": "les-0-1777205316279pcaz0zc",
+      "name": "Từ Vựng (文字語彙) — Kosakata",
+      "createdAt": "2026-04-26T12:08:36.266Z"
+    }
+  ],
+  "flashcards": [],
+  "quizzes": [
+    {
+      "id": "q-1777205316279zbqakb5",
+      "lessonId": "les-0-1777205316279pcaz0zc",
+      "packId": "qp-les-0-1777205316279pcaz0zc",
+      "question": "1. この画像は画面上で《縮小》できます",
+      "options": [
+        "しゅくしょ",
+        "しゅうしょ",
+        "しゅくしょう",
+        "しゅうしょう"
+      ],
+      "answer": "しゅくしょう",
+      "type": "multiple-choice",
+      "createdAt": "2026-04-26T12:08:36.266Z"
+    }
+  ],
+  "materials": [],
+  "notes": []
+}

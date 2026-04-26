@@ -268,6 +268,15 @@ export default function LearnPage() {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
+              onPress={() => router.push("/import-jlpt")}
+              style={styles.addBtn}
+              activeOpacity={0.8}
+            >
+              <LinearGradient colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.1)"]} style={styles.addGrad}>
+                <Feather name="file-text" size={19} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => setShowNewPath(true)}
               style={styles.addBtn}
               activeOpacity={0.8}
@@ -342,6 +351,21 @@ export default function LearnPage() {
                 </View>
                 <Text style={styles.emptyTitle}>{t.learn.empty_title}</Text>
                 <Text style={styles.emptySub}>Tap untuk membuat jalur belajarmu sendiri</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push("/import-jlpt")} activeOpacity={0.85}>
+              <LinearGradient
+                colors={[colors.purple, colors.accent]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={[styles.emptyCard, { marginTop: 12 }]}
+              >
+                <View style={styles.hdot1} /><View style={styles.hdot2} />
+                <View style={styles.emptyIconWrap}>
+                  <Feather name="book-open" size={40} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.emptyTitle}>JLPT Smart Import</Text>
+                <Text style={styles.emptySub}>Impor ribuan soal JLPT dari file JSON secara instan</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

@@ -101,6 +101,10 @@ export interface Flashcard {
   images?: string[];
   /** All images on the BACK (answer) side. */
   imagesBack?: string[];
+  /** Optional translation of the front side. */
+  qTranslation?: string;
+  /** Optional translation of the back side. */
+  aTranslation?: string;
   /** All audio clips on the FRONT (question) side. `audio` is index 0. */
   audios?: string[];
   /** All audio clips on the BACK (answer) side. */
@@ -128,10 +132,12 @@ export interface Quiz {
   image?: string;
   /** Optional local audio file URI played during the quiz. */
   audio?: string;
-  /** 'standard' or 'listening' mode (TTS) */
-  template?: "standard" | "listening";
   /** Optional separate script for TTS */
   ttsScript?: string;
+  /** Optional translation of the question. */
+  questionTranslation?: string;
+  /** Optional translation of the explanation. */
+  explanationTranslation?: string;
   createdAt: string;
 }
 

@@ -41,6 +41,8 @@ import {
   type Lesson,
   type SpacedRepData,
 } from "@/utils/storage";
+import { tokenizeJapanese, lookupWord, type DictEntry } from "@/utils/dictionary";
+import { WordPopup } from "@/components/WordPopup";
 import { Feather } from "@expo/vector-icons";
 import { type ColorScheme } from "@/constants/colors";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -160,6 +162,10 @@ export default function FlashcardScreen() {
   const [fullscreenImg, setFullscreenImg] = useState<string | null>(null);
   const [scriptRevealed, setScriptRevealed] = useState(false);
 
+  // Dictionary Popup State
+  const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+
   const card = cards[currentIndex];
 
   // ── Imperative audio player (BUG FIX) ───────────────────────────────────
@@ -261,6 +267,14 @@ export default function FlashcardScreen() {
     xpAnim.setValue(0);
     Animated.timing(xpAnim, { toValue: 1, duration: 1200, useNativeDriver: true }).start();
   };
+
+  const handleWordTap = useCallback((word: string) => {
+    const entry = lookupWord(word);
+    if (entry) {
+      setActiveWord(entry);
+      setShowPopup(true);
+    }
+  }, []);
 
   const handleFlip = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -651,9 +665,16 @@ export default function FlashcardScreen() {
             isListeningTemplate={card?.template === "listening"}
             scriptRevealed={scriptRevealed}
             onRevealScript={() => setScriptRevealed(true)}
+            onWordTap={handleWordTap}
           />
         </CardErrorBoundary>
       )}
+
+      <WordPopup 
+        visible={showPopup}
+        entry={activeWord}
+        onClose={() => setShowPopup(false)}
+      />
 
       {/* Image Modal */}
       <Modal visible={!!fullscreenImg} transparent animationType="fade" onRequestClose={() => setFullscreenImg(null)}>
@@ -830,6 +851,7 @@ interface FlashcardCardViewProps {
   isListeningTemplate?: boolean;
   scriptRevealed?: boolean;
   onRevealScript?: () => void;
+  onWordTap: (word: string) => void;
 }
 
 function FlashcardCardView({
@@ -850,6 +872,7 @@ function FlashcardCardView({
   isListeningTemplate,
   scriptRevealed,
   onRevealScript,
+  onWordTap,
 }: FlashcardCardViewProps) {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -960,9 +983,20 @@ function FlashcardCardView({
                   <Text style={styles.revealBtnText}>Lihat Script</Text>
                 </TouchableOpacity>
               ) : (
-                <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }]}>
-                  {questionText}
-                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {tokenizeJapanese(questionText).map((token, i) => {
+                    const entry = lookupWord(token);
+                    return (
+                      <Text 
+                        key={i} 
+                        style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
+                        onPress={entry ? () => onWordTap(token) : undefined}
+                      >
+                        {token}
+                      </Text>
+                    );
+                  })}
+                </View>
               )}
 
               <View style={styles.ttsRow}>
@@ -991,7 +1025,20 @@ function FlashcardCardView({
             >
               {flipped && renderImageStrip(backImages)}
               <Text style={styles.cardHint}>Jawaban</Text>
-              <Text style={[styles.cardText, { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }]}>{answerText}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {tokenizeJapanese(answerText).map((token, i) => {
+                  const entry = lookupWord(token);
+                  return (
+                    <Text 
+                      key={i} 
+                      style={[styles.cardText, { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
+                      onPress={entry ? () => onWordTap(token) : undefined}
+                    >
+                      {token}
+                    </Text>
+                  );
+                })}
+              </View>
               <View style={styles.ttsRow}>
                 <TouchableOpacity onPress={(e) => { e.stopPropagation(); speakText(answerText); }} style={styles.ttsBtn}>
                   <Volume2 size={16} color={colors.primary} />

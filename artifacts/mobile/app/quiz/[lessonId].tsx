@@ -9,11 +9,12 @@ import {
   ScrollView,
   Image,
   Animated,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, ChevronRight, Check, Plus, RotateCcw, Volume2, Timer as TimerIcon } from "lucide-react-native";
-import { Modal, TextInput } from "react-native";
 import { useAudioPlayer } from "expo-audio";
 import { Feather } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
@@ -32,6 +33,8 @@ import {
   type Quiz,
   type Lesson,
 } from "@/utils/storage";
+import { tokenizeJapanese, lookupWord, type DictEntry } from "@/utils/dictionary";
+import { WordPopup } from "@/components/WordPopup";
 import { type ColorScheme } from "@/constants/colors";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
@@ -60,10 +63,12 @@ export default function QuizScreen() {
   const [lessonName, setLessonName] = useState("");
   const [bookmarked, setBookmarked] = useState(false);
   const [showQText, setShowQText] = useState(false);
-  const [examTime, setExamTime] = useState<number>(0); // 0 = no exam
+  const [examTime, setExamTime] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [showExamModal, setShowExamModal] = useState(false);
-  const [examInput, setExamInput] = useState("10"); // default 10 mins
+  const [examInput, setExamInput] = useState("10");
+  const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,7 +78,6 @@ export default function QuizScreen() {
       const data = await getQuizzes(lessonId);
       setQuizzes(data);
       
-      // Auto-increment course usage
       if (lessonId && !lessonId.startsWith("__sc__")) {
         const { incrementCourseOpen } = await import("@/utils/storage");
         incrementCourseOpen(lessonId);
@@ -113,22 +117,14 @@ export default function QuizScreen() {
     try {
       await Speech.stop();
       const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
-      
-      // Auto Detection Logic
-      let lang = "id-ID"; // Default to Indonesian
+      let lang = "id-ID";
       const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(cleanText);
-      if (hasJapanese) {
-        lang = "ja-JP";
-      }
+      if (hasJapanese) lang = "ja-JP";
 
       await Speech.speak(cleanText, {
         language: lang,
         rate: 0.9,
         volume: 1.0,
-        onError: (err) => {
-          console.warn("Speech Error:", err);
-          Speech.speak(cleanText, { rate: 0.9, volume: 1.0 });
-        }
       });
     } catch (e) {
       console.error("Critical TTS Error:", e);
@@ -139,7 +135,7 @@ export default function QuizScreen() {
     if (currentIndex < quizzes.length && quizzes[currentIndex]) {
       const q = quizzes[currentIndex];
       isBookmarked(q.id, "quiz").then(setBookmarked);
-      setShowQText(q.template !== "listening"); // Hide text by default for listening
+      setShowQText(q.template !== "listening");
       
       if (q.template === "listening") {
         const timer = setTimeout(() => {
@@ -157,7 +153,6 @@ export default function QuizScreen() {
     };
   }, [currentIndex, quizzes, playTTS, playQuestionAudio]);
 
-  // Timer logic
   useEffect(() => {
     if (examTime > 0 && !done) {
       timerRef.current = setInterval(() => {
@@ -190,6 +185,14 @@ export default function QuizScreen() {
     setBookmarked(added);
   };
 
+  const handleWordTap = (word: string) => {
+    const entry = lookupWord(word);
+    if (entry) {
+      setActiveWord(entry);
+      setShowPopup(true);
+    }
+  };
+
   const triggerXP = () => {
     xpAnim.setValue(0);
     Animated.timing(xpAnim, { toValue: 1, duration: 1200, useNativeDriver: true }).start();
@@ -201,10 +204,7 @@ export default function QuizScreen() {
     setIsAnswered(true);
 
     const correct = currentQuiz.options[idx] === currentQuiz.answer;
-    Haptics.impactAsync(
-      correct ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium
-    );
-
+    Haptics.impactAsync(correct ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
     if (correct) setScore((s) => s + 1);
 
     await saveProgress({
@@ -229,6 +229,7 @@ export default function QuizScreen() {
       setCurrentIndex((i) => i + 1);
       setSelectedOption(null);
       setIsAnswered(false);
+      setShowQText(currentQuiz.template !== "listening");
     } else {
       finishQuiz();
     }
@@ -279,10 +280,7 @@ export default function QuizScreen() {
       <View style={styles.center}>
         <Text style={styles.emptyTitle}>{t.quiz.empty_title}</Text>
         <Text style={styles.emptySub}>{t.quiz.empty_sub}</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => router.push(`/create-quiz/${lessonId}`)}
-        >
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push(`/create-quiz/${lessonId}`)}>
           <Plus size={16} color={colors.white} />
           <Text style={styles.addBtnText}>{t.quiz.add_btn}</Text>
         </TouchableOpacity>
@@ -300,12 +298,7 @@ export default function QuizScreen() {
     const xpOpacity = xpAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 1, 0] });
     const xpScale = xpAnim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0.5, 1.2, 1] });
     return (
-      <View
-        style={[
-          styles.resultWrap,
-          { paddingTop: Platform.OS === "web" ? 80 : insets.top + 24 },
-        ]}
-      >
+      <View style={[styles.resultWrap, { paddingTop: Platform.OS === "web" ? 80 : insets.top + 24 }]}>
         <Animated.View style={[styles.xpBadge, { opacity: xpOpacity, transform: [{ translateY: xpTranslateY }, { scale: xpScale }] }]}>
           <Text style={styles.xpText}>+{xpEarned} XP ⚡</Text>
         </Animated.View>
@@ -314,52 +307,28 @@ export default function QuizScreen() {
         <Text style={styles.resultScore}>{pct}%</Text>
         <Text style={styles.resultSub}>{t.quiz.result_score(score, quizzes.length)}</Text>
         <View style={{ width: "100%", marginVertical: 8 }}>
-          <ProgressBar
-            value={pct}
-            color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger}
-            height={10}
-          />
+          <ProgressBar value={pct} color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger} height={10} />
         </View>
-        <View style={styles.resultBtns}>
-          <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
-            <RotateCcw size={16} color={colors.white} />
-            <Text style={styles.restartBtnText}>{t.common.restart}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
-            <Text style={styles.doneBtnText}>{t.common.done}</Text>
+        <View style={styles.resultActions}>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
+            <Text style={styles.btnText}>Selesai</Text>
           </TouchableOpacity>
         </View>
         {nextLesson && (
-          <TouchableOpacity
-            style={styles.nextLessonBtn}
-            onPress={() => router.replace(`/quiz/${nextLesson.id}`)}
-          >
+          <TouchableOpacity style={styles.nextLessonBtn} onPress={() => router.replace(`/quiz/${nextLesson.id}`)}>
             <Text style={styles.nextLessonBtnText}>{t.common.next}: {nextLesson.name}</Text>
             <Text style={styles.nextLessonArrow}>→</Text>
           </TouchableOpacity>
         )}
-        <AchievementPopup
-          visible={showAchievement}
-          type={achievementValue >= 100 ? "quiz_perfect" : "quiz_done"}
-          value={achievementValue}
-          onClose={() => setShowAchievement(false)}
-        />
+        <AchievementPopup visible={showAchievement} type={achievementValue >= 100 ? "quiz_perfect" : "quiz_done"} value={achievementValue} onClose={() => setShowAchievement(false)} />
+        <WordPopup visible={showPopup} entry={activeWord} onClose={() => setShowPopup(false)} />
         <AdBanner size="adaptiveBanner" style={{ marginTop: 16, width: "100%" }} />
       </View>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: Platform.OS === "web" ? 74 : insets.top + 12,
-          paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
-        },
-      ]}
-    >
-      {/* Nav */}
+    <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 74 : insets.top + 12, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20 }]}>
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
           <X size={20} color={colors.text} />
@@ -372,59 +341,57 @@ export default function QuizScreen() {
           <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
             <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : colors.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push(`/create-quiz/${lessonId}`)}
-            style={styles.navBtn}
-          >
+          <TouchableOpacity onPress={() => router.push(`/create-quiz/${lessonId}`)} style={styles.navBtn}>
             <Plus size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Exam Header */}
       {examTime > 0 && (
         <View style={styles.examBar}>
-          <Text style={[styles.timerText, timeLeft < 60 && { color: colors.danger }]}>
-            ⏱ {formatTime(timeLeft)}
-          </Text>
+          <Text style={[styles.timerText, timeLeft < 60 && { color: colors.danger }]}>⏱ {formatTime(timeLeft)}</Text>
           <Text style={styles.examLabel}>Mode Tryout</Text>
         </View>
       )}
 
-      {/* Progress */}
       <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
         <ProgressBar value={progress} height={6} />
       </View>
 
-      {/* Question + Image */}
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.questionCard}>
           <Text style={styles.questionLabel}>{t.quiz.question_label(currentIndex + 1)}</Text>
-          {/* Image above question */}
           {currentQuiz.image && (
-            <Image
-              source={{ uri: resolveAssetUri(currentQuiz.image) }}
-              style={styles.questionImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: resolveAssetUri(currentQuiz.image) }} style={styles.questionImage} resizeMode="cover" />
           )}
-          {/* Question Text with Listening Mode Support */}
           {currentQuiz.template === "listening" && !showQText && !isAnswered ? (
             <View style={styles.listeningPlaceholder}>
-              <Volume2 size={42} color={colors.primary} />
-              <Text style={styles.listeningHint}>Dengarkan naskah suara...</Text>
-              <TouchableOpacity 
-                style={styles.peekBtn}
-                onPress={() => setShowQText(true)}
-              >
+              <Volume2 size={40} color={colors.primary} />
+              <Text style={styles.listeningHint}>Dengarkan soal audio</Text>
+              <TouchableOpacity style={styles.peekBtn} onPress={() => setShowQText(true)}>
                 <Text style={styles.peekBtnText}>Lihat Teks Soal</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <Text style={styles.questionText}>{currentQuiz.question}</Text>
+            <View style={styles.questionContainer}>
+              <View style={styles.tokenRow}>
+                {tokenizeJapanese(currentQuiz.question).map((token, i) => {
+                  const entry = lookupWord(token);
+                  return (
+                    <Text 
+                      key={i} 
+                      style={[styles.questionText, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
+                      onPress={entry ? () => handleWordTap(token) : undefined}
+                    >
+                      {token}
+                    </Text>
+                  );
+                })}
+              </View>
+              {currentQuiz.questionTranslation && (
+                <Text style={styles.questionTranslationText}>{currentQuiz.questionTranslation}</Text>
+              )}
+            </View>
           )}
 
           {currentQuiz.template === "listening" && (
@@ -555,6 +522,12 @@ export default function QuizScreen() {
           </View>
         </View>
       </Modal>
+
+      <WordPopup 
+        visible={showPopup}
+        entry={activeWord}
+        onClose={() => setShowPopup(false)}
+      />
     </View>
   );
 }
@@ -635,11 +608,26 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     height: 160,
     borderRadius: 16,
   },
+  questionContainer: {
+    width: "100%",
+  },
+  tokenRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
   questionText: {
     fontSize: 19,
     fontWeight: "800",
     color: c.text,
-    lineHeight: 26,
+    lineHeight: 28,
+  },
+  questionTranslationText: {
+    fontSize: 14,
+    color: c.textSecondary,
+    marginTop: 8,
+    fontStyle: "italic",
+    lineHeight: 20,
   },
   questionAudioBtn: {
     marginTop: 12,

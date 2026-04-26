@@ -1,0 +1,30 @@
+[
+  {
+    "level": "N2",
+    "exam_number": 1,
+    "total_questions": 73,
+    "sections": [
+      {
+        "section": "1",
+        "section_name": "Từ Vựng (文字語彙) — Kosakata",
+        "url": "https://dethitiengnhat.com/jlpt/N2/1/1",
+        "title": "Đề thi JLPT N2 phần Từ Vựng,Ngữ pháp tháng 1 tahun 1 - dethitiengnhat.com",
+        "total_questions": 52,
+        "questions": [
+          {
+            "number": 1,
+            "question": "1. この画像は画面上で《縮小》できます",
+            "choices": {
+              "1": "しゅくしょ",
+              "2": "しゅうしょ",
+              "3": "しゅくしょう",
+              "4": "しゅうしょう"
+            },
+            "correct_answer": "3",
+            "correct_text": "しゅくしょう"
+          }
+        ]
+      }
+    ]
+  }
+]

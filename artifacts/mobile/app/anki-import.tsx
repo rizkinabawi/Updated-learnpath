@@ -38,6 +38,7 @@ import {
 } from "@/utils/storage";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { parseAnkiPackage, ParseProgress, AnkiImportError } from "@/utils/anki-parser";
+import { isFeatureAllowed } from "@/utils/security/app-license";
 
 interface ParsedDeck {
   name: string;

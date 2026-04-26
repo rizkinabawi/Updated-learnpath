@@ -158,6 +158,7 @@ export default function FlashcardScreen() {
   const [flipAnim] = useState(new Animated.Value(0));
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [fullscreenImg, setFullscreenImg] = useState<string | null>(null);
+  const [scriptRevealed, setScriptRevealed] = useState(false);
 
   const card = cards[currentIndex];
 
@@ -234,8 +235,19 @@ export default function FlashcardScreen() {
   useEffect(() => {
     if (cards[currentIndex]) {
       isBookmarked(cards[currentIndex].id, "flashcard").then(setBookmarked);
+      setScriptRevealed(false); // Reset reveal state on card change
+
+      // Auto-play TTS if in listening mode
+      const card = cards[currentIndex];
+      if (viewMode === "card" && card.template === "listening") {
+        const textToSpeak = card.ttsScript || card.question;
+        // Delay slightly for smooth transition
+        setTimeout(() => {
+          speakText(textToSpeak);
+        }, 600);
+      }
     }
-  }, [currentIndex, cards]);
+  }, [currentIndex, cards, viewMode, speakText]);
 
   const handleBookmark = async () => {
     const card = cards[currentIndex];
@@ -636,6 +648,9 @@ export default function FlashcardScreen() {
             frontAudios={frontAudiosAll}
             backAudios={backAudiosAll}
             t={t}
+            isListeningTemplate={card?.template === "listening"}
+            scriptRevealed={scriptRevealed}
+            onRevealScript={() => setScriptRevealed(true)}
           />
         </CardErrorBoundary>
       )}
@@ -812,6 +827,9 @@ interface FlashcardCardViewProps {
   frontAudios: string[];
   backAudios: string[];
   t: any;
+  isListeningTemplate?: boolean;
+  scriptRevealed?: boolean;
+  onRevealScript?: () => void;
 }
 
 function FlashcardCardView({
@@ -829,6 +847,9 @@ function FlashcardCardView({
   frontAudios,
   backAudios,
   t,
+  isListeningTemplate,
+  scriptRevealed,
+  onRevealScript,
 }: FlashcardCardViewProps) {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -929,11 +950,25 @@ function FlashcardCardView({
             >
               {!flipped && renderImageStrip(frontImages)}
               <Text style={styles.cardHint}>Pertanyaan</Text>
-              <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }]}>{questionText}</Text>
+              
+              {isListeningTemplate && !scriptRevealed ? (
+                <TouchableOpacity 
+                  onPress={(e) => { e.stopPropagation(); onRevealScript?.(); }} 
+                  style={styles.revealBtn}
+                >
+                  <Feather name="eye" size={20} color={colors.primary} />
+                  <Text style={styles.revealBtnText}>Lihat Script</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }]}>
+                  {questionText}
+                </Text>
+              )}
+
               <View style={styles.ttsRow}>
                 <TouchableOpacity onPress={(e) => { e.stopPropagation(); speakText(questionText); }} style={styles.ttsBtn}>
                   <Volume2 size={16} color={colors.primary} />
-                  <Text style={styles.ttsText}>TTS</Text>
+                  <Text style={styles.ttsText}>ULANGI</Text>
                 </TouchableOpacity>
               </View>
               {!flipped && renderAudioButtons(frontAudios)}
@@ -1153,6 +1188,20 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     borderRadius: 10,
   },
   ttsText: { fontSize: 11, fontWeight: "800", color: c.primary },
+  revealBtn: {
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.1)" : c.primaryLight,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: c.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 10,
+  },
+  revealBtnText: { color: c.primary, fontWeight: "800", fontSize: 14 },
   tableScroll: { paddingHorizontal: 16, paddingBottom: 28 },
   tableCard: {
     backgroundColor: c.surface,

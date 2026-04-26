@@ -99,6 +99,14 @@ export interface Flashcard {
   audios?: string[];
   /** All audio clips on the BACK (answer) side. */
   audiosBack?: string[];
+  /** 
+   * The UI template to use. 
+   * 'standard': Normal question/answer view.
+   * 'listening': Hide question text behind a button and auto-play TTS on start.
+   */
+  template?: "standard" | "listening";
+  /** Optional separate script for TTS (if different from the visible question text). */
+  ttsScript?: string;
   createdAt: string;
 }
 

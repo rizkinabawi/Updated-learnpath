@@ -146,7 +146,27 @@ export default function Onboarding() {
     router.replace("/(tabs)");
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    // Persist a minimal default user so the home screen's "no user → redirect
+    // to /onboarding" gate is satisfied. Without this, Skip → /(tabs) → no
+    // user → router.replace("/onboarding") and the user is stuck in a loop
+    // between the guide and the home screen (especially visible on web where
+    // there is no native back-stack to break it).
+    try {
+      const existing = await getUser();
+      if (!existing) {
+        await saveUser({
+          id: generateId(),
+          name: "Learner",
+          goal: "Belajar hal baru",
+          topic: "Umum",
+          level: "beginner",
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch {
+      /* swallow — even if storage fails, keep navigating so the user is not stuck */
+    }
     router.replace("/(tabs)");
   };
 

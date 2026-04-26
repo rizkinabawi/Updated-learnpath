@@ -13,7 +13,6 @@ import {
   InteractionManager,
   Modal,
   TouchableWithoutFeedback,
-  Alert,
   type ListRenderItem,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";

@@ -87,6 +87,7 @@
     "react-native-view-shot": "^4.0.3",
     "react-native-webview": "13.15.0",
     "sql.js": "^1.14.1",
-    "tailwind-merge": "catalog:"
+    "tailwind-merge": "catalog:",
+    "expo-updates": "~29.0.16"
   }
 }

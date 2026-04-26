@@ -4,6 +4,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Alert,
   StyleSheet,
   Platform,
   ScrollView,
@@ -18,7 +19,12 @@ import {
   X,
   PencilLine,
   Clock,
+  Download,
 } from "lucide-react-native";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "@/utils/fs-compat";
+import { toast } from "@/components/Toast";
 import { getNotes, getLessons, type Note } from "@/utils/storage";
 import { resolveAssetUri } from "@/utils/path-resolver";
 import { type ColorScheme } from "@/constants/colors";
@@ -103,6 +109,65 @@ export default function NoteFullView() {
     });
   };
 
+  const exportSingleToPDF = async () => {
+    if (!current) return;
+    try {
+      const html = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1a1a1a; line-height: 1.6; }
+              .course { font-size: 13px; color: #6366f1; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+              .title { font-size: 28px; font-weight: 900; margin-bottom: 5px; border-bottom: 2px solid #6366f1; padding-bottom: 10px; }
+              .date { font-size: 11px; color: #666; margin-bottom: 30px; }
+              .content { font-size: 15px; white-space: pre-wrap; color: #333; }
+              .footer { margin-top: 60px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="course">${lessonName}</div>
+            <div class="title">${current.title}</div>
+            <div class="date">Dicatat pada: ${formatDateTime(current.updatedAt)}</div>
+            <div class="content">${current.content}</div>
+            <div class="footer">Dibuat otomatis oleh LearnPath - ${new Date().toLocaleDateString()}</div>
+          </body>
+        </html>
+      `;
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
+    } catch {
+      toast.error("Gagal mengekspor PDF");
+    }
+  };
+
+  const exportSingleToTxt = async () => {
+    if (!current) return;
+    try {
+      let text = `${current.title.toUpperCase()}\n`;
+      text += `Pelajaran: ${lessonName}\n`;
+      text += `Tanggal: ${formatDateTime(current.updatedAt)}\n`;
+      text += `==========================================\n\n`;
+      text += current.content;
+      text += `\n\n------------------------------------------\n`;
+      text += `Dibuat via LearnPath App`;
+
+      const fileName = `catatan-${current.title.replace(/\s+/g, "_").toLowerCase()}.txt`;
+      const path = ((FileSystem as any).cacheDirectory ?? "") + fileName;
+      await (FileSystem as any).writeAsStringAsync(path, text);
+      await Sharing.shareAsync(path);
+    } catch {
+      toast.error("Gagal mengekspor TXT");
+    }
+  };
+
+  const handleExport = () => {
+    Alert.alert("Ekspor Catatan", "Simpan catatan ini sebagai file.", [
+      { text: "PDF (Rapi)", onPress: exportSingleToPDF },
+      { text: "Teks (.txt)", onPress: exportSingleToTxt },
+      { text: "Batal", style: "cancel" }
+    ], { cancelable: true });
+  };
+
   if (!current) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
@@ -133,6 +198,9 @@ export default function NoteFullView() {
             {current.title}
           </Text>
         </View>
+        <TouchableOpacity onPress={handleExport} style={[styles.editBtn, { backgroundColor: "rgba(255,255,255,0.15)", marginRight: 6 }]}>
+          <Download size={16} color={colors.white} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={goEdit} style={styles.editBtn}>
           <PencilLine size={16} color={colors.white} />
           <Text style={styles.editBtnText}>Edit</Text>

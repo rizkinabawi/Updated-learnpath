@@ -14,8 +14,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
-  getUser, getLearningPaths, getModules, getLessons, getStats, getWrongAnswers,
+  getUser, getModules, getLessons, getStats, getWrongAnswers,
   getCompletedLessons,
+  getSortedLearningPaths,
+  toggleCourseFavorite,
   type User, type LearningPath, type Module, type Lesson, type Stats,
 } from "@/utils/storage";
 import { CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type ColorScheme } from "@/constants/colors";
@@ -92,7 +94,7 @@ export default function Dashboard() {
 
   const load = async () => {
     const [u, p, mods, lessons, s, w, c] = await Promise.all([
-      getUser(), getLearningPaths(), getModules(), getLessons(), getStats(), getWrongAnswers(),
+      getUser(), getSortedLearningPaths(), getModules(), getLessons(), getStats(), getWrongAnswers(),
       getCompletedLessons(),
     ]);
     if (!u) { router.replace("/onboarding"); return; }
@@ -112,6 +114,15 @@ export default function Dashboard() {
   const firstName = user?.name?.split(" ")[0] ?? "Learner";
   const dateStr = t.home.date_format(t.home.days[now.getDay()], now.getDate(), t.home.months[now.getMonth()]);
   const todayQuote = QUOTES[(now.getDate() + now.getMonth() * 3) % QUOTES.length];
+
+  const handleToggleFavorite = async (pathId: string) => {
+    const newVal = await toggleCourseFavorite(pathId);
+    setPaths(prev => prev.map(p => p.id === pathId ? { ...p, isFavorite: newVal } : p).sort((a, b) => {
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      return (b.openCount || 0) - (a.openCount || 0);
+    }));
+  };
 
   // Fix hardcoded color dependencies by using palette-safe tokens
   const headerGradient: [string, string] = (palette === "minimal" && isDark)
@@ -303,7 +314,12 @@ export default function Dashboard() {
                     </LinearGradient>
 
                     <View style={styles.courseCardBody}>
-                      <Text style={styles.courseName} numberOfLines={1}>{path.name}</Text>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <Text style={styles.courseName} numberOfLines={1}>{path.name}</Text>
+                        <TouchableOpacity onPress={() => handleToggleFavorite(path.id)} style={{ padding: 4 }}>
+                          <Feather name="star" size={14} color={path.isFavorite ? colors.amber : colors.textMuted} fill={path.isFavorite ? colors.amber : "transparent"} />
+                        </TouchableOpacity>
+                      </View>
                       {!!path.description && (
                         <Text style={styles.courseSub} numberOfLines={1}>{path.description}</Text>
                       )}

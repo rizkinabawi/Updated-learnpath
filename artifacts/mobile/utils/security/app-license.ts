@@ -42,6 +42,7 @@ export interface AppLicense {
   issuedAt: number;
   expiry: number;
   deviceId?: string;
+  mode?: "trial" | "full"; // New: distinguish types
   signature: string; // base64
 }
 
@@ -69,7 +70,8 @@ function isLicense(v: unknown): v is AppLicense {
     typeof k.issuedAt === "number" &&
     typeof k.expiry === "number" &&
     typeof k.signature === "string" &&
-    (k.deviceId === undefined || typeof k.deviceId === "string")
+    (k.deviceId === undefined || typeof k.deviceId === "string") &&
+    (k.mode === undefined || k.mode === "trial" || k.mode === "full")
   );
 }
 
@@ -155,11 +157,36 @@ export async function isAppActivated(): Promise<boolean> {
   return err === null;
 }
 
-/** Wipe the stored license (factory reset / debugging). */
-export async function clearLicense(): Promise<void> {
-  await secureDelete(STORE_KEY);
+/** Get current license info plus trial status. */
+export async function getLicenseDetails() {
+  const stored = await readStoredLicense();
+  if (!stored) return null;
+  const isExpired = Date.now() > stored.expiry;
+  const mode = stored.mode || "full";
+  const daysLeft = Math.ceil((stored.expiry - Date.now()) / (1000 * 60 * 60 * 24));
+  
+  return {
+    ...stored,
+    isExpired,
+    mode,
+    daysLeft,
+    isTrial: mode === "trial",
+    nearExpiry: daysLeft <= 7 && daysLeft > 0
+  };
 }
 
+/** Utility to check if a feature is allowed. */
+export async function isFeatureAllowed(feature: "anki" | "bundle" | "pip"): Promise<boolean> {
+  const details = await getLicenseDetails();
+  if (!details || details.isExpired) return false;
+  if (details.mode === "trial") {
+    // Specifically block these in trial
+    return false;
+  }
+  return true;
+}
+
+/** Error message helper. */
 export function describeLicenseError(err: LicenseError): string {
   switch (err) {
     case "MISSING_FIELDS":

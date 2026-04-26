@@ -51,7 +51,7 @@ import {
   type Quiz,
   type QuizPack,
 } from "@/utils/storage";
-import { type ColorScheme } from "@/constants/colors";
+import { type ColorScheme, isDarkActive } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
@@ -139,7 +139,8 @@ const buildAIPrompt = (
   count: number,
   difficulty: string,
   language: string = "Bahasa Indonesia",
-  customNote: string = ""
+  customNote: string = "",
+  forceTemplate: "standard" | "listening" = "standard"
 ) => {
   const diffLabel =
     difficulty === "easy"
@@ -159,26 +160,30 @@ PENTING: Balas HANYA dengan array JSON murni. Jangan tambahkan teks, penjelasan,
 Format JSON yang WAJIB digunakan (contoh):
 [
   {
-    "question": "Apa fungsi dari useEffect di React?",
-    "options": [
-      "Mengelola side effects setelah render",
-      "Menyimpan state lokal komponen",
-      "Membuat komponen baru",
-      "Menghapus elemen dari DOM"
-    ],
-    "correct_answer": "Mengelola side effects setelah render",
-    "explanation": "useEffect dijalankan setelah setiap render dan digunakan untuk side effects seperti fetching data, subscription, atau manipulasi DOM."
+    "question": "What is 2+2?",
+    "options": ["3", "4", "5", "6"],
+    "correct_answer": "4",
+    "explanation": "Simple arithmetic.",
+    "template": "standard"
+  },
+  {
+    "question": "Listen and identify the word.",
+    "options": ["Apple", "Banana", "Orange", "Grape"],
+    "correct_answer": "Apple",
+    "explanation": "The audio says 'Apple'.",
+    "template": "listening",
+    "ttsScript": "Apple"
   }
 ]
 
 ATURAN WAJIB — wajib diikuti untuk setiap soal:
-1. Field "question": string berisi pertanyaan yang jelas
-2. Field "options": array berisi TEPAT 4 string pilihan jawaban (teks lengkap, BUKAN huruf A/B/C/D)
-3. Field "correct_answer": string yang IDENTIK SAMA PERSIS (huruf, spasi, tanda baca) dengan salah satu elemen di array "options"
-4. Field "explanation": string penjelasan singkat mengapa jawaban tersebut benar
-5. JANGAN gunakan "A", "B", "C", "D" sebagai nilai "correct_answer" — gunakan teks lengkap opsinya
-6. Tidak ada field lain selain "question", "options", "correct_answer", "explanation"
-7. Minimum ${Math.max(count, 5)} soal
+1. Field "question": string pertanyaan.
+2. Field "options": array TEPAT 4 string pilihan jawaban.
+3. Field "correct_answer": string identik dengan salah satu elemen di "options".
+4. Field "explanation": string penjelasan.
+5. Field "template" (Wajib): isi dengan "${forceTemplate}" untuk tipe soal ini.
+6. Field "ttsScript" (${forceTemplate === "listening" ? "Wajib" : "Opsional"}): naskah suara yang akan dibacakan sistem.
+7. Minimum ${Math.max(count, 5)} soal.
 8. Topik: ${topic}`;
 };
 
@@ -198,6 +203,8 @@ export default function CreateQuizScreen() {
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [existing, setExisting] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(false);
+  const [template, setTemplate] = useState<"standard" | "listening">("standard");
+  const [ttsScript, setTtsScript] = useState("");
 
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
@@ -216,6 +223,8 @@ export default function CreateQuizScreen() {
   const [editCorrectOption, setEditCorrectOption] = useState<number | null>(null);
   const [editImageUri, setEditImageUri] = useState<string | null>(null);
   const [editAudioUri, setEditAudioUri] = useState<string | null>(null);
+  const [editTemplate, setEditTemplate] = useState<"standard" | "listening">("standard");
+  const [editTtsScript, setEditTtsScript] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
   const previewPlayer = useAudioPlayer(audioUri ?? null);
@@ -248,6 +257,7 @@ export default function CreateQuizScreen() {
   const [promptTopic, setPromptTopic] = useState("");
   const [promptCount, setPromptCount] = useState("10");
   const [promptDifficulty, setPromptDifficulty] = useState("medium");
+  const [promptTemplate, setPromptTemplate] = useState<"standard" | "listening">("standard");
   const [promptLanguage, setPromptLanguage] = useState("Bahasa Indonesia");
   const [promptCustomNote, setPromptCustomNote] = useState("");
   const [promptCopied, setPromptCopied] = useState(false);
@@ -339,6 +349,8 @@ export default function CreateQuizScreen() {
       type: "multiple-choice",
       image: savedImage,
       audio: savedAudio,
+      template: template,
+      ttsScript: template === "listening" ? ttsScript.trim() : undefined,
       createdAt: new Date().toISOString(),
     };
     await saveQuiz(quiz);
@@ -348,6 +360,8 @@ export default function CreateQuizScreen() {
     setCorrectOption(null);
     setImageUri(null);
     setAudioUri(null);
+    setTemplate("standard");
+    setTtsScript("");
     setLoading(false);
     toast.success(t.create_qz.added);
   };
@@ -477,6 +491,10 @@ export default function CreateQuizScreen() {
         answer,
         explanation: item.explanation ? String(item.explanation).trim() : undefined,
         type: "multiple-choice",
+        template: (item.template || item.tipe || item.mode || item.type) === "listening" ? "listening" : "standard",
+        ttsScript: (item.ttsScript || item.script || item.naskah) 
+          ? String(item.ttsScript || item.script || item.naskah).trim() 
+          : (((item.template || item.tipe || item.mode || item.type) === "listening") ? String(item.question).trim() : undefined),
         audio: localAudio,
         image: localImage,
         createdAt: new Date().toISOString(),
@@ -513,6 +531,8 @@ export default function CreateQuizScreen() {
     setEditCorrectOption(correctIdx >= 0 ? correctIdx : null);
     setEditImageUri(quiz.image ?? null);
     setEditAudioUri(quiz.audio ?? null);
+    setEditTemplate(quiz.template ?? "standard");
+    setEditTtsScript(quiz.ttsScript ?? "");
   };
 
   const pickEditImage = async () => {
@@ -583,6 +603,8 @@ export default function CreateQuizScreen() {
       answer: editOptions[editCorrectOption].trim(),
       image: savedImage,
       audio: savedAudio,
+      template: editTemplate,
+      ttsScript: editTemplate === "listening" ? editTtsScript.trim() : undefined,
     };
     try {
       await saveQuiz(updated);
@@ -633,7 +655,7 @@ export default function CreateQuizScreen() {
       return;
     }
     const count = parseInt(promptCount) || 10;
-    const prompt = buildAIPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote);
+    const prompt = buildAIPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote, promptTemplate);
     setGeneratedPrompt(prompt);
     await Clipboard.setStringAsync(prompt);
     setPromptCopied(true);
@@ -856,6 +878,23 @@ export default function CreateQuizScreen() {
               ))}
             </View>
 
+            <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Tipe Soal yang Diinginkan</Text>
+            <View style={styles.templateRow}>
+              <TouchableOpacity
+                style={[styles.templateBtn, promptTemplate === "standard" && styles.templateBtnActive, { flex: 1 }]}
+                onPress={() => setPromptTemplate("standard")}
+              >
+                <Text style={[styles.templateBtnText, promptTemplate === "standard" && styles.templateBtnTextActive]}>Standar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.templateBtn, promptTemplate === "listening" && styles.templateBtnActive, { flex: 1 }]}
+                onPress={() => setPromptTemplate("listening")}
+              >
+                <Volume2 size={16} color={promptTemplate === "listening" ? "#fff" : colors.primary} />
+                <Text style={[styles.templateBtnText, promptTemplate === "listening" && styles.templateBtnTextActive]}>Listening</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Bahasa Soal</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 4 }}>
               {Object.entries(QUIZ_LANG_LABELS).map(([key, label]) => (
@@ -1035,6 +1074,44 @@ export default function CreateQuizScreen() {
       {/* ── MANUAL FORM ── */}
       <View style={styles.form}>
         <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Tipe Soal (Template)</Text>
+          <View style={styles.templateRow}>
+            <TouchableOpacity 
+              onPress={() => setTemplate("standard")}
+              style={[styles.templateBtn, template === "standard" && styles.templateBtnActive]}
+            >
+              <PencilLine size={16} color={template === "standard" ? "#fff" : colors.primary} />
+              <Text style={[styles.templateBtnText, template === "standard" && styles.templateBtnTextActive]}>Standar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setTemplate("listening")}
+              style={[styles.templateBtn, template === "listening" && styles.templateBtnActive]}
+            >
+              <Volume2 size={16} color={template === "listening" ? "#fff" : colors.primary} />
+              <Text style={[styles.templateBtnText, template === "listening" && styles.templateBtnTextActive]}>Listening (TTS)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {template === "listening" && (
+          <View style={[styles.field, styles.listeningBox]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Bot size={16} color={colors.primary} />
+              <Text style={[styles.fieldLabel, { marginBottom: 0 }]}>Voice Script (Naskah Suara)</Text>
+            </View>
+            <TextInput
+              placeholder="Teks yang akan dibacakan otomatis. Biarkan kosong jika sama dengan pertanyaan."
+              value={ttsScript}
+              onChangeText={setTtsScript}
+              style={[styles.input, { height: 70, textAlignVertical: "top", backgroundColor: "#fff" }]}
+              placeholderTextColor={colors.textMuted}
+              multiline
+            />
+            <Text style={styles.fieldInfo}>💡 Di Listening Mode, teks pertanyaan akan disembunyikan sampai user menekan "Lihat Script".</Text>
+          </View>
+        )}
+
+        <View style={styles.field}>
           <Text style={styles.fieldLabel}>{t.create_qz.question_ph.split("?")[0]}</Text>
           <TextInput
             placeholder="Contoh: Apa yang dikembalikan useState?"
@@ -1180,7 +1257,7 @@ export default function CreateQuizScreen() {
               q.options.filter((o) => o?.trim()).length >= 2
             )
             .map((q, i) => (
-            <View key={q.id} style={styles.questionRow}>
+            <View key={q.id} style={styles.cardRow}>
               {!!q.image && (
                 <Image
                   source={{ uri: resolveAssetUri(q.image) }}
@@ -1189,18 +1266,24 @@ export default function CreateQuizScreen() {
                 />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.questionNum}>Soal {i + 1}</Text>
+                <Text style={styles.cardQ}>Soal {i + 1}</Text>
                 <Text style={styles.questionText}>{q.question}</Text>
                 {!!q.answer?.trim() && (
-                  <Text style={styles.questionAnswer}>✓ {q.answer}</Text>
+                  <Text style={styles.cardA}>✓ {q.answer}</Text>
                 )}
                 {q.options
                   .filter((o) => o?.trim())
                   .map((o, oi) => (
-                    <Text key={oi} style={[styles.questionAnswer, { color: colors.textMuted, fontWeight: "500" }]}>
+                    <Text key={oi} style={[styles.cardA, { color: colors.textMuted, fontWeight: "500" }]}>
                       {String.fromCharCode(65 + oi)}. {o}
                     </Text>
                   ))}
+                {q.template === "listening" && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 }}>
+                    <Volume2 size={12} color={colors.primary} />
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "700" }}>Listening Mode</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.cardActions}>
                 <TouchableOpacity
@@ -1258,6 +1341,38 @@ export default function CreateQuizScreen() {
                 placeholderTextColor={colors.textMuted}
                 multiline
               />
+
+              {/* Template Selection */}
+              <Text style={[styles.editFieldLabel, { marginTop: 16 }]}>Mode Soal</Text>
+              <View style={styles.templateRow}>
+                <TouchableOpacity
+                  style={[styles.templateBtn, editTemplate === "standard" && styles.templateBtnActive]}
+                  onPress={() => setEditTemplate("standard")}
+                >
+                  <Text style={[styles.templateBtnText, editTemplate === "standard" && styles.templateBtnTextActive]}>Standar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.templateBtn, editTemplate === "listening" && styles.templateBtnActive]}
+                  onPress={() => setEditTemplate("listening")}
+                >
+                  <Volume2 size={16} color={editTemplate === "listening" ? "#fff" : colors.primary} />
+                  <Text style={[styles.templateBtnText, editTemplate === "listening" && styles.templateBtnTextActive]}>Listening</Text>
+                </TouchableOpacity>
+              </View>
+
+              {editTemplate === "listening" && (
+                <View style={styles.listeningBox}>
+                  <Text style={styles.editFieldLabel}>Naskah Suara (TTS)</Text>
+                  <TextInput
+                    value={editTtsScript}
+                    onChangeText={setEditTtsScript}
+                    placeholder="Contoh: Ohayou gozaimasu"
+                    style={[styles.input, { backgroundColor: colors.white }]}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  <Text style={styles.fieldInfo}>Teks ini akan dibacakan oleh sistem sebagai soal.</Text>
+                </View>
+              )}
 
               {/* Image */}
               <Text style={[styles.editFieldLabel, { marginTop: 12 }]}>Foto Soal (opsional)</Text>
@@ -1364,543 +1479,155 @@ export default function CreateQuizScreen() {
       <AIProviderSheet
         visible={showAISheet}
         loading={aiLoading}
-        onClose={() => { if (!aiLoading) setShowAISheet(false); }}
+        onClose={() => {
+          if (!aiLoading) setShowAISheet(false);
+        }}
         onSelect={handleAskAI}
       />
     </KeyboardAwareScrollViewCompat>
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  content: { paddingHorizontal: 20 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  headerTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
-  closeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: c.white,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  count: {
-    fontSize: 13,
-    color: c.textMuted,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-
-  // AI Card
-  aiCard: {
-    backgroundColor: c.white,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: c.primaryLight,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
-  aiCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-  },
-  aiCardLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-  aiIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: c.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  aiCardTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
-  aiCardSub: {
-    fontSize: 11,
-    color: c.textMuted,
-    fontWeight: "500",
-    marginTop: 1,
-  },
-  aiCardBody: {
-    paddingHorizontal: 14,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-    paddingTop: 14,
-    gap: 6,
-  },
-  stepRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  stepBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    backgroundColor: c.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepNum: { fontSize: 11, fontWeight: "900", color: c.primary },
-  stepLabel: { fontSize: 13, color: c.textSecondary, fontWeight: "600", flex: 1 },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: c.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginTop: 4,
-  },
-  aiInput: {
-    backgroundColor: c.background,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontWeight: "600",
-    color: c.dark,
-    borderWidth: 1,
-    borderColor: c.border,
-    marginTop: 4,
-  },
-  countRow: {
-    flexDirection: "row",
-    gap: 6,
-    marginTop: 4,
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  countBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: c.background,
-    borderWidth: 1.5,
-    borderColor: c.border,
-  },
-  countBtnActive: {
-    backgroundColor: c.primary,
-    borderColor: c.primary,
-  },
-  countBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: c.textSecondary,
-  },
-  countBtnTextActive: { color: c.white },
-  countInput: {
-    backgroundColor: c.background,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    fontSize: 13,
-    fontWeight: "700",
-    color: c.dark,
-    borderWidth: 1.5,
-    borderColor: c.border,
-    width: 72,
-  },
-  diffRow: { flexDirection: "row", gap: 6, marginTop: 4 },
-  diffBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: c.background,
-    borderWidth: 1.5,
-    borderColor: c.border,
-    alignItems: "center",
-  },
-  diffBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
-  diffBtnText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
-  diffBtnTextActive: { color: c.white },
-  promptActionRow: {
-    flexDirection: "row", gap: 8, marginTop: 12,
-  },
-  copyPromptBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: c.primary,
-    borderRadius: 14,
-    paddingVertical: 13,
-    marginTop: 12,
-  },
-  copyPromptBtnSmall: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, backgroundColor: c.primary,
-    borderRadius: 12, paddingVertical: 13,
-  },
-  copyPromptBtnDone: { backgroundColor: c.success },
-  copyPromptBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: c.white,
-  },
-  stepsGuide: {
-    backgroundColor: c.background,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 10,
-    gap: 0,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  promptPreview: {
-    backgroundColor: c.primaryLight,
-    borderRadius: 10,
-    padding: 10,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  promptPreviewLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: c.primary,
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  promptPreviewText: {
-    fontSize: 11,
-    color: c.textSecondary,
-    fontWeight: "500",
-    lineHeight: 16,
-  },
-
-  // Import section
-  importToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    backgroundColor: c.white,
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  importToggleLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  importToggleText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: c.primary,
-  },
-  importBox: {
-    gap: 8,
-    marginBottom: 16,
-    backgroundColor: c.white,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  importHint: {
-    fontSize: 13,
-    color: c.textSecondary,
-    fontWeight: "600",
-  },
-  importFormat: {
-    fontSize: 11,
-    color: c.textMuted,
-    fontWeight: "500",
-    fontStyle: "italic",
-  },
-  filePickBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderStyle: "dashed" },
-  filePickText: { fontSize: 13, fontWeight: "600", color: c.primary, flex: 1 },
-  importOr: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 2 },
-  importOrLine: { flex: 1, height: 1, backgroundColor: c.border },
-  importOrText: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
-
-  // Divider
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginVertical: 12,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
-  dividerText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: c.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-
-  // Manual Form
-  form: { gap: 12, marginBottom: 20 },
-  field: { gap: 6 },
-  fieldHint: {
-    fontSize: 12,
-    color: c.textMuted,
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  input: {
-    backgroundColor: c.white,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    fontWeight: "600",
-    color: c.dark,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  imagePicker: {
-    borderRadius: 16,
-    overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: c.border,
-    borderStyle: "dashed",
-    backgroundColor: c.background,
-  },
-  imagePreview: { width: "100%", height: 180, borderRadius: 14 },
-  imagePlaceholder: {
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  imagePlaceholderText: {
-    fontSize: 13,
-    color: c.textMuted,
-    fontWeight: "600",
-  },
-  removeImage: { alignSelf: "flex-end", marginTop: 4 },
-  removeImageText: { fontSize: 12, color: c.danger, fontWeight: "700" },
-  audioRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  audioPickBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.border,
-    backgroundColor: c.surface,
-  },
-  audioPickText: { flex: 1, fontSize: 14, color: c.text, fontWeight: "600" },
-  audioPlayBtn: {
-    width: 42, height: 42, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: c.primary,
-  },
-  audioRemoveBtn: {
-    width: 42, height: 42, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: c.danger,
-    backgroundColor: c.surface,
-  },
-  audioHint: { marginTop: 6, fontSize: 12, color: c.textMuted },
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: c.white,
-    borderRadius: 14,
-    paddingLeft: 12,
-    paddingRight: 4,
-    borderWidth: 2,
-    borderColor: c.border,
-    overflow: "hidden",
-  },
-  optionRowActive: {
-    borderColor: c.success,
-    backgroundColor: c.successLight,
-  },
-  optionBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: c.background,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  optionBadgeActive: { backgroundColor: c.success, borderColor: c.success },
-  optionBadgeText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: c.textSecondary,
-  },
-  optionInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 14,
-    fontWeight: "600",
-    color: c.dark,
-  },
-
-  // Existing
-  existingSection: { marginTop: 8 },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: c.dark,
-    marginBottom: 12,
-  },
-  questionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: c.white,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: c.border,
-    gap: 12,
-  },
-  cardThumb: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
-    backgroundColor: c.background,
-  },
-  questionNum: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: c.textMuted,
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  questionText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: c.dark,
-    marginBottom: 4,
-  },
-  questionAnswer: { fontSize: 13, color: c.success, fontWeight: "600" },
-  cardActions: {
-    flexDirection: "column",
-    gap: 6,
-    alignItems: "center",
-  },
-  editBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: c.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  deleteBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: c.dangerLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editModalCard: {
-    backgroundColor: c.white,
-    borderRadius: 20,
-    padding: 20,
-    gap: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  editModalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  editModalTitle: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: c.dark,
-  },
-  editFieldLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: c.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
-    marginTop: 4,
-  },
-  editSaveBtn: {
-    backgroundColor: c.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  editSaveBtnText: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: c.white,
-  },
-
-  // Packs
-  packsSection: { marginBottom: 12 },
-  packsSectionTitle: {
-    fontSize: 11, fontWeight: "800", color: c.textSecondary,
-    textTransform: "uppercase", letterSpacing: 1, marginBottom: 8,
-  },
-  packChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.white,
-  },
-  packChipActive: { backgroundColor: c.primary, borderColor: c.primary },
-  packChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
-  packChipTextActive: { color: c.white },
-
-  // Modal overlay
-  modalOverlay: {
-    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center",
-    zIndex: 100, paddingHorizontal: 24,
-  },
-  modalCard: {
-    backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10,
-  },
-  modalTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
-  modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500", marginBottom: 4 },
-  modalLabel: {
-    fontSize: 11, fontWeight: "800", color: c.textSecondary,
-    textTransform: "uppercase", letterSpacing: 1,
-  },
-  modalPackRow: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12,
-    backgroundColor: c.background, borderWidth: 1, borderColor: c.border,
-  },
-  modalPackName: { fontSize: 14, fontWeight: "700", color: c.dark },
-  modalPackCount: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
-  modalDivider: { height: 1, backgroundColor: c.border, marginVertical: 4 },
-  modalInput: {
-    backgroundColor: c.background, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, fontWeight: "600", color: c.dark,
-    borderWidth: 1.5, borderColor: c.border,
-  },
-  modalCreateBtn: {
-    backgroundColor: c.primary, borderRadius: 12,
-    paddingVertical: 13, alignItems: "center",
-  },
-  modalCreateBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
-  modalCancelBtn: { alignItems: "center", paddingVertical: 8 },
-  modalCancelText: { fontSize: 14, fontWeight: "700", color: c.textMuted },
-
-  askAiBtn: { flex: 1, borderRadius: 12, overflow: "hidden" },
-  askAiGrad: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, paddingVertical: 13, borderRadius: 12,
-  },
-  askAiBtnText: { fontSize: 13, fontWeight: "900", color: "#fff" },
-});
+const makeStyles = (c: ColorScheme) => {
+  const isDark = isDarkActive();
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { paddingHorizontal: 20 },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 4,
+    },
+    headerTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
+    closeBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: c.background,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    count: {
+      fontSize: 13,
+      color: c.textMuted,
+      fontWeight: "600",
+      marginBottom: 16,
+    },
+    packsSection: { marginBottom: 16 },
+    packsSectionTitle: { fontSize: 11, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
+    packChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.white },
+    packChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+    packChipText: { fontSize: 13, fontWeight: "700", color: c.textMuted },
+    packChipTextActive: { color: c.white },
+    aiCard: { backgroundColor: c.white, borderRadius: 18, borderWidth: 1.5, borderColor: c.primaryLight, marginBottom: 20, overflow: "hidden" },
+    aiCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 },
+    aiCardLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+    aiIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" },
+    aiCardTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+    aiCardSub: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
+    aiCardBody: { paddingHorizontal: 14, paddingBottom: 16, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10, backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#fff" },
+    templateRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+    templateBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: c.primary, backgroundColor: "transparent" },
+    templateBtnActive: { backgroundColor: c.primary },
+    templateBtnText: { color: c.primary, fontWeight: "800", fontSize: 13 },
+    templateBtnTextActive: { color: "#fff" },
+    listeningBox: { backgroundColor: isDark ? "rgba(79, 70, 229, 0.05)" : c.primaryLight, padding: 14, borderRadius: 16, marginTop: 8, marginBottom: 16, borderWidth: 1, borderColor: c.primary, borderStyle: "dashed" },
+    fieldInfo: { fontSize: 11, color: c.textMuted, marginTop: 6, fontStyle: "italic" },
+    stepRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    stepBadge: { width: 22, height: 22, borderRadius: 7, backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center" },
+    stepNum: { fontSize: 11, fontWeight: "900", color: c.primary },
+    stepLabel: { fontSize: 13, color: c.textSecondary, fontWeight: "600" },
+    fieldLabel: { fontSize: 11, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", letterSpacing: 1 },
+    aiInput: { backgroundColor: c.background, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontWeight: "600", color: c.dark, borderWidth: 1.5, borderColor: c.border },
+    countRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+    countBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border },
+    countBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+    countBtnText: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+    countBtnTextActive: { color: c.white },
+    countInput: { flex: 1, minWidth: 70, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border, fontSize: 13, fontWeight: "600", color: c.dark },
+    diffRow: { flexDirection: "row", gap: 6 },
+    diffBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border, alignItems: "center" },
+    diffBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+    diffBtnText: { fontSize: 12, fontWeight: "700", color: c.textSecondary },
+    diffBtnTextActive: { color: c.white },
+    formatBox: { backgroundColor: c.background, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: c.border, gap: 4, marginVertical: 4 },
+    formatLabel: { fontSize: 10, fontWeight: "800", color: c.textMuted, textTransform: "uppercase" },
+    formatCode: { fontSize: 11, color: c.dark, fontWeight: "600", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 17 },
+    promptActionRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+    copyPromptBtnSmall: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 13 },
+    copyPromptBtnDone: { backgroundColor: c.success },
+    copyPromptBtnText: { fontSize: 13, fontWeight: "900", color: c.white },
+    askAiBtn: { flex: 1, borderRadius: 12, overflow: "hidden" },
+    askAiGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 13, borderRadius: 12 },
+    askAiBtnText: { fontSize: 13, fontWeight: "900", color: "#fff" },
+    stepsGuide: { backgroundColor: c.background, borderRadius: 12, padding: 12, marginTop: 10 },
+    promptPreview: { backgroundColor: "#1E1E2E", borderRadius: 10, padding: 12, marginTop: 12 },
+    promptPreviewLabel: { fontSize: 10, fontWeight: "800", color: "#A9B1D6", textTransform: "uppercase", marginBottom: 6 },
+    promptPreviewText: { fontSize: 11, color: "#CDD6F4", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 17 },
+    importToggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, borderTopWidth: 1, borderTopColor: c.border, marginBottom: 8 },
+    importToggleText: { fontSize: 14, fontWeight: "700", color: c.primary },
+    importBox: { gap: 8, marginBottom: 20 },
+    filePickBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.card1, borderWidth: 1.5, borderColor: c.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderStyle: "dashed" },
+    filePickText: { fontSize: 13, fontWeight: "600", color: c.primary, flex: 1 },
+    importOr: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 2 },
+    importOrLine: { flex: 1, height: 1, backgroundColor: c.border },
+    importOrText: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
+    importHint: { fontSize: 12, color: c.textMuted, fontWeight: "500", fontStyle: "italic" },
+    importFormat: { fontSize: 11, color: c.textSecondary, fontWeight: "600", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    divider: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 16 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
+    dividerText: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
+    form: { gap: 14, marginBottom: 20 },
+    field: { gap: 6 },
+    input: { backgroundColor: c.white, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontWeight: "600", color: c.dark, borderWidth: 1, borderColor: c.border },
+    optionRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: c.background, borderWidth: 1.5, borderColor: c.border },
+    optionRowActive: { borderColor: c.success, backgroundColor: c.successLight },
+    optionBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: c.border, alignItems: "center", justifyContent: "center" },
+    optionBadgeActive: { backgroundColor: c.primary },
+    optionBadgeText: { fontSize: 14, fontWeight: "800", color: c.textSecondary },
+    optionInput: { flex: 1, fontSize: 14, fontWeight: "600", color: c.dark, paddingVertical: 8 },
+    imagePicker: { borderRadius: 16, overflow: "hidden", borderWidth: 1.5, borderColor: c.border, borderStyle: "dashed", backgroundColor: c.background },
+    imagePreview: { width: "100%", height: 180, borderRadius: 14 },
+    imagePlaceholder: { height: 120, alignItems: "center", justifyContent: "center", gap: 8 },
+    imagePlaceholderText: { fontSize: 13, color: c.textMuted, fontWeight: "600" },
+    removeImage: { alignSelf: "flex-end", marginTop: 4 },
+    removeImageText: { fontSize: 12, color: c.danger, fontWeight: "700" },
+    audioPickerBtn: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.primaryLight },
+    audioPickerText: { fontSize: 13, fontWeight: "700", color: c.primary },
+    audioPickedRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, backgroundColor: c.white, borderWidth: 1, borderColor: c.border },
+    audioPickedText: { flex: 1, fontSize: 12, color: c.dark, fontWeight: "600" },
+    audioHint: { fontSize: 10, color: c.textMuted, marginTop: 4 },
+    existingSection: { marginTop: 8 },
+    sectionTitle: { fontSize: 16, fontWeight: "900", color: c.dark, marginBottom: 12 },
+    cardRow: { flexDirection: "row", alignItems: "center", backgroundColor: c.white, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: c.border, gap: 12 },
+    cardThumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: c.background },
+    cardQ: { fontSize: 14, fontWeight: "700", color: c.dark, marginBottom: 4 },
+    cardA: { fontSize: 13, color: c.textSecondary, fontWeight: "500" },
+    questionText: { fontSize: 14, fontWeight: "600", color: c.dark, marginBottom: 4 },
+    cardActions: { flexDirection: "row", gap: 8 },
+    editBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center" },
+    deleteBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center" },
+    modalOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100, paddingHorizontal: 24 },
+    modalCard: { backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10 },
+    modalTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
+    modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500" },
+    modalLabel: { fontSize: 11, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", letterSpacing: 1 },
+    modalPackRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: c.background, borderWidth: 1, borderColor: c.border },
+    modalPackName: { fontSize: 14, fontWeight: "700", color: c.dark },
+    modalPackCount: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
+    modalDivider: { height: 1, backgroundColor: c.border, marginVertical: 4 },
+    modalInput: { backgroundColor: c.background, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontWeight: "600", color: c.dark, borderWidth: 1.5, borderColor: c.border },
+    modalCreateBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+    modalCreateBtnText: { fontSize: 14, fontWeight: "900", color: c.white },
+    modalCancelBtn: { alignItems: "center", paddingVertical: 8 },
+    modalCancelText: { fontSize: 14, fontWeight: "700", color: c.textMuted },
+    editModalCard: { backgroundColor: c.white, borderRadius: 24, padding: 20, width: "100%", elevation: 12 },
+    editModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+    editModalTitle: { fontSize: 18, fontWeight: "900", color: c.dark },
+    editFieldLabel: { fontSize: 11, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 },
+    editSaveBtn: { backgroundColor: c.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center", marginTop: 20 },
+    editSaveText: { fontSize: 14, fontWeight: "800", color: c.white },
+    fieldHint: { fontSize: 12, color: c.textMuted, marginBottom: 10 },
+  });
+};

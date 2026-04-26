@@ -744,7 +744,7 @@ function FlashcardTableList({ cards, colors, styles, onImagePress, speakText }: 
                 {qText}
               </Text>
               <View style={{ flexDirection: "row", gap: 10, alignItems: "center", marginTop: 6 }}>
-                <TouchableOpacity onPress={() => speakText(qText)} style={styles.tableTtsBtn}>
+                <TouchableOpacity onPress={() => speakText(c.ttsScript || qText)} style={styles.tableTtsBtn}>
                   <Volume2 size={12} color={colors.primary} />
                   <Text style={styles.tableTtsText}>TTS</Text>
                 </TouchableOpacity>

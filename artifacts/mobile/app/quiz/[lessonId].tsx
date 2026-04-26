@@ -1,5 +1,5 @@
 import { useColors, useTheme } from "@/contexts/ThemeContext";
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,11 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, ChevronRight, Check, Plus, RotateCcw, Volume2 } from "lucide-react-native";
+import { X, ChevronRight, Check, Plus, RotateCcw, Volume2, Timer as TimerIcon } from "lucide-react-native";
+import { Modal, TextInput } from "react-native";
 import { useAudioPlayer } from "expo-audio";
 import { Feather } from "@expo/vector-icons";
+import * as Speech from "expo-speech";
 import { AdBanner } from "@/components/AdBanner";
 import * as Haptics from "expo-haptics";
 import {
@@ -57,13 +59,26 @@ export default function QuizScreen() {
   const [achievementValue, setAchievementValue] = useState(0);
   const [lessonName, setLessonName] = useState("");
   const [bookmarked, setBookmarked] = useState(false);
+  const [showQText, setShowQText] = useState(false);
+  const [examTime, setExamTime] = useState<number>(0); // 0 = no exam
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [examInput, setExamInput] = useState("10"); // default 10 mins
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     (async () => {
       const data = await getQuizzes(lessonId);
       setQuizzes(data);
+      
+      // Auto-increment course usage
+      if (lessonId && !lessonId.startsWith("__sc__")) {
+        const { incrementCourseOpen } = await import("@/utils/storage");
+        incrementCourseOpen(lessonId);
+      }
+
       if (lessonId?.startsWith("__sc__")) {
         const { getStandaloneCollections } = await import("@/utils/storage");
         const cols = await getStandaloneCollections();
@@ -81,11 +96,91 @@ export default function QuizScreen() {
     })();
   }, [lessonId]);
 
+  const currentQuiz = quizzes[currentIndex];
+  const audioPlayer = useAudioPlayer(resolveAssetUri(currentQuiz?.audio) ?? null);
+  const progress = (currentIndex / Math.max(quizzes.length, 1)) * 100;
+
+  const playQuestionAudio = useCallback(() => {
+    try {
+      if (!audioPlayer) return;
+      audioPlayer.seekTo(0);
+      audioPlayer.play();
+    } catch {}
+  }, [audioPlayer]);
+
+  const playTTS = useCallback(async (text: string) => {
+    if (!text) return;
+    try {
+      await Speech.stop();
+      const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+      
+      // Auto Detection Logic
+      let lang = "id-ID"; // Default to Indonesian
+      const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(cleanText);
+      if (hasJapanese) {
+        lang = "ja-JP";
+      }
+
+      await Speech.speak(cleanText, {
+        language: lang,
+        rate: 0.9,
+        volume: 1.0,
+        onError: (err) => {
+          console.warn("Speech Error:", err);
+          Speech.speak(cleanText, { rate: 0.9, volume: 1.0 });
+        }
+      });
+    } catch (e) {
+      console.error("Critical TTS Error:", e);
+    }
+  }, []);
+
   useEffect(() => {
     if (currentIndex < quizzes.length && quizzes[currentIndex]) {
-      isBookmarked(quizzes[currentIndex].id, "quiz").then(setBookmarked);
+      const q = quizzes[currentIndex];
+      isBookmarked(q.id, "quiz").then(setBookmarked);
+      setShowQText(q.template !== "listening"); // Hide text by default for listening
+      
+      if (q.template === "listening") {
+        const timer = setTimeout(() => {
+          if (!q.audio) {
+            playTTS(q.ttsScript || q.question);
+          } else {
+            playQuestionAudio();
+          }
+        }, 600);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [currentIndex, quizzes]);
+    return () => {
+      Speech.stop();
+    };
+  }, [currentIndex, quizzes, playTTS, playQuestionAudio]);
+
+  // Timer logic
+  useEffect(() => {
+    if (examTime > 0 && !done) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            finishQuiz();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [examTime, done]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   const handleBookmark = async () => {
     if (!quizzes[currentIndex]) return;
@@ -99,16 +194,6 @@ export default function QuizScreen() {
     xpAnim.setValue(0);
     Animated.timing(xpAnim, { toValue: 1, duration: 1200, useNativeDriver: true }).start();
   };
-
-  const currentQuiz = quizzes[currentIndex];
-  const audioPlayer = useAudioPlayer(resolveAssetUri(currentQuiz?.audio) ?? null);
-  const playQuestionAudio = () => {
-    try {
-      audioPlayer.seekTo(0);
-      audioPlayer.play();
-    } catch {}
-  };
-  const progress = (currentIndex / Math.max(quizzes.length, 1)) * 100;
 
   const handleOptionSelect = async (idx: number) => {
     if (isAnswered) return;
@@ -145,22 +230,30 @@ export default function QuizScreen() {
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
-      const pct = Math.round((score / quizzes.length) * 100);
-      setAchievementValue(pct);
-      const durationSec = Math.round((Date.now() - startTime.current) / 1000);
-      await saveSessionLog({
-        id: `${Date.now()}`,
-        type: "quiz",
-        lessonId: lessonId ?? "",
-        lessonName,
-        total: quizzes.length,
-        correct: score,
-        durationSec,
-        date: new Date().toISOString(),
-      });
-      setDone(true);
-      setTimeout(() => { setShowAchievement(true); triggerXP(); }, 400);
+      finishQuiz();
     }
+  };
+
+  const finishQuiz = async () => {
+    if (done) return;
+    const pct = Math.round((score / quizzes.length) * 100);
+    setAchievementValue(pct);
+    const durationSec = Math.round((Date.now() - startTime.current) / 1000);
+    await saveSessionLog({
+      id: `${Date.now()}`,
+      type: "quiz",
+      lessonId: lessonId ?? "",
+      lessonName,
+      total: quizzes.length,
+      correct: score,
+      durationSec,
+      date: new Date().toISOString(),
+    });
+    setDone(true);
+    setTimeout(() => {
+      setShowAchievement(true);
+      triggerXP();
+    }, 400);
   };
 
   const handleRestart = () => {
@@ -169,6 +262,16 @@ export default function QuizScreen() {
     setIsAnswered(false);
     setScore(0);
     setDone(false);
+    if (examTime > 0) setTimeLeft(examTime);
+  };
+
+  const startExam = () => {
+    const mins = parseInt(examInput) || 10;
+    const secs = mins * 60;
+    setExamTime(secs);
+    setTimeLeft(secs);
+    setShowExamModal(false);
+    handleRestart();
   };
 
   if (quizzes.length === 0) {
@@ -263,6 +366,9 @@ export default function QuizScreen() {
         </TouchableOpacity>
         <Text style={styles.navCount}>{currentIndex + 1} / {quizzes.length}</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity onPress={() => setShowExamModal(true)} style={styles.navBtn}>
+            <TimerIcon size={18} color={examTime > 0 ? colors.primary : colors.textMuted} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
             <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : colors.textMuted} />
           </TouchableOpacity>
@@ -274,6 +380,16 @@ export default function QuizScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Exam Header */}
+      {examTime > 0 && (
+        <View style={styles.examBar}>
+          <Text style={[styles.timerText, timeLeft < 60 && { color: colors.danger }]}>
+            ⏱ {formatTime(timeLeft)}
+          </Text>
+          <Text style={styles.examLabel}>Mode Tryout</Text>
+        </View>
+      )}
 
       {/* Progress */}
       <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
@@ -295,15 +411,41 @@ export default function QuizScreen() {
               resizeMode="cover"
             />
           )}
-          <Text style={styles.questionText}>{currentQuiz.question}</Text>
-          {currentQuiz.audio && (
+          {/* Question Text with Listening Mode Support */}
+          {currentQuiz.template === "listening" && !showQText && !isAnswered ? (
+            <View style={styles.listeningPlaceholder}>
+              <Volume2 size={42} color={colors.primary} />
+              <Text style={styles.listeningHint}>Dengarkan naskah suara...</Text>
+              <TouchableOpacity 
+                style={styles.peekBtn}
+                onPress={() => setShowQText(true)}
+              >
+                <Text style={styles.peekBtnText}>Lihat Teks Soal</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={styles.questionText}>{currentQuiz.question}</Text>
+          )}
+
+          {currentQuiz.template === "listening" && (
             <TouchableOpacity
-              onPress={playQuestionAudio}
+              onPress={() => playTTS(currentQuiz.ttsScript || currentQuiz.question)}
               style={styles.questionAudioBtn}
               activeOpacity={0.75}
             >
               <Volume2 size={16} color="#fff" />
-              <Text style={styles.questionAudioText}>Putar Audio</Text>
+              <Text style={styles.questionAudioText}>Putar Suara (TTS)</Text>
+            </TouchableOpacity>
+          )}
+
+          {currentQuiz.audio && (
+            <TouchableOpacity
+              onPress={playQuestionAudio}
+              style={[styles.questionAudioBtn, { backgroundColor: colors.teal, marginTop: currentQuiz.template === "listening" ? 8 : 12 }]}
+              activeOpacity={0.75}
+            >
+              <Volume2 size={16} color="#fff" />
+              <Text style={styles.questionAudioText}>Putar Audio File</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -380,6 +522,39 @@ export default function QuizScreen() {
           </TouchableOpacity>
         )}
       </View>
+      {/* Global Exam Modal */}
+      <Modal visible={showExamModal} transparent animationType="slide" onRequestClose={() => setShowExamModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.examModal}>
+            <View style={styles.modalHeader}>
+              <TimerIcon size={24} color={colors.primary} />
+              <Text style={styles.modalTitle}>Mode Tryout Ujian</Text>
+            </View>
+            <Text style={styles.modalDesc}>Atur timer untuk mensimulasikan ujian asli. Kuis akan otomatis selesai saat waktu habis.</Text>
+            
+            <View style={styles.inputWrap}>
+              <Text style={styles.inputLabel}>Durasi (Menit)</Text>
+              <TextInput
+                style={styles.timerInput}
+                value={examInput}
+                onChangeText={setExamInput}
+                keyboardType="numeric"
+                placeholder="Contoh: 30"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setExamTime(0); setShowExamModal(false); }}>
+                <Text style={styles.cancelBtnText}>Nonaktifkan</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.startBtn} onPress={startExam}>
+                <Text style={styles.startBtnText}>Mulai Ujian</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -425,6 +600,19 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     justifyContent: "center",
   },
   navCount: { fontSize: 14, fontWeight: "800", color: c.textSecondary },
+  examBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: isDark ? "rgba(239, 68, 68, 0.1)" : "#FEF2F2",
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2",
+  },
+  timerText: { fontSize: 18, fontWeight: "900", color: c.text },
+  examLabel: { fontSize: 12, fontWeight: "800", color: c.danger, textTransform: "uppercase" },
   questionCard: {
     backgroundColor: c.surface,
     borderRadius: 24,
@@ -465,6 +653,30 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     borderRadius: 20,
   },
   questionAudioText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  listeningPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 30,
+    gap: 12,
+  },
+  listeningHint: {
+    fontSize: 14,
+    color: c.textMuted,
+    fontWeight: "600",
+  },
+  peekBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: c.background,
+    borderWidth: 1.5,
+    borderColor: c.border,
+  },
+  peekBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: c.textSecondary,
+  },
   optionsWrap: { gap: 10 },
   option: {
     flexDirection: "row",
@@ -572,4 +784,56 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     elevation: 8,
   },
   xpText: { fontSize: 18, fontWeight: "900", color: "#fff" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  examModal: {
+    backgroundColor: c.surface,
+    borderRadius: 28,
+    padding: 24,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text },
+  modalDesc: { fontSize: 14, color: c.textMuted, lineHeight: 20 },
+  inputWrap: { gap: 8 },
+  inputLabel: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+  timerInput: {
+    backgroundColor: c.background,
+    borderWidth: 1.5,
+    borderColor: c.border,
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 18,
+    fontWeight: "700",
+    color: c.text,
+  },
+  modalBtns: { flexDirection: "row", gap: 12, marginTop: 8 },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderRadius: 16,
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  cancelBtnText: { fontWeight: "800", color: c.textMuted },
+  startBtn: {
+    flex: 2,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderRadius: 16,
+    backgroundColor: c.primary,
+  },
+  startBtnText: { fontWeight: "800", color: "#fff" },
 });

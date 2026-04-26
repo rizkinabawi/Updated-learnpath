@@ -128,7 +128,8 @@ const buildFlashcardPrompt = (
   count: number,
   difficulty: string,
   language: string = "Bahasa Indonesia",
-  customNote: string = ""
+  customNote: string = "",
+  forceTemplate: "standard" | "listening" = "standard"
 ) => {
   const diffLabel =
     difficulty === "easy"
@@ -148,19 +149,27 @@ PENTING: Balas HANYA dengan array JSON murni. Jangan tambahkan teks, penjelasan,
 Format JSON yang WAJIB digunakan (contoh):
 [
   {
-    "question": "Apa yang dimaksud dengan fotosintesis?",
-    "answer": "Fotosintesis adalah proses di mana tumbuhan mengubah cahaya matahari, air, dan CO₂ menjadi glukosa dan oksigen menggunakan klorofil.",
-    "tag": "biologi-dasar"
+    "question": "Fotosintesis",
+    "answer": "Proses tumbuhan mengubah cahaya menjadi energi.",
+    "tag": "biologi",
+    "template": "standard"
+  },
+  {
+    "question": "Dengarkan kalimat ini dan artikan.",
+    "answer": "Selamat pagi, apa kabar?",
+    "tag": "percakapan",
+    "template": "listening",
+    "ttsScript": "Ohayou gozaimasu, ogenki desuka?"
   }
 ]
 
 ATURAN WAJIB — wajib diikuti untuk setiap kartu:
-1. Field "question": string berisi pertanyaan atau konsep yang ingin diuji
-2. Field "answer": string berisi jawaban lengkap dan jelas (boleh beberapa kalimat)
-3. Field "tag": string kata kunci singkat tanpa spasi (gunakan tanda hubung jika perlu, contoh: "reaksi-kimia", "hukum-newton")
-4. Tidak ada field lain selain "question", "answer", "tag"
-5. Jawaban harus informatif dan edukatif, bukan sekadar satu kata
-6. Minimum ${Math.max(count, 3)} kartu
+1. Field "question": string pertanyaan/istilah.
+2. Field "answer": string jawaban lengkap.
+3. Field "tag": string kata kunci tanpa spasi.
+4. Field "template" (Wajib): isi dengan "${forceTemplate}" untuk tipe kartu ini.
+5. Field "ttsScript" (${forceTemplate === "listening" ? "Wajib" : "Opsional"}): masukkan naskah suara yang akan dibacakan sistem. Jika dikosongkan, sistem akan membacakan field "question".
+6. Minimum ${Math.max(count, 3)} kartu.
 7. Topik: ${topic}`;
 };
 
@@ -221,6 +230,7 @@ export default function CreateFlashcardScreen() {
   const [promptTopic, setPromptTopic] = useState("");
   const [promptCount, setPromptCount] = useState("10");
   const [promptDifficulty, setPromptDifficulty] = useState("medium");
+  const [promptTemplate, setPromptTemplate] = useState<"standard" | "listening">("standard");
   const [promptLanguage, setPromptLanguage] = useState("Bahasa Indonesia");
   const [promptCustomNote, setPromptCustomNote] = useState("");
   const [promptCopied, setPromptCopied] = useState(false);
@@ -498,6 +508,8 @@ export default function CreateFlashcardScreen() {
       const q = item.question ?? item.front ?? item.pertanyaan ?? "";
       const a = item.answer ?? item.back ?? item.jawaban ?? "";
       const t = item.tag ?? item.kategori ?? "";
+      const templateVal = item.template ?? item.tipe ?? item.mode ?? item.type ?? "standard";
+      const scriptVal = item.ttsScript ?? item.script ?? item.naskah ?? undefined;
       const audio = item.audio ?? item.audioUrl ?? item.audio_url ?? undefined;
       const image = item.image ?? item.imageUrl ?? item.image_url ?? undefined;
       if (!String(q).trim()) continue;
@@ -518,6 +530,10 @@ export default function CreateFlashcardScreen() {
         question: String(q).trim(),
         answer: String(a).trim(),
         tag: String(t).trim(),
+        template: templateVal === "listening" ? "listening" : "standard",
+        ttsScript: scriptVal 
+          ? String(scriptVal).trim() 
+          : (templateVal === "listening" ? String(q).trim() : undefined),
         audio: localAudio,
         image: localImage,
         createdAt: new Date().toISOString(),
@@ -576,7 +592,7 @@ export default function CreateFlashcardScreen() {
       return;
     }
     const count = parseInt(promptCount) || 10;
-    const prompt = buildFlashcardPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote);
+    const prompt = buildFlashcardPrompt(promptTopic.trim(), count, promptDifficulty, promptLanguage, promptCustomNote, promptTemplate);
     setGeneratedPrompt(prompt);
     await Clipboard.setStringAsync(prompt);
     setPromptCopied(true);
@@ -787,6 +803,23 @@ export default function CreateFlashcardScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+
+            <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Tipe Kartu yang Diinginkan</Text>
+            <View style={styles.templateRow}>
+              <TouchableOpacity
+                style={[styles.templateBtn, promptTemplate === "standard" && styles.templateBtnActive, { flex: 1 }]}
+                onPress={() => setPromptTemplate("standard")}
+              >
+                <Text style={[styles.templateBtnText, promptTemplate === "standard" && styles.templateBtnTextActive]}>Standar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.templateBtn, promptTemplate === "listening" && styles.templateBtnActive, { flex: 1 }]}
+                onPress={() => setPromptTemplate("listening")}
+              >
+                <Volume2 size={16} color={promptTemplate === "listening" ? "#fff" : colors.primary} />
+                <Text style={[styles.templateBtnText, promptTemplate === "listening" && styles.templateBtnTextActive]}>Listening</Text>
+              </TouchableOpacity>
             </View>
 
             <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Bahasa Kartu</Text>
@@ -1089,6 +1122,12 @@ export default function CreateFlashcardScreen() {
                 {!!card.tag?.trim() && <Text style={styles.cardTag}>{card.tag}</Text>}
                 <Text style={styles.cardQ}>{card.question}</Text>
                 <Text style={styles.cardA}>{card.answer}</Text>
+                {card.template === "listening" && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 }}>
+                    <Volume2 size={12} color={colors.primary} />
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "700" }}>Listening Mode</Text>
+                  </View>
+                )}
               </View>
               <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
                 <TouchableOpacity
@@ -1163,6 +1202,38 @@ export default function CreateFlashcardScreen() {
                 style={styles.input}
                 placeholderTextColor={colors.textMuted}
               />
+
+              {/* Template Selection */}
+              <Text style={[styles.editFieldLabel, { marginTop: 16 }]}>Mode Kartu</Text>
+              <View style={styles.templateRow}>
+                <TouchableOpacity
+                  style={[styles.templateBtn, editTemplate === "standard" && styles.templateBtnActive]}
+                  onPress={() => setEditTemplate("standard")}
+                >
+                  <Text style={[styles.templateBtnText, editTemplate === "standard" && styles.templateBtnTextActive]}>Standar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.templateBtn, editTemplate === "listening" && styles.templateBtnActive]}
+                  onPress={() => setEditTemplate("listening")}
+                >
+                  <Volume2 size={16} color={editTemplate === "listening" ? "#fff" : colors.primary} />
+                  <Text style={[styles.templateBtnText, editTemplate === "listening" && styles.templateBtnTextActive]}>Listening</Text>
+                </TouchableOpacity>
+              </View>
+
+              {editTemplate === "listening" && (
+                <View style={styles.listeningBox}>
+                  <Text style={styles.editFieldLabel}>Naskah Suara (TTS)</Text>
+                  <TextInput
+                    value={editTtsScript}
+                    onChangeText={setEditTtsScript}
+                    placeholder="Contoh: Ohayou gozaimasu"
+                    style={[styles.input, { backgroundColor: colors.white }]}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  <Text style={styles.fieldInfo}>Teks ini akan dibacakan oleh sistem saat kartu muncul.</Text>
+                </View>
+              )}
 
               {/* Image */}
               <Text style={[styles.editFieldLabel, { marginTop: 12 }]}>Foto (opsional)</Text>

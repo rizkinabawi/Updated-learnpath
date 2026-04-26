@@ -26,7 +26,14 @@ import {
   FileText,
   Clock,
   FileImage,
+  FileDown,
+  Paperclip,
+  Share2,
+  Download,
 } from "lucide-react-native";
+import * as DocumentPicker from "expo-document-picker";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import {
@@ -142,6 +149,58 @@ export default function NotesScreen() {
     setShowModal(true);
   };
 
+  const handleImportFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      
+      setSaving(true);
+      const { saveStudyMaterial } = await import("@/utils/storage");
+      const MATERIAL_DIR = ((FileSystem as any).documentDirectory ?? "") + "study-materials/";
+      
+      // Ensure dir
+      if (Platform.OS !== "web") {
+        const info = await FileSystem.getInfoAsync(MATERIAL_DIR);
+        if (!info.exists) await FileSystem.makeDirectoryAsync(MATERIAL_DIR, { intermediates: true });
+      }
+
+      const ext = asset.name.split(".").pop() ?? "file";
+      const dest = MATERIAL_DIR + `${generateId()}.${ext}`;
+      if (Platform.OS !== "web") {
+        await FileSystem.copyAsync({ from: asset.uri, to: dest });
+      }
+
+      await saveStudyMaterial({
+        id: generateId(),
+        lessonId: lessonId ?? "",
+        title: `Impor: ${asset.name}`,
+        type: "file",
+        content: `File diimpor dari dokumen asli.`,
+        filePath: Platform.OS === "web" ? asset.uri : dest,
+        fileName: asset.name,
+        fileSize: asset.size,
+        fileMime: asset.mimeType ?? undefined,
+        createdAt: new Date().toISOString(),
+      });
+
+      toast.success("Dokumen berhasil diimpor ke Materi Belajar");
+      // Optional: create a link note? User just wanted import. 
+      // Navigating to materials might be helpful
+      Alert.alert("Impor Berhasil", `File "${asset.name}" telah ditambahkan ke Materi Belajar pelajaran ini.`, [
+        { text: "Buka Materi", onPress: () => router.push(`/study-material/${lessonId}`) },
+        { text: "Oke", style: "cancel" }
+      ]);
+    } catch (e) {
+      toast.error("Gagal mengimpor file");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error(t.notes.error_title);
@@ -203,6 +262,78 @@ export default function NotesScreen() {
     ]);
   };
 
+  const exportAllToPDF = async () => {
+    if (notes.length === 0) return;
+    try {
+      const html = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1a1a1a; line-height: 1.6; }
+              .header { border-bottom: 2px solid #6366f1; padding-bottom: 10px; marginBottom: 30px; }
+              .course { font-size: 14px; color: #6366f1; font-weight: bold; text-transform: uppercase; }
+              .title { font-size: 28px; font-weight: 900; margin-top: 5px; }
+              .note { margin-bottom: 40px; page-break-inside: avoid; }
+              .note-title { font-size: 18px; font-weight: bold; color: #4338ca; border-left: 4px solid #6366f1; padding-left: 12px; margin-bottom: 8px; }
+              .note-date { font-size: 11px; color: #666; margin-bottom: 12px; }
+              .note-content { font-size: 14px; white-space: pre-wrap; }
+              .footer { margin-top: 50px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="course">${lessonName}</div>
+              <div class="title">Ringkasan Catatan Belajar</div>
+            </div>
+            ${notes.map(n => `
+              <div class="note">
+                <div class="note-title">${n.title}</div>
+                <div class="note-date">${formatDate(n.updatedAt)}</div>
+                <div class="note-content">${n.content}</div>
+              </div>
+            `).join("")}
+            <div class="footer">Dibuat otomatis oleh LearnPath - ${new Date().toLocaleDateString()}</div>
+          </body>
+        </html>
+      `;
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
+    } catch {
+      toast.error("Gagal mengekspor PDF");
+    }
+  };
+
+  const exportToTxt = async () => {
+    if (notes.length === 0) return;
+    try {
+      let text = `RINGKASAN CATATAN: ${lessonName.toUpperCase()}\n`;
+      text += `Dibuat pada: ${new Date().toLocaleString()}\n`;
+      text += `==========================================\n\n`;
+      
+      notes.forEach(n => {
+        text += `[${n.title}]\n`;
+        text += `Terakhir diupdate: ${formatDate(n.updatedAt)}\n`;
+        text += `------------------------------------------\n`;
+        text += `${n.content}\n\n`;
+      });
+
+      const fileName = `catatan-${lessonName.replace(/\s+/g, "_").toLowerCase()}.txt`;
+      const path = ((FileSystem as any).cacheDirectory ?? "") + fileName;
+      await (FileSystem as any).writeAsStringAsync(path, text);
+      await Sharing.shareAsync(path);
+    } catch {
+      toast.error("Gagal mengekspor TXT");
+    }
+  };
+
+  const handleExportMenu = () => {
+    Alert.alert("Ekspor Catatan", "Pilih format file untuk menyimpan seluruh catatan pelajaran ini.", [
+      { text: "PDF (Rapi)", onPress: exportAllToPDF },
+      { text: "Teks Tradisional (.txt)", onPress: exportToTxt },
+      { text: "Batal", style: "cancel" }
+    ]);
+  };
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleDateString("id-ID", {
@@ -229,6 +360,12 @@ export default function NotesScreen() {
           </Text>
           <Text style={styles.headerTitle}>{t.common.notes}</Text>
         </View>
+        <TouchableOpacity onPress={handleImportFile} style={[styles.addBtn, { backgroundColor: "rgba(255,255,255,0.12)", marginRight: 8 }]}>
+          <Paperclip size={18} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleExportMenu} style={[styles.addBtn, { backgroundColor: "rgba(255,255,255,0.12)", marginRight: 8 }]}>
+          <Download size={18} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
           <Plus size={20} color="#fff" />
         </TouchableOpacity>

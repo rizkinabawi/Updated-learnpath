@@ -42,9 +42,10 @@ export interface LearningPath {
   icon?: string;
   completedLessons?: number;
   totalLessons?: number;
-  createdAt: string;
-  /** If true, this course was imported from a secured bundle and cannot be exported/shared again. */
   isLocked?: boolean;
+  /** New: For sorting courses by usage and priority */
+  isFavorite?: boolean;
+  openCount?: number;
 }
 
 export interface Module {
@@ -64,6 +65,7 @@ export interface Lesson {
   moduleId: string;
   order: number;
   notes?: string;
+  icon?: string;
   createdAt: string;
 }
 
@@ -122,6 +124,10 @@ export interface Quiz {
   image?: string;
   /** Optional local audio file URI played during the quiz. */
   audio?: string;
+  /** 'standard' or 'listening' mode (TTS) */
+  template?: "standard" | "listening";
+  /** Optional separate script for TTS */
+  ttsScript?: string;
   createdAt: string;
 }
 
@@ -346,6 +352,44 @@ export const saveLearningPath = async (path: LearningPath) => {
 export const deleteLearningPath = async (id: string) => {
   const paths = await getLearningPaths();
   await saveToStorage(STORAGE_KEYS.LEARNING_PATHS, paths.filter((p) => p.id !== id));
+};
+
+export const incrementCourseOpen = async (pathId: string) => {
+  const paths = await getLearningPaths();
+  const index = paths.findIndex((p) => p.id === pathId);
+  if (index >= 0) {
+    paths[index].openCount = (paths[index].openCount || 0) + 1;
+    await saveToStorage(STORAGE_KEYS.LEARNING_PATHS, paths);
+  }
+};
+
+export const toggleCourseFavorite = async (pathId: string): Promise<boolean> => {
+  const paths = await getLearningPaths();
+  const index = paths.findIndex((p) => p.id === pathId);
+  if (index >= 0) {
+    const newVal = !paths[index].isFavorite;
+    paths[index].isFavorite = newVal;
+    await saveToStorage(STORAGE_KEYS.LEARNING_PATHS, paths);
+    return newVal;
+  }
+  return false;
+};
+
+export const getSortedLearningPaths = async (): Promise<LearningPath[]> => {
+  const paths = await getLearningPaths();
+  return paths.sort((a, b) => {
+    // 1. Favorites first
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    
+    // 2. Then by openCount
+    const countA = a.openCount || 0;
+    const countB = b.openCount || 0;
+    if (countA !== countB) return countB - countA;
+    
+    // 3. Finally by creation date (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 };
 
 // Modules

@@ -467,7 +467,7 @@ export default function StudyMaterialScreen() {
   const pickFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
+        type: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"],
         copyToCacheDirectory: true,
       });
       if (result.canceled) return;

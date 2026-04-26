@@ -24,10 +24,13 @@ import {
   generateId, getCompletedLessons, setLessonCompleted,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
+import * as LucideIcons from "lucide-react-native";
 import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { exportCourseCertificate } from "@/utils/flashcard-export";
 import { getUser } from "@/utils/storage";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 const makeGradPalette = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
@@ -36,7 +39,12 @@ const makeGradPalette = (colors: ColorScheme): [string, string][] => [
   [colors.purple, "#A855F7"],
   [colors.emerald, colors.success],
 ];
-const MOD_EMOJIS = ["📘", "🎨", "🌐", "🧠", "⚗️"];
+const COURSE_ICONS = [
+  "Book", "Code", "Globe", "Cpu", "Layers", "Award", "Compass", "Music", "Camera", "Clock", "Video", "Zap", "Star", "Heart", "Anchor", "Cloud", "Sun", "Moon", "Terminal"
+];
+const MOD_ICONS = [
+  "Bookmark", "Brain", "Palette", "Globe", "Beaker", "Rocket", "Lightbulb", "PenTool", "Target", "Flame", "Rainbow", "Star", "Briefcase", "Wrench", "Smartphone", "Monitor"
+];
 
 type ModCounts = { fc: number; qz: number; nt: number; mt: number };
 
@@ -45,6 +53,12 @@ export default function CourseDetailPage() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const GRAD_PALETTE = useMemo(() => makeGradPalette(colors), [colors]);
+
+  // Helper to render lucide icon if exist
+  const DynamicIcon = ({ name, size, color }: { name: string; size: number; color: string }) => {
+    const Icon = (LucideIcons as any)[name] || LucideIcons.HelpCircle;
+    return <Icon size={size} color={color} />;
+  };
 
   const { pathId } = useLocalSearchParams<{ pathId: string }>();
   const router = useRouter();
@@ -62,9 +76,18 @@ export default function CourseDetailPage() {
   const { t } = useTranslation();
   const [showNewModule, setShowNewModule] = useState(false);
   const [showNewLesson, setShowNewLesson] = useState(false);
+  const [showEditCourse, setShowEditCourse] = useState(false);
+  const [editModId, setEditModId] = useState<string | null>(null);
+  const [editLessonId, setEditLessonId] = useState<string | null>(null);
+
+  const [pathName, setPathName] = useState("");
+  const [pathDesc, setPathDesc] = useState("");
+  const [pathIcon, setPathIcon] = useState("Book");
   const [modName, setModName] = useState("");
+  const [modIcon, setModIcon] = useState("Bookmark");
   const [lessonName, setLessonName] = useState("");
   const [lessonDesc, setLessonDesc] = useState("");
+  const [lessonIcon, setLessonIcon] = useState("PenTool");
   const [targetMod, setTargetMod] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -95,30 +118,70 @@ export default function CourseDetailPage() {
     setCompletions(await getCompletedLessons());
   };
 
+  const updateCourse = async () => {
+    if (!pathName.trim() || !path) return;
+    const { saveLearningPath } = await import("@/utils/storage");
+    await saveLearningPath({ ...path, name: pathName.trim(), description: pathDesc.trim(), icon: pathIcon });
+    setShowEditCourse(false);
+    loadData();
+  };
+
+  const handleEditCourse = () => {
+    if (!path) return;
+    setPathName(path.name);
+    setPathDesc(path.description);
+    setPathIcon(path.icon || "Book");
+    setShowEditCourse(true);
+  };
+
+  const handleEditModule = (mod: Module) => {
+    setEditModId(mod.id);
+    setModName(mod.name);
+    setModIcon(mod.icon || "Bookmark");
+    setShowNewModule(true);
+  };
+
+  const handleEditLesson = (lesson: Lesson, modId: string) => {
+    setEditLessonId(lesson.id);
+    setTargetMod(modId);
+    setLessonName(lesson.name);
+    setLessonDesc(lesson.description);
+    setLessonIcon(lesson.icon || "PenTool");
+    setShowNewLesson(true);
+  };
+
   useFocusEffect(useCallback(() => { loadData(); }, [pathId]));
 
   const createModule = async () => {
     if (!modName.trim() || !pathId) return;
     const m: Module = {
-      id: generateId(), pathId,
-      name: modName.trim(), description: "",
-      order: modules.length, createdAt: new Date().toISOString(),
+      id: editModId ?? generateId(), 
+      pathId,
+      name: modName.trim(), 
+      description: modules.find(x => x.id === editModId)?.description ?? "",
+      icon: modIcon,
+      order: editModId ? (modules.find(x => x.id === editModId)?.order ?? 0) : modules.length, 
+      createdAt: modules.find(x => x.id === editModId)?.createdAt ?? new Date().toISOString(),
     };
     await saveModule(m);
-    setModName(""); setShowNewModule(false);
+    setModName(""); setModIcon("Bookmark"); setEditModId(null); setShowNewModule(false);
     loadData();
   };
 
   const createLesson = async () => {
     if (!lessonName.trim() || !targetMod) return;
+    const existing = lessons[targetMod]?.find(l => l.id === editLessonId);
     const l: Lesson = {
-      id: generateId(), moduleId: targetMod,
-      name: lessonName.trim(), description: lessonDesc.trim(),
-      order: (lessons[targetMod] ?? []).length,
-      createdAt: new Date().toISOString(),
+      id: editLessonId ?? generateId(), 
+      moduleId: targetMod,
+      name: lessonName.trim(), 
+      description: lessonDesc.trim(),
+      icon: lessonIcon,
+      order: editLessonId ? (existing?.order ?? 0) : (lessons[targetMod] ?? []).length,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
     };
     await saveLesson(l);
-    setLessonName(""); setLessonDesc(""); setShowNewLesson(false);
+    setLessonName(""); setLessonDesc(""); setLessonIcon("PenTool"); setEditLessonId(null); setShowNewLesson(false);
     loadData();
   };
 
@@ -174,6 +237,104 @@ export default function CourseDetailPage() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (!path) return;
+    try {
+      const user = await getUser();
+      const userName = user?.name || "Pelajar LearnPath";
+      
+      let reportHtml = `
+        <html>
+          <head>
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+              body { font-family: 'Plus Jakarta Sans', 'Helvetica', sans-serif; padding: 0; margin: 0; color: #1e293b; background: #fff; }
+              .page { padding: 50px; }
+              .header-bg { background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); padding: 60px 50px; color: #fff; border-bottom-right-radius: 60px; }
+              .header-bg h1 { margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1px; }
+              .header-bg p { opacity: 0.8; margin-top: 10px; font-size: 16px; }
+              
+              .container { padding: 40px 50px; }
+              .summary-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: -50px; }
+              .card { background: #fff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; border: 1px solid #f1f5f9; }
+              .card-val { display: block; font-size: 24px; font-weight: 800; color: #4338ca; }
+              .card-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
+
+              .section-title { font-size: 20px; font-weight: 800; color: #1e293b; margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; }
+              .section-title::after { content: ''; flex: 1; height: 2px; background: #f1f5f9; margin-left: 15px; }
+
+              .mod-block { margin-bottom: 30px; }
+              .mod-header { background: #f8fafc; padding: 15px 20px; border-radius: 12px; font-weight: 800; color: #4338ca; border-left: 4px solid #6366f1; margin-bottom: 10px; }
+              .lesson-item { display: flex; align-items: center; padding: 12px 20px; border-radius: 10px; margin-bottom: 5px; background: #fff; border: 1px solid #f8fafc; }
+              .status-icon { width: 20px; height: 20px; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+              .status-done { background: #dcfce7; color: #16a34a; }
+              .status-todo { background: #f1f5f9; color: #94a3b8; }
+              .lesson-txt { flex: 1; font-size: 14px; font-weight: 600; color: #334155; }
+              
+              .footer { text-align: center; margin-top: 80px; padding: 40px; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="header-bg">
+              <h1>Laporan Belajar</h1>
+              <p>${path.name}</p>
+              <div style="margin-top: 20px; font-size: 13px; opacity: 0.9;">
+                <b>Siswa:</b> ${userName} &nbsp; | &nbsp; <b>Tanggal:</b> ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+
+            <div class="container">
+              <div class="summary-cards">
+                <div class="card">
+                  <span class="card-val">${Math.round(courseProgress.pct * 100)}%</span>
+                  <span class="card-label">Sertifikasi</span>
+                </div>
+                <div class="card">
+                  <span class="card-val">${courseProgress.done}</span>
+                  <span class="card-label">Materi Selesai</span>
+                </div>
+                <div class="card">
+                  <span class="card-val">${courseProgress.total}</span>
+                  <span class="card-label">Total Materi</span>
+                </div>
+              </div>
+
+              <div class="section-title">Detail Kurikulum</div>
+              ${modules.map(mod => {
+                const modL = lessons[mod.id] || [];
+                return `
+                  <div class="mod-block">
+                    <div class="mod-header">${mod.name}</div>
+                    ${modL.map(l => {
+                      const isDone = completions.includes(l.id);
+                      return `
+                        <div class="lesson-item">
+                          <div class="status-icon ${isDone ? 'status-done' : 'status-todo'}">${isDone ? '✓' : ''}</div>
+                          <div class="lesson-txt">${l.name}</div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `;
+              }).join('')}
+
+              <div class="footer">
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="30" style="margin-bottom: 10px; opacity: 0.5;" /><br/>
+                Dokumen Resmi LearnPath Premium Edition<br/>
+                &copy; ${new Date().getFullYear()} Antigravity Learning Intelligence
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html: reportHtml });
+      await Sharing.shareAsync(uri);
+    } catch (e) {
+      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor laporan.");
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -192,11 +353,16 @@ export default function CourseDetailPage() {
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="arrow-left" size={20} color={colors.white} />
+            <LucideIcons.ArrowLeft size={20} color={colors.white} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.headerSub}>{t.course.header_sub}</Text>
-            <Text style={styles.headerTitle} numberOfLines={1}>{path?.name ?? "..."}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={[styles.headerTitle, { flex: 1 }]} numberOfLines={1}>{path?.name ?? "..."}</Text>
+              <TouchableOpacity onPress={handleEditCourse} style={styles.miniEditBtn}>
+                <LucideIcons.Edit2 size={12} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
           </View>
           <TouchableOpacity
             onPress={() => setShowNewModule(true)}
@@ -204,7 +370,7 @@ export default function CourseDetailPage() {
             activeOpacity={0.8}
           >
             <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
-              <Feather name="plus" size={20} color={colors.white} />
+              <LucideIcons.Plus size={20} color={colors.white} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -224,6 +390,13 @@ export default function CourseDetailPage() {
           <Text style={styles.progSub}>
             {courseProgress.done} dari {courseProgress.total} materi selesai
           </Text>
+          <TouchableOpacity 
+            onPress={handleDownloadReport}
+            style={styles.downloadReportBtn}
+          >
+            <LucideIcons.FileDown size={14} color="#fff" />
+            <Text style={styles.downloadReportText}>Unduh Laporan Lengkap</Text>
+          </TouchableOpacity>
         </View>
 
         {courseProgress.pct === 1 && courseProgress.total > 0 && (
@@ -233,12 +406,12 @@ export default function CourseDetailPage() {
             activeOpacity={0.85}
           >
             <LinearGradient colors={["#F59E0B", "#D97706"]} style={styles.certClaimGrad} start={{x:0,y:0}} end={{x:1,y:1}}>
-              <Feather name="award" size={20} color="#fff" />
+              <LucideIcons.Award size={20} color="#fff" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.certClaimTitle}>Kursus Selesai!</Text>
                 <Text style={styles.certClaimSub}>Klik untuk klaim Sertifikat Kelulusan Anda</Text>
               </View>
-              <Feather name="chevron-right" size={18} color="#fff" />
+              <LucideIcons.ChevronRight size={18} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -259,7 +432,7 @@ export default function CourseDetailPage() {
             style={styles.emptyModBtn}
             activeOpacity={0.8}
           >
-            <Feather name="plus-circle" size={18} color={colors.primary} />
+            <LucideIcons.PlusCircle size={18} color={colors.primary} />
             <Text style={styles.emptyModText}>{t.course.empty_mod}</Text>
           </TouchableOpacity>
         )}
@@ -270,7 +443,7 @@ export default function CourseDetailPage() {
             const modLessons = lessons[mod.id] ?? [];
             const cnt = counts[mod.id] ?? { fc: 0, qz: 0, nt: 0, mt: 0 };
             const grad = GRAD_PALETTE[mi % GRAD_PALETTE.length];
-            const emoji = MOD_EMOJIS[mi % MOD_EMOJIS.length];
+            const iconName = mod.icon || MOD_ICONS[mi % MOD_ICONS.length];
 
             return (
               <View key={mod.id} style={[styles.moduleCard, isTablet && styles.moduleCardTablet]}>
@@ -281,32 +454,39 @@ export default function CourseDetailPage() {
                   activeOpacity={0.7}
                 >
                   <LinearGradient colors={grad} style={styles.modIconGrad}>
-                    <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                    <DynamicIcon name={iconName} size={18} color="#fff" />
                   </LinearGradient>
 
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.moduleName} numberOfLines={1}>{mod.name}</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View style={styles.moduleMetaRow}>
-                        <MetaChip label={t.course.meta_lessons(modLessons.length)} />
-                        <MetaChip label={t.course.meta_cards(cnt.fc)} />
-                        <MetaChip label={t.course.meta_quiz(cnt.qz)} />
-                        <MetaChip label={t.course.meta_notes(cnt.nt)} color={colors.primary} bg="#EEF0FF" />
-                        <MetaChip label={t.course.meta_material(cnt.mt)} color={colors.purple} bg={colors.purpleLight} />
-                      </View>
-                    </ScrollView>
+                    <View style={styles.moduleMetaRow}>
+                      <MetaChip label={t.course.meta_cards(cnt.fc)} />
+                      <MetaChip label={t.course.meta_quiz(cnt.qz)} />
+                      <MetaChip label={t.course.meta_notes(cnt.nt)} color={colors.primary} bg="#EEF0FF" />
+                      <MetaChip label={t.course.meta_material(cnt.mt)} color={colors.purple} bg={colors.purpleLight} />
+                    </View>
                   </View>
 
-                  <TouchableOpacity
-                    onPress={() => handleDeleteModule(mod)}
-                    style={styles.modDeleteBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Feather name="trash-2" size={13} color={colors.danger} />
-                  </TouchableOpacity>
-                  <Feather
-                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                  <View style={styles.moduleActionRow}>
+                    <TouchableOpacity
+                      onPress={() => handleEditModule(mod)}
+                      style={[styles.moduleActionBtn, { backgroundColor: colors.primaryLight }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <LucideIcons.Edit3 size={13} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteModule(mod)}
+                      style={styles.moduleActionBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <LucideIcons.Trash2 size={13} color={colors.danger} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <LucideIcons.ChevronDown
                     size={16} color={colors.textMuted}
+                    style={isExpanded && { transform: [{ rotate: "180deg" }] }}
                   />
                 </TouchableOpacity>
 
@@ -316,10 +496,17 @@ export default function CourseDetailPage() {
                     {modLessons.map((lesson, li) => (
                       <View key={lesson.id} style={styles.lessonRow}>
                         <LinearGradient colors={grad} style={styles.lessonNum}>
-                          <Text style={styles.lessonNumText}>{li + 1}</Text>
+                          {lesson.icon ? (
+                            <DynamicIcon name={lesson.icon} size={12} color="#fff" />
+                          ) : (
+                            <Text style={styles.lessonNumText}>{li + 1}</Text>
+                          )}
                         </LinearGradient>
-
-                        <View style={{ flex: 1, minWidth: 0 }}>
+                        
+                        <TouchableOpacity 
+                          style={{ flex: 1, minWidth: 0 }}
+                          onPress={() => router.push({ pathname: "/learning/[lessonId]", params: { lessonId: lesson.id } })}
+                        >
                           <View style={styles.lessonTitleRow}>
                             <TouchableOpacity 
                               onPress={() => toggleComplete(lesson.id)}
@@ -329,7 +516,7 @@ export default function CourseDetailPage() {
                               ]}
                             >
                               {completions.includes(lesson.id) && (
-                                <Feather name="check" size={10} color={grad[0]} />
+                                <LucideIcons.Check size={10} color={grad[0]} />
                               )}
                             </TouchableOpacity>
                             <Text 
@@ -343,46 +530,26 @@ export default function CourseDetailPage() {
                               {lesson.name}
                             </Text>
                             <TouchableOpacity
+                              onPress={() => handleEditLesson(lesson, mod.id)}
+                              style={[styles.lessonDeleteBtn, { backgroundColor: colors.primaryLight, marginRight: 6 }]}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                              <LucideIcons.Edit3 size={12} color={colors.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
                               onPress={() => handleDeleteLesson(lesson)}
                               style={styles.lessonDeleteBtn}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
-                              <Feather name="trash-2" size={12} color={colors.danger} />
+                              <LucideIcons.Trash2 size={12} color={colors.danger} />
                             </TouchableOpacity>
                           </View>
                           {!!lesson.description && (
-                            <Text style={[styles.lessonDesc, completions.includes(lesson.id) && { opacity: 0.6 }]} numberOfLines={1}>
+                            <Text style={[styles.lessonDesc, { paddingLeft: 34 }, completions.includes(lesson.id) && { opacity: 0.6 }]} numberOfLines={1}>
                               {lesson.description}
                             </Text>
                           )}
-
-                          {/* Action pills */}
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
-                            <View style={styles.actionRow}>
-                              <ActionPill
-                                label={t.course.action_notes} bg={colors.primaryLight}
-                                onPress={() => router.push(`/notes/${lesson.id}`)}
-                              />
-                              <ActionPill
-                                label={t.course.action_material} bg={colors.purpleLight}
-                                onPress={() => router.push(`/study-material/${lesson.id}`)}
-                              />
-                              <ActionPill
-                                label={t.course.action_cards} bg={colors.primaryLight}
-                                onPress={() => router.push(`/flashcard/${lesson.id}`)}
-                              />
-                              <ActionPill
-                                label={t.course.action_quiz} bg={colors.amberLight}
-                                onPress={() => router.push(`/quiz/${lesson.id}`)}
-                              />
-                              <ActionPill
-                                icon="plus" label="Soal" bg={colors.background}
-                                border={colors.border} textColor={colors.primary}
-                                onPress={() => router.push(`/create-quiz/${lesson.id}`)}
-                              />
-                            </View>
-                          </ScrollView>
-                        </View>
+                        </TouchableOpacity>
                       </View>
                     ))}
 
@@ -411,19 +578,29 @@ export default function CourseDetailPage() {
       {/* MODALS */}
       {[
         {
-          vis: showNewModule, title: t.course.new_module_modal,
-          close: () => { setShowNewModule(false); setModName(""); }, save: createModule,
+          vis: showNewModule, title: editModId ? "Edit Modul" : t.course.new_module_modal,
+          close: () => { setShowNewModule(false); setModName(""); setModIcon("📘"); setEditModId(null); }, save: createModule,
           body: (
-            <TextInput
-              placeholder="Nama modul" value={modName}
-              onChangeText={setModName} style={styles.mInput}
-              placeholderTextColor={colors.textMuted} autoFocus
-            />
+            <>
+              <TextInput
+                placeholder="Nama modul" value={modName}
+                onChangeText={setModName} style={styles.mInput}
+                placeholderTextColor={colors.textMuted} autoFocus
+              />
+              <Text style={styles.mLabel}>Pilih Ikon Modul</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconGrid}>
+                {MOD_ICONS.map(i => (
+                  <TouchableOpacity key={i} onPress={() => setModIcon(i)} style={[styles.iconPick, modIcon === i && styles.iconPickActive]}>
+                    <DynamicIcon name={i} size={18} color={modIcon === i ? colors.primary : colors.textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>
           ),
         },
         {
-          vis: showNewLesson, title: t.course.new_lesson_modal,
-          close: () => { setShowNewLesson(false); setLessonName(""); setLessonDesc(""); }, save: createLesson,
+          vis: showNewLesson, title: editLessonId ? "Edit Pelajaran" : t.course.new_lesson_modal,
+          close: () => { setShowNewLesson(false); setLessonName(""); setLessonDesc(""); setLessonIcon("PenTool"); setEditLessonId(null); }, save: createLesson,
           body: (
             <>
               <TextInput
@@ -436,6 +613,40 @@ export default function CourseDetailPage() {
                 onChangeText={setLessonDesc} style={styles.mInput}
                 placeholderTextColor={colors.textMuted}
               />
+              <Text style={styles.mLabel}>Pilih Ikon Pelajaran</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconGrid}>
+                {MOD_ICONS.map(i => (
+                  <TouchableOpacity key={i} onPress={() => setLessonIcon(i)} style={[styles.iconPick, lessonIcon === i && styles.iconPickActive]}>
+                    <DynamicIcon name={i} size={18} color={lessonIcon === i ? colors.primary : colors.textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>
+          ),
+        },
+        {
+          vis: showEditCourse, title: "Edit Detail Kursus",
+          close: () => setShowEditCourse(false), save: updateCourse,
+          body: (
+            <>
+              <TextInput
+                placeholder="Nama kursus" value={pathName}
+                onChangeText={setPathName} style={styles.mInput}
+                placeholderTextColor={colors.textMuted} autoFocus
+              />
+              <TextInput
+                placeholder="Deskripsi kursus" value={pathDesc}
+                onChangeText={setPathDesc} style={[styles.mInput, { height: 100 }]}
+                placeholderTextColor={colors.textMuted} multiline
+              />
+              <Text style={styles.mLabel}>Pilih Ikon Kursus</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconGrid}>
+                {COURSE_ICONS.map(i => (
+                  <TouchableOpacity key={i} onPress={() => setPathIcon(i)} style={[styles.iconPick, pathIcon === i && styles.iconPickActive]}>
+                    <DynamicIcon name={i} size={18} color={pathIcon === i ? colors.primary : colors.textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </>
           ),
         },
@@ -512,6 +723,11 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   },
   headerSub: { fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: "700", letterSpacing: 1.5 },
   headerTitle: { fontSize: 22, fontWeight: "900", color: "#fff", letterSpacing: -0.3 },
+  miniEditBtn: {
+    width: 22, height: 22, borderRadius: 6,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center", justifyContent: "center",
+  },
   headerDesc: { fontSize: 13, color: "rgba(255,255,255,0.65)", fontWeight: "500", marginTop: 6 },
   
   progContainer: { marginTop: 12, gap: 6 },
@@ -521,6 +737,13 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   progTrack: { height: 6, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 3, overflow: "hidden" },
   progFill: { height: "100%", backgroundColor: (palette === "minimal" && isDark) ? c.primary : "#fff", borderRadius: 3 },
   progSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "600" },
+  downloadReportBtn: { 
+    flexDirection: "row", alignItems: "center", gap: 6, 
+    marginTop: 8, paddingVertical: 6, paddingHorizontal: 12,
+    backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8,
+    alignSelf: "flex-start"
+  },
+  downloadReportText: { fontSize: 11, fontWeight: "800", color: "#fff" },
 
   addBtn: { borderRadius: 13, overflow: "hidden" },
   addGrad: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
@@ -545,12 +768,14 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   moduleHeader: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
   modIconGrad: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   moduleName: { fontSize: 15, fontWeight: "800", color: c.text, marginBottom: 5 },
-  moduleMetaRow: { flexDirection: "row", gap: 5 },
-  metaChip: { backgroundColor: c.background, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 },
-  metaChipText: { fontSize: 10, fontWeight: "700", color: c.textSecondary },
-  modDeleteBtn: {
-    width: 30, height: 30, borderRadius: 8,
-    backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center",
+  moduleMetaRow: { flexDirection: "row", gap: 4, flexWrap: "wrap", marginTop: 2 },
+  metaChip: { backgroundColor: c.background, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: c.border },
+  metaChipText: { fontSize: 9, fontWeight: "800", color: c.textMuted, textTransform: "uppercase" },
+  moduleActionRow: { flexDirection: "row", gap: 8, alignItems: "center", marginLeft: 4 },
+  moduleActionBtn: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: c.background, alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: c.border,
   },
 
   lessonList: { borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 14, paddingBottom: 8 },
@@ -573,7 +798,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   lessonTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 1 },
   lessonName: { fontSize: 13, fontWeight: "700", color: c.text },
   lessonDesc: { fontSize: 11, color: c.textMuted, fontWeight: "500", marginTop: 1 },
-  lessonDeleteBtn: {
+  lessonActionBtn: {
     width: 24, height: 24, borderRadius: 6,
     backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center",
   },
@@ -610,6 +835,15 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   mBtnOk: { flex: 1, borderRadius: 999, overflow: "hidden" },
   mBtnOkGrad: { paddingVertical: 14, alignItems: "center" },
   mBtnOkText: { fontSize: 14, fontWeight: "900", color: "#fff" },
+
+  mLabel: { fontSize: 12, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", marginTop: 12, marginBottom: 8 },
+  iconGrid: { flexDirection: "row", gap: 10, paddingBottom: 10 },
+  iconPick: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: c.background, alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: "transparent",
+  },
+  iconPickActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
 
   certClaimCard: {
     marginTop: 18,

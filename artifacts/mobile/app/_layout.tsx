@@ -8,7 +8,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import { Animated, Easing, LogBox, Platform, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -47,9 +47,9 @@ const queryClient = new QueryClient();
 
 // ─── Animated loading dots ───────────────────────────────────────────────────
 function LoadingDot({ delay, color }: { delay: number; color: string }) {
-  const anim = React.useRef(new Animated.Value(0)).current;
+  const anim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
@@ -85,9 +85,9 @@ function LoadingDot({ delay, color }: { delay: number; color: string }) {
 
 // ─── Splash screen progress bar ──────────────────────────────────────────────
 function ProgressBar() {
-  const anim = React.useRef(new Animated.Value(0)).current;
+  const anim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(anim, {
@@ -119,10 +119,10 @@ function ProgressBar() {
 
 // ─── Logo pulse ──────────────────────────────────────────────────────────────
 function PulseLogo() {
-  const scale = React.useRef(new Animated.Value(0.8)).current;
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
@@ -239,7 +239,7 @@ function AppContent({ licensed, setLicensed }: { licensed: boolean; setLicensed:
     Inter_700Bold,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
@@ -250,10 +250,10 @@ function AppContent({ licensed, setLicensed }: { licensed: boolean; setLicensed:
   return (
     <ErrorBoundary>
       {licensed ? (
-        <React.Fragment>
+        <Fragment>
           <RootLayoutNav />
           <FloatingOverlay />
-        </React.Fragment>
+        </Fragment>
       ) : (
         <ActivateScreen onActivated={() => setLicensed(true)} />
       )}
@@ -344,10 +344,10 @@ function RootLayoutNav() {
   );
 }
 export default function RootLayout() {
-  const [licensed, setLicensed] = React.useState(true);
-  const [licenseChecked, setLicenseChecked] = React.useState(false);
+  const [licensed, setLicensed] = useState(true);
+  const [licenseChecked, setLicenseChecked] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       try {

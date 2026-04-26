@@ -6,7 +6,7 @@
  * activation key signed by the APP MASTER private key.
  */
 
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -37,21 +37,21 @@ interface ActivateProps {
 
 export default function ActivateScreen({ onActivated }: ActivateProps) {
   const colors = useColors();
-  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const isUpgrade = !onActivated; // If no callback, we're in route mode (upgrade)
-  const [input, setInput] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const [deviceId, setDeviceId] = React.useState<string>("");
-  const [activated, setActivated] = React.useState(false);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<string>("");
+  const [activated, setActivated] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     getDeviceId().then(setDeviceId).catch(() => {});
   }, []);
 
   // After successful activation we just have to leave this screen — root
   // layout's gate will re-evaluate and route to the main app.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!activated) return;
     const t = setTimeout(() => {
       if (onActivated) {

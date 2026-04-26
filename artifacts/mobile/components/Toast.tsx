@@ -1,5 +1,5 @@
 import { useColors } from "@/contexts/ThemeContext";
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Animated,
   Text,
@@ -58,7 +58,7 @@ export function ToastContainer() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [state, setState] = React.useState<State>({
+  const [state, setState] = useState<State>({
     visible: false,
     message: "",
     type: "info",

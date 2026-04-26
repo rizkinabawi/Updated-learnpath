@@ -7,13 +7,17 @@ import { concatBytes } from "https://esm.sh/@noble/hashes/utils";
  * SINKRONISASI SISTEM V3.1
  * Logic ini identik 100% dengan CLI dan Mobile App
  */
-const ed = { ...edModule, etc: { ...(edModule.etc || {}) } };
+const ed = edModule;
 try { 
+    // Di lingkungan browser modern, @noble/ed25519 v3 biasanya mendeteksi crypto.subtle otomatis.
+    // Tapi kita tetapkan secara manual untuk kompatibilitas maksimal.
     if (ed.etc && Object.isExtensible(ed.etc)) {
         ed.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
         ed.etc.sha512Async = async (...m) => sha512(concatBytes(...m));
     }
-} catch (e) {}
+} catch (e) {
+    console.warn('Manual hash setup skipped (likely auto-detected by library):', e.message);
+}
 
 // Deterministic UTF-8 (MATCHES MOBILE APP BYTES)
 const utf8 = (s) => {

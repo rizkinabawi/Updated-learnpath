@@ -594,13 +594,15 @@
 <!-- ── Crypto Libraries (CDN, pure ESM) ── -->
 <script type="module">
 // ── Imports dari CDN ─────────────────────────────────────────────────────────
-import * as ed from "https://esm.sh/@noble/ed25519@2.2.3";
-import { sha256, sha512 } from "https://esm.sh/@noble/hashes@1.7.2/sha2.js";
+import * as ed from "https://esm.sh/@noble/ed25519@3.1.0";
+import * as noble_hashes from "https://esm.sh/@noble/hashes@1.7.2";
 import { randomBytes as nobleRandom } from "https://esm.sh/@noble/hashes@1.7.2/utils.js";
 
 // Wire SHA-512 into ed25519
-ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
-ed.etc.sha512Async = async (...m) => sha512(ed.etc.concatBytes(...m));
+if (ed.etc && Object.isExtensible(ed.etc)) {
+  ed.etc.sha512Sync = (...m) => noble_hashes.sha512(noble_hashes.concatBytes(...m));
+  ed.etc.sha512Async = async (...m) => noble_hashes.sha512(noble_hashes.concatBytes(...m));
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const toHex  = b => Array.from(b).map(x => x.toString(16).padStart(2,'0')).join('');

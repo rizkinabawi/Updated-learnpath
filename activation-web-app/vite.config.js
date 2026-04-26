@@ -1,13 +1,18 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
+  plugins: [react()],
   build: {
-    outDir: 'dist',
-    minify: 'esbuild',
-    cssMinify: 'esbuild',
-    emptyOutDir: true,
+    rollupOptions: {
+      // Memastikan Noble tidak dianggap sebagai external saat build
+      external: []
+    }
   },
-  server: {
-    port: 3000
+  resolve: {
+    alias: {
+      // Opsional: Memastikan path ke node_modules konsisten
+    }
   }
-});
+})

@@ -54,40 +54,48 @@ export default function App() {
   const [deviceId, setDeviceId] = useState('');
   const [expiryVal, setExpiryVal] = useState(36500);
   const [expiryUnit, setExpiryUnit] = useState('days');
+  const [quantity, setQuantity] = useState(1);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
+  const [showSk, setShowSk] = useState(false);
+
   const generateToken = async () => {
+    setCopied(false);
     setError('');
     try {
-      if (!sk) throw new Error("Private Key wajib diisi!");
+      if (!sk) throw new Error("Private Key required!");
       const privateKeyRaw = fromHex(sk);
-      if (privateKeyRaw.length !== 32) throw new Error("Private Key harus 32 bytes (64 karakter hex)");
+      if (privateKeyRaw.length !== 32) throw new Error("Invalid Private Key length.");
 
-      const now = Date.now();
+      const tokens = [];
+      const qty = Math.max(1, Math.min(Number(quantity), 100));
+      
+      let baseNow = Date.now();
       let multiplier = 86400000;
       if (expiryUnit === 'minutes') multiplier = 60000;
       if (expiryUnit === 'weeks') multiplier = 86400000 * 7;
       if (expiryUnit === 'months') multiplier = 86400000 * 30;
 
-      const expiry = now + (expiryVal * multiplier);
+      for (let i = 0; i < qty; i++) {
+        const now = baseNow + i;
+        const expiry = now + (Number(expiryVal) * multiplier);
+        const msgStr = `${appId}|${now}|${expiry}|${deviceId.trim()}`;
+        const msg = utf8(msgStr);
+        const sig = await ed.signAsync(msg, privateKeyRaw);
+        
+        const token = {
+          appId,
+          issuedAt: now,
+          expiry,
+          signature: toBase64(sig)
+        };
+        if (deviceId.trim()) token.deviceId = deviceId.trim();
+        tokens.push(token);
+      }
 
-      // MESSAGE BUILDER: appId|issuedAt|expiry|deviceId
-      const msgStr = `${appId}|${now}|${expiry}|${deviceId.trim()}`;
-      const msg = utf8(msgStr);
-      
-      const sig = await ed.signAsync(msg, privateKeyRaw);
-      
-      const token = {
-        appId,
-        issuedAt: now,
-        expiry,
-        signature: toBase64(sig)
-      };
-      if (deviceId.trim()) token.deviceId = deviceId.trim();
-
-      setResult(token);
+      setResult(qty === 1 ? tokens[0] : tokens);
     } catch (err) {
       setError(err.message);
     }
@@ -103,7 +111,10 @@ export default function App() {
     <div className="app-container">
       <div className="glass-panel">
         <header className="header">
-          <div className="logo-icon"><ShieldCheck size={32} /></div>
+          <div className="logo-icon-wrapper">
+            <div className="logo-icon"><ShieldCheck size={32} strokeWidth={2.5} /></div>
+            <div className="status-dot"></div>
+          </div>
           <div>
             <h1>LearningPath <span>Master</span></h1>
             <p>Cryptographic Activation System v3.1</p>
@@ -113,13 +124,25 @@ export default function App() {
         <main className="form-main">
           <div className="input-grid">
             <div className="input-group full">
-              <label><Key size={14} /> Master Private Key (HEX)</label>
-              <input 
-                type="password" 
-                value={sk} 
-                onChange={e => setSk(e.target.value)} 
-                placeholder="fe24bf45..." 
-              />
+              <div className="label-row">
+                <label><Key size={14} /> Master Private Key (HEX)</label>
+                <button 
+                  className="toggle-btn" 
+                  onClick={() => setShowSk(!showSk)}
+                  tabIndex="-1"
+                >
+                  {showSk ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <div className="input-with-icon">
+                <input 
+                  type={showSk ? "text" : "password"} 
+                  value={sk} 
+                  onChange={e => setSk(e.target.value)} 
+                  placeholder="Paste your fe24bf45... key here" 
+                  autoComplete="off"
+                />
+              </div>
             </div>
 
             <div className="input-group">
@@ -136,27 +159,39 @@ export default function App() {
               />
             </div>
 
-            <div className="input-group full">
+            <div className="input-group">
               <label><Clock size={14} /> Expiration Period</label>
-              <div className="flex-row">
+              <div className="expiry-row">
                 <input 
                   type="number" 
                   value={expiryVal} 
                   onChange={e => setExpiryVal(e.target.value)} 
                   className="val-input"
+                  min="1"
                 />
-                <select value={expiryUnit} onChange={e => setExpiryUnit(e.target.value)}>
-                  <option value="minutes">Minutes</option>
+                <select value={expiryUnit} onChange={e => setExpiryUnit(e.target.value)} className="unit-select">
+                  <option value="minutes">Min</option>
                   <option value="days">Days</option>
-                  <option value="weeks">Weeks</option>
-                  <option value="months">Months</option>
+                  <option value="weeks">Wks</option>
+                  <option value="months">Mths</option>
                 </select>
               </div>
+            </div>
+
+            <div className="input-group">
+              <label><ShieldCheck size={14} /> Quantity (Batch)</label>
+              <input 
+                type="number" 
+                value={quantity} 
+                onChange={e => setQuantity(e.target.value)}
+                min="1"
+                max="100"
+              />
             </div>
           </div>
 
           <button className="primary-btn" onClick={generateToken}>
-            Generate Activation Key
+            Generate {quantity > 1 ? `Batch of ${quantity} Keys` : 'Activation Key'}
           </button>
 
           {error && (

@@ -11,12 +11,14 @@ import { ShieldCheck, Key, Clock, Smartphone, Copy, CheckCircle2, AlertCircle, T
 
 // Konfigurasi Hashing (Wajib untuk Noble v3)
 try {
-  if (ed.etc && Object.isExtensible(ed.etc)) {
-    ed.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
-    ed.etc.sha512Async = async (...m) => sha512(concatBytes(...m));
+  if (ed.etc && !ed.etc.sha512Sync) {
+    if (Object.isExtensible(ed.etc)) {
+      ed.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
+      ed.etc.sha512Async = async (...m) => sha512(concatBytes(...m));
+    }
   }
 } catch (e) {
-  console.warn("Security init handled by library.");
+  console.warn("Manual SHA-512 setup skipped.");
 }
 
 // Deterministic UTF-8 Encoder (Sama dengan HP)

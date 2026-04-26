@@ -3,8 +3,8 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
-  useFonts,
 } from "@expo-google-fonts/inter";
+import * as Font from "expo-font";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -232,12 +232,19 @@ const splashStyles = StyleSheet.create({
 
 // ─── Main Content ─────────────────────────────────────────────────────────────
 function AppContent({ licensed, setLicensed }: { licensed: boolean; setLicensed: (v: boolean) => void }) {
-  const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontError, setFontError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    Font.loadAsync({
+      Inter_400Regular,
+      Inter_500Medium,
+      Inter_600SemiBold,
+      Inter_700Bold,
+    })
+      .then(() => setFontsLoaded(true))
+      .catch((e) => setFontError(e));
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

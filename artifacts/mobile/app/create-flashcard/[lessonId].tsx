@@ -32,7 +32,7 @@ import {
   getFlashcardPacks, saveFlashcardPack, deleteFlashcardPack,
   generateId, getLessons, ensureLocalAsset, type Flashcard, type FlashcardPack,
 } from "@/utils/storage";
-import { type ColorScheme } from "@/constants/colors";
+import { type ColorScheme, isDarkActive } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
 import { AIProviderSheet } from "@/components/AIProviderSheet";
@@ -178,6 +178,8 @@ export default function CreateFlashcardScreen() {
   const [tag, setTag] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [audioUri, setAudioUri] = useState<string | null>(null);
+  const [template, setTemplate] = useState<"standard" | "listening">("standard");
+  const [ttsScript, setTtsScript] = useState("");
   const [existing, setExisting] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -197,6 +199,8 @@ export default function CreateFlashcardScreen() {
   const [editTag, setEditTag] = useState("");
   const [editImageUri, setEditImageUri] = useState<string | null>(null);
   const [editAudioUri, setEditAudioUri] = useState<string | null>(null);
+  const [editTemplate, setEditTemplate] = useState<"standard" | "listening">("standard");
+  const [editTtsScript, setEditTtsScript] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
   // Audio preview players
@@ -314,6 +318,8 @@ export default function CreateFlashcardScreen() {
       tag: tag.trim(),
       image: savedImage,
       audio: savedAudio,
+      template,
+      ttsScript: ttsScript.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
     await saveFlashcard(card);
@@ -323,6 +329,8 @@ export default function CreateFlashcardScreen() {
     setTag("");
     setImageUri(null);
     setAudioUri(null);
+    setTemplate("standard");
+    setTtsScript("");
     setLoading(false);
     toast.success(t.create_fc.added);
   };
@@ -340,6 +348,8 @@ export default function CreateFlashcardScreen() {
     setEditTag(card.tag ?? "");
     setEditImageUri(card.image ?? null);
     setEditAudioUri(card.audio ?? null);
+    setEditTemplate(card.template ?? "standard");
+    setEditTtsScript(card.ttsScript ?? "");
   };
 
   const pickEditImage = async () => {
@@ -401,6 +411,8 @@ export default function CreateFlashcardScreen() {
       tag: editTag.trim(),
       image: savedImage,
       audio: savedAudio,
+      template: editTemplate,
+      ttsScript: editTtsScript.trim() || undefined,
     };
     await saveFlashcard(updated);
     setExisting((prev) => prev.map((c) => c.id === updated.id ? updated : c));
@@ -941,6 +953,44 @@ export default function CreateFlashcardScreen() {
       {/* ── MANUAL FORM ── */}
       <View style={styles.form}>
         <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Tipe Soal (Template)</Text>
+          <View style={styles.templateRow}>
+            <TouchableOpacity 
+              onPress={() => setTemplate("standard")}
+              style={[styles.templateBtn, template === "standard" && styles.templateBtnActive]}
+            >
+              <PencilLine size={16} color={template === "standard" ? "#fff" : colors.primary} />
+              <Text style={[styles.templateBtnText, template === "standard" && styles.templateBtnTextActive]}>Standar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setTemplate("listening")}
+              style={[styles.templateBtn, template === "listening" && styles.templateBtnActive]}
+            >
+              <Volume2 size={16} color={template === "listening" ? "#fff" : colors.primary} />
+              <Text style={[styles.templateBtnText, template === "listening" && styles.templateBtnTextActive]}>Listening (TTS)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {template === "listening" && (
+          <View style={[styles.field, styles.listeningBox]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Bot size={16} color={colors.primary} />
+              <Text style={[styles.fieldLabel, { marginBottom: 0 }]}>Voice Script (Naskah Suara)</Text>
+            </View>
+            <TextInput
+              placeholder="Teks yang akan dibacakan otomatis oleh sistem. Biarkan kosong jika sama dengan pertanyaan."
+              value={ttsScript}
+              onChangeText={setTtsScript}
+              style={[styles.input, { height: 70, textAlignVertical: "top", backgroundColor: "#fff" }]}
+              placeholderTextColor={colors.textMuted}
+              multiline
+            />
+            <Text style={styles.fieldInfo}>💡 Di Listening Mode, teks pertanyaan akan disembunyikan sampai user menekan "Lihat Script".</Text>
+          </View>
+        )}
+
+        <View style={styles.field}>
           <Text style={styles.fieldLabel}>{t.create_fc.question_ph.split("?")[0]}</Text>
           <TextInput
             placeholder="Contoh: Apa itu JSX?"
@@ -1184,9 +1234,11 @@ export default function CreateFlashcardScreen() {
   );
 }
 
-const makeStyles = (c: ColorScheme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  content: { paddingHorizontal: 20 },
+const makeStyles = (c: ColorScheme) => {
+  const isDark = isDarkActive();
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { paddingHorizontal: 20 },
   header: {
     flexDirection: "row", alignItems: "center",
     justifyContent: "space-between", marginBottom: 4,
@@ -1219,8 +1271,39 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   aiCardBody: {
     paddingHorizontal: 14, paddingBottom: 16,
     borderTopWidth: 1, borderTopColor: c.border,
-    paddingTop: 14, gap: 6,
+    paddingTop: 10,
+    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#fff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.border,
   },
+  templateRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  templateBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: c.primary,
+    backgroundColor: "transparent",
+  },
+  templateBtnActive: { backgroundColor: c.primary },
+  templateBtnText: { color: c.primary, fontWeight: "800", fontSize: 13 },
+  templateBtnTextActive: { color: "#fff" },
+  listeningBox: {
+    backgroundColor: isDark ? "rgba(79, 70, 229, 0.05)" : c.primaryLight,
+    padding: 14,
+    borderRadius: 16,
+    marginTop: -8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: c.primary,
+    borderStyle: "dashed",
+  },
+  fieldInfo: { fontSize: 11, color: c.textMuted, marginTop: 6, fontStyle: "italic" },
   stepRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   stepBadge: {
     width: 22, height: 22, borderRadius: 7,

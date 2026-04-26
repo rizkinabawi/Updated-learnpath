@@ -25,6 +25,7 @@ import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AdBanner } from "@/components/AdBanner";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { getLicenseDetails } from "@/utils/security/app-license";
 
 const { width } = Dimensions.get("window");
 
@@ -91,15 +92,16 @@ export default function Dashboard() {
   const [wrongCount, setWrongCount] = useState(0);
   const [completions, setCompletions] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [license, setLicense] = useState<any>(null);
 
   const load = async () => {
-    const [u, p, mods, lessons, s, w, c] = await Promise.all([
+    const [u, p, mods, lessons, s, w, c, lic] = await Promise.all([
       getUser(), getSortedLearningPaths(), getModules(), getLessons(), getStats(), getWrongAnswers(),
-      getCompletedLessons(),
+      getCompletedLessons(), getLicenseDetails(),
     ]);
     if (!u) { router.replace("/onboarding"); return; }
     setUser(u); setPaths(p); setAllModules(mods); setAllLessons(lessons); setStats(s); setWrongCount(w.length);
-    setCompletions(c);
+    setCompletions(c); setLicense(lic);
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));
@@ -205,6 +207,27 @@ export default function Dashboard() {
             </View>
           </View>
         </LinearGradient>
+
+        {/* ═══ TRIAL EXPIRY BANNER ═══ */}
+        {license?.nearExpiry && (
+          <View style={styles.sectionFlat}>
+            <TouchableOpacity
+              onPress={() => router.push("/activate")}
+              style={[styles.alertCard, { backgroundColor: colors.dangerLight, borderColor: colors.danger + "33", borderWidth: 1 }]}
+            >
+              <View style={[styles.alertIcon, { backgroundColor: colors.danger + "22" }]}>
+                <Feather name="clock" size={18} color={colors.danger} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.alertTitle, { color: colors.danger }]}>Trial Segera Berakhir!</Text>
+                <Text style={styles.alertSub}>Masa berlaku tinggal {license.daysLeft} hari lagi. Aktivasi sekarang untuk akses selamanya.</Text>
+              </View>
+              <View style={[styles.alertPill, { backgroundColor: colors.danger }]}>
+                <Text style={styles.alertPillText}>Aktivasi</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ═══ LANJUTKAN BELAJAR ═══ */}
         {paths.length > 0 && (
@@ -405,11 +428,52 @@ export default function Dashboard() {
           </View>
         </View>
 
-        {/* ═══ TARGET BELAJAR ═══ */}
-        {user?.goal && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Target Belajar</Text>
-            <View style={[styles.goalCard, shadowSm]}>
+        {/* ═══ TARGET BELAJAR & TIMELINE ═══ */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Target & Timeline Aktif</Text>
+          {paths.some(p => p.targetDate) ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginHorizontal: -20, paddingHorizontal: 20 }}>
+              {paths.filter(p => p.targetDate).map((path, i) => {
+                const pathLessons = allLessons.filter(l => allModules.find(m => m.id === l.moduleId)?.pathId === path.id);
+                const done = pathLessons.filter(l => completions.includes(l.id)).length;
+                const total = pathLessons.length || 1;
+                const pct = Math.round((done / total) * 100);
+                
+                const target = new Date(path.targetDate!);
+                const diff = target.getTime() - new Date().getTime();
+                const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                const isBehind = (total - done) / (daysLeft > 0 ? daysLeft : 1) > 2;
+
+                return (
+                  <TouchableOpacity 
+                    key={path.id} 
+                    onPress={() => router.push(`/course/${path.id}` as any)}
+                    style={[styles.targetTimelineCard, shadowSm, { marginRight: 12 }]}
+                  >
+                    <View style={styles.targetTimelineTop}>
+                      <Text style={styles.targetTimelineName} numberOfLines={1}>{path.name}</Text>
+                      <View style={[styles.targetBadge, { backgroundColor: daysLeft < 0 ? colors.dangerLight : isBehind ? colors.warningLight : colors.successLight }]}>
+                        <Text style={[styles.targetBadgeText, { color: daysLeft < 0 ? colors.danger : isBehind ? colors.warning : colors.success }]}>
+                          {daysLeft < 0 ? "Overdue" : isBehind ? "Behind" : "On Track"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.targetTimelineDate}>
+                      <Feather name="calendar" size={10} /> {new Date(path.targetDate!).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} 
+                      ({daysLeft} hari lagi)
+                    </Text>
+                    <View style={styles.targetTimelineProgress}>
+                      <View style={styles.targetTimelineBar}>
+                        <View style={[styles.targetTimelineFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
+                      </View>
+                      <Text style={styles.targetTimelinePct}>{pct}%</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          ) : user?.goal ? (
+            <View style={[styles.goalCard, shadowSm, { marginTop: 12 }]}>
               <View style={[styles.goalIcon, { backgroundColor: colors.primaryLight }]}>
                 <Feather name="target" size={18} color={colors.primary} />
               </View>
@@ -417,9 +481,20 @@ export default function Dashboard() {
                 <Text style={styles.goalText} numberOfLines={2}>{user.goal}</Text>
                 <Text style={styles.goalMeta}>{user.topic} · {user.level}</Text>
               </View>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/learn")} style={styles.setTimelineBtn}>
+                <Text style={styles.setTimelineBtnText}>Set Timeline</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-        )}
+          ) : (
+            <TouchableOpacity 
+              onPress={() => router.push("/(tabs)/learn")}
+              style={[styles.emptyTimelineCard, { marginTop: 12 }]}
+            >
+              <Feather name="clock" size={24} color={colors.textMuted} />
+              <Text style={styles.emptyTimelineText}>Belum ada target timeline. Atur sekarang di detail kursus.</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* ═══ LATIHAN KILAT ═══ */}
         <View style={styles.section}>
@@ -636,6 +711,27 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) =>
     },
     goalText: { fontSize: 14, fontWeight: "700", color: c.text, lineHeight: 20 },
     goalMeta: { fontSize: 12, color: c.textMuted, fontWeight: "600", marginTop: 4, textTransform: "capitalize" },
+    setTimelineBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: c.primary, borderRadius: 8 },
+    setTimelineBtnText: { fontSize: 11, fontWeight: "800", color: "#fff" },
+
+    targetTimelineCard: { 
+      backgroundColor: c.surface, borderRadius: 16, padding: 14, width: 220,
+    },
+    targetTimelineTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+    targetTimelineName: { fontSize: 14, fontWeight: "800", color: c.text, flex: 1, marginRight: 8 },
+    targetBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    targetBadgeText: { fontSize: 9, fontWeight: "900", textTransform: "uppercase" },
+    targetTimelineDate: { fontSize: 11, color: c.textMuted, fontWeight: "600", marginBottom: 12 },
+    targetTimelineProgress: { flexDirection: "row", alignItems: "center", gap: 8 },
+    targetTimelineBar: { flex: 1, height: 4, backgroundColor: c.border, borderRadius: 2 },
+    targetTimelineFill: { height: "100%", borderRadius: 2 },
+    targetTimelinePct: { fontSize: 11, fontWeight: "800", color: c.textSecondary },
+
+    emptyTimelineCard: { 
+      padding: 20, alignItems: "center", justifyContent: "center", gap: 10,
+      borderWidth: 1.5, borderColor: c.border, borderStyle: "dashed", borderRadius: 16,
+    },
+    emptyTimelineText: { fontSize: 12, color: c.textMuted, textAlign: "center", fontWeight: "600", lineHeight: 18 },
 
     challengeCard: { borderRadius: 16, overflow: "hidden" },
     challengeGrad: {

@@ -637,6 +637,18 @@ export default function AnkiImportScreen() {
    */
   const importToCollection = async () => {
     if (decks.length === 0) return;
+    
+    // License Check
+    const allowed = await isFeatureAllowed("anki");
+    if (!allowed) {
+      Alert.alert(
+        "Fitur Terkunci",
+        "Mode Trial tidak mendukung impor dari Anki. Silakan aktivasi lisensi penuh untuk membuka fitur ini selamanya.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     setBusy(true);
     setStatus(null);
     try {

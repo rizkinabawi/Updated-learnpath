@@ -19,6 +19,7 @@ import {
 import Colors, { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddFlashcardModal } from "@/components/QuickAddFlashcardModal";
+import { isFeatureAllowed } from "@/utils/security/app-license";
 import { exportFlashcardsToPDF, exportMultipleFlashcardsToPDF, exportFlashcardWorksheetToPDF } from "@/utils/flashcard-export";
 
 interface LessonRow {
@@ -265,6 +266,13 @@ export default function FlashcardBrowseAll() {
 
   const handleBatchExport = async () => {
     if (selectedIds.size === 0) return;
+    
+    const allowed = await isFeatureAllowed("bundle"); // Export is a premium collaborative feature
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Ekspor Batch PDF hanya tersedia di versi Premium.");
+      return;
+    }
+
     setExporting(true);
     try {
       const batches: { topic: string; items: FlashcardItem[]; startIndex: number }[] = [];
@@ -298,6 +306,13 @@ export default function FlashcardBrowseAll() {
 
   const handleExportPDF = async (id: string, name: string) => {
     if (exporting) return;
+
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Ekspor PDF hanya tersedia di versi Premium.");
+      return;
+    }
+
     setExporting(true);
     try {
       const cards: FlashcardItem[] = await getFlashcards(id);
@@ -321,6 +336,13 @@ export default function FlashcardBrowseAll() {
 
   const handleExportWS = async (id: string, name: string) => {
     if (exporting) return;
+
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Ekspor Worksheet PDF hanya tersedia di versi Premium.");
+      return;
+    }
+
     setExporting(true);
     try {
       const cards = await getFlashcards(id);

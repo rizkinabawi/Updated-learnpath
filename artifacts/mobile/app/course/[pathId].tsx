@@ -31,6 +31,7 @@ import { exportCourseCertificate } from "@/utils/flashcard-export";
 import { getUser } from "@/utils/storage";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { isFeatureAllowed } from "@/utils/security/app-license";
 
 const makeGradPalette = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
@@ -89,6 +90,9 @@ export default function CourseDetailPage() {
   const [lessonDesc, setLessonDesc] = useState("");
   const [lessonIcon, setLessonIcon] = useState("PenTool");
   const [targetMod, setTargetMod] = useState<string | null>(null);
+  const [showEditTarget, setShowEditTarget] = useState(false);
+  const [targetDateInput, setTargetDateInput] = useState("");
+  const [targetDailyMin, setTargetDailyMin] = useState("30");
 
   const loadData = async () => {
     if (!pathId) return;
@@ -139,6 +143,26 @@ export default function CourseDetailPage() {
     setModName(mod.name);
     setModIcon(mod.icon || "Bookmark");
     setShowNewModule(true);
+  };
+
+  const handleEditTarget = () => {
+    if (!path) return;
+    setTargetDateInput(path.targetDate ? new Date(path.targetDate).toISOString().split('T')[0] : "");
+    setTargetDailyMin(path.targetDailyMinutes?.toString() || "30");
+    setShowEditTarget(true);
+  };
+
+  const saveTarget = async () => {
+    if (!path) return;
+    const { saveLearningPath } = await import("@/utils/storage");
+    const tDate = targetDateInput ? new Date(targetDateInput).toISOString() : undefined;
+    await saveLearningPath({ 
+      ...path, 
+      targetDate: tDate, 
+      targetDailyMinutes: parseInt(targetDailyMin) || 0 
+    });
+    setShowEditTarget(false);
+    loadData();
   };
 
   const handleEditLesson = (lesson: Lesson, modId: string) => {
@@ -225,8 +249,30 @@ export default function CourseDetailPage() {
         if (completions.includes(l.id)) done++;
       });
     });
-    return { done, total, pct: total > 0 ? (done / total) : 0 };
-  }, [lessons, completions]);
+
+    // Calculate target status
+    let status = "relaxed"; // relaxed, ontract, behind
+    let daysLeft = 0;
+    let lessonsPerDay = 0;
+
+    if (path?.targetDate && total > done) {
+      const target = new Date(path.targetDate);
+      const remaining = total - done;
+      const today = new Date();
+      const diffTime = target.getTime() - today.getTime();
+      daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (daysLeft > 0) {
+        lessonsPerDay = Math.ceil(remaining / daysLeft);
+        // Assuming user should finish at least 1 lesson per day if deadline is tight
+        status = lessonsPerDay > 2 ? "behind" : "ontrack";
+      } else {
+        status = "overdue";
+      }
+    }
+
+    return { done, total, pct: total > 0 ? (done / total) : 0, status, daysLeft, lessonsPerDay };
+  }, [lessons, completions, path]);
 
   const handleClaimCertificate = async () => {
     try {
@@ -239,6 +285,17 @@ export default function CourseDetailPage() {
 
   const handleDownloadReport = async () => {
     if (!path) return;
+    
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert(
+        "Fitur Premium",
+        "Laporan Belajar lengkap hanya tersedia di versi Premium (Full Activation).",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     try {
       const user = await getUser();
       const userName = user?.name || "Pelajar LearnPath";
@@ -390,13 +447,33 @@ export default function CourseDetailPage() {
           <Text style={styles.progSub}>
             {courseProgress.done} dari {courseProgress.total} materi selesai
           </Text>
-          <TouchableOpacity 
-            onPress={handleDownloadReport}
-            style={styles.downloadReportBtn}
-          >
-            <LucideIcons.FileDown size={14} color="#fff" />
-            <Text style={styles.downloadReportText}>Unduh Laporan Lengkap</Text>
-          </TouchableOpacity>
+          
+          <View style={styles.targetRow}>
+            {path?.targetDate ? (
+              <TouchableOpacity onPress={handleEditTarget} style={styles.targetStatusInfo}>
+                <LucideIcons.Calendar size={12} color="#fff" />
+                <Text style={styles.targetStatusText}>
+                  Target: {new Date(path.targetDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} 
+                  {courseProgress.status === "behind" && " • Perlu Kejar!"}
+                  {courseProgress.status === "ontrack" && " • On Track"}
+                  {courseProgress.status === "overdue" && " • Lewat Target!"}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleEditTarget} style={styles.setTargetBtn}>
+                <LucideIcons.Target size={12} color="#fff" />
+                <Text style={styles.targetStatusText}>Atur Target Selesai</Text>
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity 
+              onPress={handleDownloadReport}
+              style={styles.downloadReportBtn}
+            >
+              <LucideIcons.FileDown size={14} color="#fff" />
+              <Text style={styles.downloadReportText}>Laporan</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {courseProgress.pct === 1 && courseProgress.total > 0 && (
@@ -650,6 +727,33 @@ export default function CourseDetailPage() {
             </>
           ),
         },
+        {
+          vis: showEditTarget, title: "Target Belajar",
+          close: () => setShowEditTarget(false), save: saveTarget,
+          body: (
+            <>
+              <Text style={styles.mLabel}>Tanggal Target Selesai (YYYY-MM-DD)</Text>
+              <TextInput
+                placeholder="Contoh: 2024-12-31" value={targetDateInput}
+                onChangeText={setTargetDateInput} style={styles.mInput}
+                placeholderTextColor={colors.textMuted}
+              />
+              <Text style={styles.mLabel}>Target Durasi Belajar (Menit/Hari)</Text>
+              <TextInput
+                placeholder="Menit" value={targetDailyMin}
+                onChangeText={setTargetDailyMin} style={styles.mInput}
+                keyboardType="numeric"
+                placeholderTextColor={colors.textMuted}
+              />
+              <View style={styles.calloutTarget}>
+                <LucideIcons.Info size={14} color={colors.primary} />
+                <Text style={styles.calloutTargetText}>
+                  Sistem akan menghitung beban belajar harian agar Anda selesai tepat waktu.
+                </Text>
+              </View>
+            </>
+          ),
+        },
       ].map((m) => (
         <Modal key={m.title} visible={m.vis} transparent animationType="slide">
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -737,13 +841,24 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   progTrack: { height: 6, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 3, overflow: "hidden" },
   progFill: { height: "100%", backgroundColor: (palette === "minimal" && isDark) ? c.primary : "#fff", borderRadius: 3 },
   progSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: "600" },
-  downloadReportBtn: { 
-    flexDirection: "row", alignItems: "center", gap: 6, 
-    marginTop: 8, paddingVertical: 6, paddingHorizontal: 12,
-    backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8,
-    alignSelf: "flex-start"
-  },
   downloadReportText: { fontSize: 11, fontWeight: "800", color: "#fff" },
+  targetRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 },
+  targetStatusInfo: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingVertical: 6, paddingHorizontal: 12,
+    backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 8,
+  },
+  setTargetBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingVertical: 6, paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 8,
+  },
+  targetStatusText: { fontSize: 11, fontWeight: "800", color: "#fff" },
+  calloutTarget: { 
+    flexDirection: "row", gap: 10, padding: 12, 
+    backgroundColor: c.primaryLight, borderRadius: 12, marginTop: 10 
+  },
+  calloutTargetText: { fontSize: 12, color: c.primary, fontWeight: "600", flex: 1, lineHeight: 18 },
 
   addBtn: { borderRadius: 13, overflow: "hidden" },
   addGrad: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },

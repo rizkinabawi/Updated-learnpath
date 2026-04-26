@@ -26,6 +26,7 @@ import { isBundleUnlocked } from "@/utils/bundle-activation";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
 import { resolveAssetUri } from "@/utils/path-resolver";
+import { isFeatureAllowed } from "@/utils/security/app-license";
 import {
   shouldShowBackupReminder,
   snoozeBackupReminder,
@@ -112,6 +113,13 @@ export default function ProfileTab() {
   };
 
   const handleImportCourse = async () => {
+    // License Check
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Impor bundle kursus hanya tersedia di versi Premium.");
+      return;
+    }
+    
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: ["application/json", "*/*"], copyToCacheDirectory: true });
       if (result.canceled) return;
@@ -189,7 +197,13 @@ export default function ProfileTab() {
         { icon: "package" as const, label: "Pack Manager", sub: "Kelola pack flashcard", color: colors.purple, onPress: () => router.push("/pack-manager") },
         { icon: "image" as const, label: "Image Manager", sub: "Kelola media tersimpan", color: colors.teal, onPress: () => router.push("/image-manager") },
         { icon: "bookmark" as const, label: "Soal Tersimpan", sub: "Review bookmark", color: colors.purple, onPress: () => router.push("/bookmarks") },
-        { icon: "share-2" as const, label: t.profile.share_bundle, sub: t.profile.share_bundle_sub, color: colors.teal, onPress: () => setShowShareModal(true) },
+        { icon: "share-2" as const, label: t.profile.share_bundle, sub: t.profile.share_bundle_sub, color: colors.teal, 
+          onPress: async () => {
+            const allowed = await isFeatureAllowed("bundle");
+            if (allowed) setShowShareModal(true);
+            else Alert.alert("Fitur Premium", "Membagikan bundle kursus hanya tersedia di versi Premium.");
+          } 
+        },
         { icon: "download" as const, label: t.profile.import_bundle, sub: t.profile.import_bundle_sub, color: colors.primary, onPress: handleImportCourse },
       ]
     },

@@ -29,6 +29,7 @@ import {
   fromBase64,
   fromHex,
   fromUtf8,
+  toBase64,
   utf8,
 } from "./crypto";
 import { APP_ID, APP_MASTER_PUBLIC_KEY_HEX } from "./master-public-key";
@@ -75,24 +76,74 @@ function isLicense(v: unknown): v is AppLicense {
   );
 }
 
-/** Try to parse a license from raw text (JSON or base64-of-JSON). */
+/** 
+ * Enhanced license parsing. 
+ * Supports:
+ * 1. Direct JSON (Legacy)
+ * 2. Base64 encoded JSON
+ * 3. Compact Binary Blob (V2) - Starts with 0x02
+ */
 export function parseLicenseInput(raw: string): AppLicense | null {
-  const trimmed = raw.trim();
+  const trimmed = raw.trim().replace(/\s+/g, "");
   if (!trimmed) return null;
+
+  // Try Binary Blob (V2)
+  try {
+    const bin = fromBase64(trimmed);
+    if (bin[0] === 0x02) {
+      return unpackLicenseV2(bin);
+    }
+  } catch { /* not binary */ }
+
+  // Try direct JSON
   try {
     const obj = JSON.parse(trimmed);
     if (isLicense(obj)) return obj;
-  } catch {
-    /* not direct JSON */
-  }
+  } catch { /* not JSON */ }
+
+  // Try Base64 JSON
   try {
     const text = fromUtf8(fromBase64(trimmed));
     const obj = JSON.parse(text);
     if (isLicense(obj)) return obj;
-  } catch {
-    /* not base64 of JSON */
-  }
+  } catch { /* not base64 JSON */ }
+
   return null;
+}
+
+/** 
+ * Unpacks the compact binary format:
+ * [0]: version (0x02)
+ * [1]: mode (0=full, 1=trial)
+ * [2..9]: issuedAt (uint64 be)
+ * [10..17]: expiry (uint64 be)
+ * [18]: deviceIdLen
+ * [19..19+len]: deviceId (utf8)
+ * [last 64]: signature
+ */
+function unpackLicenseV2(bin: Uint8Array): AppLicense | null {
+  if (bin.length < 1 + 1 + 8 + 8 + 1 + 64) return null;
+  const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  
+  const mode: LicenseMode = bin[1] === 1 ? "trial" : "full";
+  // JS numbers are ok for timestamps (53-bit int)
+  const issuedAt = Number(view.getBigUint64(2));
+  const expiry = Number(view.getBigUint64(10));
+  
+  const dLen = bin[18];
+  const deviceId = dLen > 0 ? fromUtf8(bin.slice(19, 19 + dLen)) : "";
+  
+  const sigOffset = bin.length - 64;
+  const signature = toBase64(bin.slice(sigOffset));
+  
+  return {
+    appId: APP_ID, // V2 binary format assumes correct appId for compactness
+    mode,
+    issuedAt,
+    expiry,
+    deviceId: deviceId || undefined,
+    signature
+  };
 }
 
 /** Verify an activation key. Returns null on success, or a typed error code. */
@@ -113,7 +164,7 @@ export async function verifyLicense(
   if (sig.length !== 64) return "BAD_SIGNATURE";
 
   const msg = utf8(
-    `${license.appId}|${license.issuedAt}|${license.expiry}|${license.deviceId ?? ""}`
+    `${license.appId}|${license.issuedAt}|${license.expiry}|${license.deviceId ?? ""}|${license.mode ?? "full"}`
   );
   const ok = await ed25519Verify(APP_MASTER_PUBLIC_KEY, msg, sig);
   if (!ok) return "BAD_SIGNATURE";

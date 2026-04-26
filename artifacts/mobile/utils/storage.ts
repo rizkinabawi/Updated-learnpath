@@ -46,6 +46,10 @@ export interface LearningPath {
   /** New: For sorting courses by usage and priority */
   isFavorite?: boolean;
   openCount?: number;
+  /** Optional target completion date (ISO string) */
+  targetDate?: string;
+  /** Target daily study time in minutes */
+  targetDailyMinutes?: number;
 }
 
 export interface Module {

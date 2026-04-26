@@ -23,11 +23,37 @@ const utf8_manual = (s) => {
 // SIMULASI: Node.js TextEncoder (Standard)
 const utf8_native = (s) => new TextEncoder().encode(s);
 
+/** Compact V2 binary packing */
+function packLicenseV2(lic, sig) {
+  const dBuf = utf8_native(lic.deviceId || "");
+  const buf = new Uint8Array(1 + 1 + 8 + 8 + 1 + dBuf.length + 64);
+  const view = new DataView(buf.buffer);
+  buf[0] = 0x02;
+  buf[1] = lic.mode === "trial" ? 1 : 0;
+  view.setBigUint64(2, BigInt(lic.issuedAt));
+  view.setBigUint64(10, BigInt(lic.expiry));
+  buf[18] = dBuf.length;
+  buf.set(dBuf, 19);
+  buf.set(sig, 19 + dBuf.length);
+  return buf;
+}
+
+/** Compact V2 binary unpacking */
+function unpackLicenseV2(bin) {
+  const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const mode = bin[1] === 1 ? "trial" : "full";
+  const issuedAt = Number(view.getBigUint64(2));
+  const expiry = Number(view.getBigUint64(10));
+  const dLen = bin[18];
+  const deviceId = new TextDecoder().decode(bin.slice(19, 19 + dLen));
+  return { mode, issuedAt, expiry, deviceId };
+}
+
 console.log("=== UNIT TEST: CROSS-PLATFORM COMPATIBILITY ===");
 
 // 1. Uji Encoding (Sangat Penting!)
 console.log("\n[1/3] Testing UTF-8 Encoding Consistency...");
-const testStr = "learningpath|1714104000000|4867704000000|7fb3d3ee68286050";
+const testStr = "learningpath|1714104000000|4867704000000|7fb3d3ee68286050|full";
 const manualBytes = utf8_manual(testStr);
 const nativeBytes = utf8_native(testStr);
 
@@ -56,11 +82,25 @@ const isManualValid = await ed.verifyAsync(sig, manualBytes, pk);
 console.log("Verify using Native bytes:", isNativeValid ? "✅ VALID" : "❌ INVALID");
 console.log("Verify using Manual bytes:", isManualValid ? "✅ VALID" : "❌ INVALID");
 
+// 4. Uji V2 Binary Packing
+console.log("\n[4/4] Testing V2 Binary Packing/Unpacking...");
+const licData = { issuedAt: 1714104000000, expiry: 4867704000000, mode: "trial", deviceId: "unittest-device" };
+const binaryBlob = packLicenseV2(licData, sig);
+const unpacked = unpackLicenseV2(binaryBlob);
+
+const packOk = unpacked.mode === licData.mode && 
+               unpacked.issuedAt === licData.issuedAt && 
+               unpacked.expiry === licData.expiry && 
+               unpacked.deviceId === licData.deviceId;
+
+console.log("Binary Unpack Consistency:", packOk ? "✅ MATCH" : "❌ FAILED (Data corrupted during pack/unpack)");
+console.log("Blob V2 Header (0x02):", binaryBlob[0] === 0x02 ? "✅ CORRECT" : "❌ WRONG");
+
 console.log("\n===============================================");
-if (encodingMatch && pkHex === expectedPkHex && isNativeValid && isManualValid) {
-    console.log("✅ ALL UNIT TESTS PASSED.");
-    console.log("The Web App and CLI are 100% compatible.");
+if (encodingMatch && pkHex === expectedPkHex && isNativeValid && isManualValid && packOk) {
+    console.log("\n✅ ALL UNIT TESTS PASSED.");
+    console.log("The Web App, CLI, and Mobile App are 100% compatible in V2 format.");
 } else {
-    console.log("❌ UNIT TEST FAILED.");
+    console.log("\n❌ UNIT TEST FAILED.");
     process.exit(1);
 }

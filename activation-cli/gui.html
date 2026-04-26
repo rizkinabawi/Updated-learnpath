@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LearningPath — Activation Key Manager</title>
+  <title>LearningPath — Activation Key Manager (v2 Trial Support)</title>
   <meta name="description" content="GUI offline untuk generate dan verifikasi activation key LearningPath app. 100% client-side, zero server." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -436,10 +436,19 @@
         </div>
       </div>
 
-      <div class="field">
-        <label>Device ID (opsional — kosongkan untuk unbound)</label>
-        <input type="text" id="sign-device" placeholder="Contoh: abc123-device-id (biarkan kosong = multi-device)" />
-        <div class="field-hint">Jika diisi, key hanya bisa diaktivasi di device dengan ID tersebut.</div>
+      <div class="row2">
+        <div class="field">
+          <label>Tipe Lisensi (Mode)</label>
+          <select id="sign-mode" onchange="updateDefaultDays(this.value)">
+            <option value="full" selected>Lifetime / Full Access</option>
+            <option value="trial">Trial Mode (Limited)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Device ID (opsional — kosongkan untuk unbound)</label>
+          <input type="text" id="sign-device" placeholder="Contoh: abc123-device-id (biarkan kosong = multi-device)" />
+          <div class="field-hint">Jika diisi, key hanya bisa diaktivasi di device dengan ID tersebut.</div>
+        </div>
       </div>
 
       <div id="sign-batch-section">
@@ -454,6 +463,14 @@
             <option value="50">50 key</option>
           </select>
         </div>
+      </div>
+
+      <div class="divider"></div>
+      <p class="section-title">⚡ Quick Trial Generator</p>
+      <div class="btn-group" style="margin-bottom: 20px;">
+        <button class="btn btn-sm btn-outline" onclick="quickTrial(30)">Trial 1 Bulan</button>
+        <button class="btn btn-sm btn-outline" onclick="quickTrial(60)">Trial 2 Bulan</button>
+        <button class="btn btn-sm btn-outline" onclick="quickTrial(7)">Trial 7 Hari</button>
       </div>
 
       <button class="btn btn-primary btn-block" id="btn-sign" onclick="doSign()">
@@ -657,6 +674,34 @@ const sha256h = s => sha256(utf8(s)); // returns Uint8Array
 const sha256hex = s => toHex(sha256h(s));
 const randomBytes = n => nobleRandom(n);
 
+/** Compact V2 binary packing */
+function packLicenseV2(lic, sig) {
+  const dBuf = utf8(lic.deviceId || "");
+  const buf = new Uint8Array(1 + 1 + 8 + 8 + 1 + dBuf.length + 64);
+  const view = new DataView(buf.buffer);
+  buf[0] = 0x02;
+  buf[1] = lic.mode === "trial" ? 1 : 0;
+  view.setBigUint64(2, BigInt(lic.issuedAt));
+  view.setBigUint64(10, BigInt(lic.expiry));
+  buf[18] = dBuf.length;
+  buf.set(dBuf, 19);
+  buf.set(sig, 19 + dBuf.length);
+  return toBase64(buf);
+}
+
+/** Compact V2 binary unpacking */
+function unpackLicenseV2(bin) {
+  if (bin.length < 1 + 1 + 8 + 8 + 1 + 64) return null;
+  const view = new DataView(bin.buffer);
+  const mode = bin[1] === 1 ? "trial" : "full";
+  const issuedAt = Number(view.getBigUint64(2));
+  const expiry = Number(view.getBigUint64(10));
+  const dLen = bin[18];
+  const deviceId = dLen > 0 ? new TextDecoder().decode(bin.slice(19, 19 + dLen)) : "";
+  const sig = bin.slice(bin.length - 64);
+  return { appId: "learningpath", mode, issuedAt, expiry, deviceId, signature: toBase64(sig) };
+}
+
 // ── Ed25519 ───────────────────────────────────────────────────────────────────
 async function genKeypair() {
   const sk = ed.utils.randomPrivateKey();
@@ -723,6 +768,11 @@ window.setValidity = function(days){
   document.querySelectorAll('.vpill').forEach(p=>p.classList.remove('active'));
   event.target.classList.add('active');
 };
+window.updateDefaultDays = function(val){
+  const daysEl = document.getElementById('sign-days');
+  if(val === 'trial') daysEl.value = '30';
+  else daysEl.value = '365';
+};
 
 // ── TAB 1: Keypair ────────────────────────────────────────────────────────────
 window.doKeygen = async function(){
@@ -769,11 +819,13 @@ window.doSign = async function(){
       // Give each batch key a unique issuedAt offset to ensure uniqueness
       const ia = issuedAt + i;
       const ex = expiry + i;
-      const msg=utf8(`${appId}|${ia}|${ex}|${device}`);
+      const mode = document.getElementById('sign-mode').value || 'full';
+      const msg=utf8(`${appId}|${ia}|${ex}|${device}|${mode}`);
       const sig=await signMsg(sk,msg);
-      const license={appId,issuedAt:ia,expiry:ex};
+      const license={appId,mode,issuedAt:ia,expiry:ex};
       if(device) license.deviceId=device;
       license.signature=toBase64(sig);
+      license._blob = packLicenseV2(license, sig);
       generatedKeys.push(license);
     }
 
@@ -783,19 +835,27 @@ window.doSign = async function(){
   finally{ btn.disabled=false; btn.textContent='Sign & Buat Activation Key'; }
 };
 
+window.quickTrial = function(days) {
+  document.getElementById('sign-mode').value = 'trial';
+  document.getElementById('sign-days').value = days.toString();
+  toast(`Konfigurasi Trial ${days} Hari siap. Klik tombol Sign!`, 2000);
+  // Auto-scroll to sign button
+  document.getElementById('btn-sign').scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
 function renderSignResult(){
   const list=document.getElementById('sign-keys-list');
   list.innerHTML='';
   generatedKeys.forEach((k,i)=>{
-    const json=JSON.stringify(k,null,2);
+    const blob = k._blob;
     const div=document.createElement('div');
     div.style='margin-bottom:12px';
     div.innerHTML=`
       <div class="output-label">
-        Key #${i+1} — berlaku sampai ${new Date(k.expiry).toLocaleDateString('id-ID',{year:'numeric',month:'long',day:'numeric'})}
-        <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(${JSON.stringify(json)}).then(()=>toast('Key #${i+1} disalin!'))">📋 Salin</button>
+        V2 Activation Code #${i+1} (${k.mode.toUpperCase()})
+        <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('${blob}').then(()=>toast('Key #${i+1} disalin!'))">📋 Salin</button>
       </div>
-      <div class="output-box" style="max-height:160px">${escHtml(json)}</div>`;
+      <div class="output-box" style="max-height:160px; font-weight:700; color:var(--primary); font-size:13px">${blob}</div>`;
     list.appendChild(div);
   });
   document.getElementById('sign-result').style.display='block';
@@ -804,15 +864,15 @@ function renderSignResult(){
 window.downloadAllKeys = function(){
   if(!generatedKeys.length) return;
   const content=generatedKeys.map((k,i)=>
-    `// Key #${i+1} — berlaku s.d. ${new Date(k.expiry).toISOString()}\n${JSON.stringify(k,null,2)}`
+    `# Key #${i+1} (${k.mode})\n${k._blob}`
   ).join('\n\n');
   const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(content);
-  a.download='activation-keys-'+Date.now()+'.json';
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download='activation-blobs-'+Date.now()+'.txt';
   a.click();
 };
 window.copyAllKeys = function(){
-  const text=generatedKeys.map(k=>JSON.stringify(k)).join('\n\n');
+  const text=generatedKeys.map(k=>k._blob).join('\n\n');
   navigator.clipboard.writeText(text).then(()=>toast('Semua key disalin!'));
 };
 
@@ -912,13 +972,24 @@ window.doVerify = async function(){
   catch(e){ res.innerHTML=banner('err',`❌ Public key tidak valid: ${escHtml(e.message)}`); return;}
 
   let license;
-  try{ license=JSON.parse(jsonRaw); }
-  catch{ res.innerHTML=banner('err','❌ JSON tidak valid'); return;}
+  const input = jsonRaw.replace(/\s+/g,"");
+  try {
+    // Try V2 Binary
+    const bin = fromBase64(input);
+    if(bin[0]===0x02){
+      license = unpackLicenseV2(bin);
+    }
+  } catch(e) {}
 
-  const required=['appId','issuedAt','expiry','signature'];
-  if(required.some(f=>!(f in license))){
-    res.innerHTML=banner('err','❌ Field tidak lengkap: '+required.filter(f=>!(f in license)).join(', '))+infoTable(license);
-    return;
+  if(!license){
+    try{ license=JSON.parse(jsonRaw); }
+    catch{ res.innerHTML=banner('err','❌ Format tidak valid (Bukan JSON atau V2 Blob)'); return;}
+    
+    const required=['appId','issuedAt','expiry','signature'];
+    if(required.some(f=>!(f in license))){
+      res.innerHTML=banner('err','❌ Field JSON tidak lengkap: '+required.filter(f=>!(f in license)).join(', '))+infoTable(license);
+      return;
+    }
   }
 
   let sig;
@@ -926,7 +997,7 @@ window.doVerify = async function(){
   catch{ res.innerHTML=banner('err','❌ Signature bukan base64 valid'); return;}
   if(sig.length!==64){ res.innerHTML=banner('err','❌ Signature harus 64 bytes'); return;}
 
-  const msg=utf8(`${license.appId}|${license.issuedAt}|${license.expiry}|${license.deviceId??''}`);
+  const msg=utf8(`${license.appId}|${license.issuedAt}|${license.expiry}|${license.deviceId??''}|${license.mode??'full'}`);
   const ok=await verifyMsg(pk,msg,sig);
 
   if(!ok){ res.innerHTML=banner('err','❌ Signature TIDAK VALID — key dipalsukan atau public key salah')+infoTable(license); return;}

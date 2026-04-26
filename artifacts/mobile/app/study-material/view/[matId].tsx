@@ -43,6 +43,7 @@ import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
 import { isCancellationError } from "@/utils/safe-share";
 import { resolveAssetUri } from "@/utils/path-resolver";
+import { isFeatureAllowed } from "@/utils/security/app-license";
 import * as FileSystem from "@/utils/fs-compat";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -173,7 +174,12 @@ function YoutubePlayer({
       
       <TouchableOpacity 
         style={[linkBoxStyle, { borderStyle: "dashed", borderWidth: 1 }]}
-        onPress={() => {
+        onPress={async () => {
+          const allowed = await isFeatureAllowed("pip");
+          if (!allowed) {
+            Alert.alert("Fitur Terkunci", "Mode Gambar-dalam-Gambar (PiP) hanya tersedia di versi Premium.");
+            return;
+          }
           showVideo(id, title);
           toast.success("Video melayang! Kamu bisa navigasi ke layar lain.");
         }}

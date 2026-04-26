@@ -15,6 +15,7 @@ import {
 import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddQuizModal } from "@/components/QuickAddQuizModal";
+import { isFeatureAllowed } from "@/utils/security/app-license";
 import { exportQuizzesToPDF, exportMultipleQuizzesToPDF } from "@/utils/flashcard-export";
 import { Alert } from "react-native";
 
@@ -65,6 +66,13 @@ export default function QuizBrowseAll() {
 
   const handleBatchExport = async () => {
     if (selectedIds.size === 0) return;
+
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Ekspor Batch PDF hanya tersedia di versi Premium.");
+      return;
+    }
+
     setExporting(true);
     try {
       const batches: { topic: string; items: any[] }[] = [];
@@ -87,6 +95,13 @@ export default function QuizBrowseAll() {
 
   const handleExportExamPDF = async (id: string, name: string) => {
     if (exporting) return;
+
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Ekspor Lembar Ujian PDF hanya tersedia di versi Premium.");
+      return;
+    }
+
     setExporting(true);
     try {
       const quizzes = await getQuizzes(id);
@@ -104,6 +119,13 @@ export default function QuizBrowseAll() {
 
   const handleExportExamShuffled = async (id: string, name: string) => {
     if (exporting) return;
+
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) {
+      Alert.alert("Fitur Premium", "Ekspor Lembar Ujian Teracak hanya tersedia di versi Premium.");
+      return;
+    }
+
     setExporting(true);
     try {
       const quizzes = await getQuizzes(id);

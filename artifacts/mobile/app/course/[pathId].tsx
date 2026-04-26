@@ -468,7 +468,7 @@ export default function CourseDetailPage() {
             
             <TouchableOpacity 
               onPress={handleDownloadReport}
-              style={styles.downloadReportBtn}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}
             >
               <LucideIcons.FileDown size={14} color="#fff" />
               <Text style={styles.downloadReportText}>Laporan</Text>
@@ -608,14 +608,14 @@ export default function CourseDetailPage() {
                             </Text>
                             <TouchableOpacity
                               onPress={() => handleEditLesson(lesson, mod.id)}
-                              style={[styles.lessonDeleteBtn, { backgroundColor: colors.primaryLight, marginRight: 6 }]}
+                              style={[styles.lessonActionBtn, { backgroundColor: colors.primaryLight, marginRight: 6 }]}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
                               <LucideIcons.Edit3 size={12} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleDeleteLesson(lesson)}
-                              style={styles.lessonDeleteBtn}
+                              style={styles.lessonActionBtn}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
                               <LucideIcons.Trash2 size={12} color={colors.danger} />

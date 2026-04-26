@@ -490,6 +490,14 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
 
                   <Text style={styles.label}>Tingkat Kesulitan</Text>
                   <View style={styles.diffRow}>
+                    {DIFFICULTIES.map((d) => (
+                      <TouchableOpacity
+                        key={d.key}
+                        style={[styles.diffChip, promptDifficulty === d.key && { ...styles.diffChipActive, borderColor: colors.primary, backgroundColor: colors.primary + "15" }]}
+                        onPress={() => setPromptDifficulty(d.key)}
+                      >
+                        <Text style={[styles.diffChipText, promptDifficulty === d.key && { color: colors.primary }]}>{d.label}</Text>
+                      </TouchableOpacity>
                     ))}
                   </View>
 

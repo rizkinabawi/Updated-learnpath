@@ -109,7 +109,7 @@ export default function QuizBrowseAll() {
         Alert.alert("Kosong", "Tidak ada kuis untuk diekspor.");
         return;
       }
-      await exportQuizzesToPDF(name, quizzes, id, false);
+      await exportQuizzesToPDF(name, quizzes as any[], id, false);
     } catch (e) {
       Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Lembar Ujian.");
     } finally {
@@ -134,7 +134,7 @@ export default function QuizBrowseAll() {
         return;
       }
       // Shuffle mode enabled
-      await exportQuizzesToPDF(name, quizzes, id, true);
+      await exportQuizzesToPDF(name, quizzes as any[], id, true);
     } catch (e) {
       Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Lembar Ujian Teracak.");
     } finally {

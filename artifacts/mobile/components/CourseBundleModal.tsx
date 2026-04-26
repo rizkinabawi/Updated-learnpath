@@ -79,7 +79,7 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
     setSharing(id);
     try {
       setSharingStep("Memuat data kursus...");
-      const rawPack = await exportCourse(pathId);
+      const rawPack = pathId ? await exportCourse(pathId) : await exportCourse("*");
 
       setSharingStep("Menyiapkan gambar & file...");
       const pack = await embedAssetsInPack(rawPack);

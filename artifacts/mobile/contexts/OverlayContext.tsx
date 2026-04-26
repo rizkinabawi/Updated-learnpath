@@ -44,7 +44,7 @@ export const OverlayProvider: React.FC<{ children: React.ReactNode }> = ({ child
     endTime: null,
   });
   const [minimizeTimer, setMinimizeTimer] = useState(false);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // --- Video State ---
   const [video, setVideo] = useState<VideoState>({ videoId: null, title: null });

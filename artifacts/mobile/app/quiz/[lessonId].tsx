@@ -15,7 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, ChevronRight, Check, Plus, RotateCcw, Volume2, Timer as TimerIcon } from "lucide-react-native";
-import { useAudioPlayer } from "expo-audio";
+import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { Feather } from "@expo/vector-icons";
 import { speak, stop } from "@/utils/tts";
 import { TTSConfigModal } from "@/components/TTSConfigModal";
@@ -74,7 +74,7 @@ export default function QuizScreen() {
   const [showTTSConfig, setShowTTSConfig] = useState(false);
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -104,16 +104,39 @@ export default function QuizScreen() {
   }, [lessonId]);
 
   const currentQuiz = quizzes[currentIndex];
-  const audioPlayer = useAudioPlayer(resolveAssetUri(currentQuiz?.audio) ?? null);
+  const audioPlayerRef = useRef<AudioPlayer | null>(null);
   const progress = (currentIndex / Math.max(quizzes.length, 1)) * 100;
 
   const playQuestionAudio = useCallback(() => {
+    const uri = currentQuiz?.audio;
+    if (!uri) return;
+    const resolved = resolveAssetUri(uri);
+    if (!resolved) return;
+
     try {
-      if (!audioPlayer) return;
-      audioPlayer.seekTo(0);
-      audioPlayer.play();
-    } catch {}
-  }, [audioPlayer]);
+      if (!audioPlayerRef.current) {
+        audioPlayerRef.current = createAudioPlayer(resolved);
+      } else {
+        audioPlayerRef.current.replace(resolved);
+      }
+      audioPlayerRef.current.play();
+    } catch (e) {
+      console.warn("[quiz] audio play failed", e);
+    }
+  }, [currentQuiz?.audio]);
+
+  // Cleanup player on unmount
+  useEffect(() => {
+    return () => {
+      if (audioPlayerRef.current) {
+        try {
+          audioPlayerRef.current.pause();
+          try { (audioPlayerRef.current as any).remove?.(); } catch {}
+        } catch {}
+        audioPlayerRef.current = null;
+      }
+    };
+  }, []);
 
   const playTTS = useCallback(async (text: string) => {
     if (!text) return;
@@ -302,9 +325,9 @@ export default function QuizScreen() {
         <View style={{ width: "100%", marginVertical: 8 }}>
           <ProgressBar value={pct} color={pct >= 80 ? colors.success : pct >= 50 ? colors.warning : colors.danger} height={10} />
         </View>
-        <View style={styles.resultActions}>
-          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
-            <Text style={styles.btnText}>Selesai</Text>
+        <View style={styles.resultBtns}>
+          <TouchableOpacity style={[styles.startBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
+            <Text style={styles.startBtnText}>Selesai</Text>
           </TouchableOpacity>
         </View>
         {nextLesson && (

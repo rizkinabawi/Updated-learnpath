@@ -133,7 +133,7 @@ export async function generateReportHTML(): Promise<string> {
       </tr>
     `).join("");
 
-  const susahRows = difficulty.susah.slice(0, 10).map((item, i) => `
+  const susahRows = difficulty.susah.slice(0, 10).map((item: { question: string; type: string; accuracy: number; attempts: number }, i: number) => `
     <tr style="background:${i % 2 === 0 ? "#FFF5F5" : "#fff"}">
       <td style="padding:10px 14px;font-size:12px;color:#0A2540;max-width:260px">${item.question.substring(0, 80)}${item.question.length > 80 ? "..." : ""}</td>
       <td style="padding:10px 14px;text-align:center;font-size:12px;color:#64748B">${item.type === "flashcard" ? "Kartu" : "Quiz"}</td>

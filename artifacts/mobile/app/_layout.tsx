@@ -8,7 +8,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { Animated, Easing, LogBox, Platform, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -47,9 +47,9 @@ const queryClient = new QueryClient();
 
 // ─── Animated loading dots ───────────────────────────────────────────────────
 function LoadingDot({ delay, color }: { delay: number; color: string }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const anim = React.useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
@@ -85,15 +85,15 @@ function LoadingDot({ delay, color }: { delay: number; color: string }) {
 
 // ─── Splash screen progress bar ──────────────────────────────────────────────
 function ProgressBar() {
-  const anim = useRef(new Animated.Value(0)).current;
+  const anim = React.useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(anim, {
           toValue: 1,
-          duration: 1600,
-          easing: Easing.inOut(Easing.ease),
+          duration: 1800,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
           useNativeDriver: false,
         }),
         Animated.timing(anim, {
@@ -101,7 +101,7 @@ function ProgressBar() {
           duration: 0,
           useNativeDriver: false,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -119,10 +119,10 @@ function ProgressBar() {
 
 // ─── Logo pulse ──────────────────────────────────────────────────────────────
 function PulseLogo() {
-  const scale = useRef(new Animated.Value(0.8)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = React.useRef(new Animated.Value(0.8)).current;
+  const opacity = React.useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
@@ -230,7 +230,38 @@ const splashStyles = StyleSheet.create({
   },
 });
 
-// ─── Navigation stack ─────────────────────────────────────────────────────────
+// ─── Main Content ─────────────────────────────────────────────────────────────
+function AppContent({ licensed, setLicensed }: { licensed: boolean; setLicensed: (v: boolean) => void }) {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  React.useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
+
+  return (
+    <ErrorBoundary>
+      {licensed ? (
+        <React.Fragment>
+          <RootLayoutNav />
+          <FloatingOverlay />
+        </React.Fragment>
+      ) : (
+        <ActivateScreen onActivated={() => setLicensed(true)} />
+      )}
+      <ToastContainer />
+    </ErrorBoundary>
+  );
+}
+
 function RootLayoutNav() {
   const { themeKey } = useTheme();
   return (
@@ -313,50 +344,35 @@ function RootLayoutNav() {
   );
 }
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+  const [licensed, setLicensed] = React.useState(true);
+  const [licenseChecked, setLicenseChecked] = React.useState(false);
 
-  // Section 1: global app lock.
-  const [licenseChecked, setLicenseChecked] = useState(false);
-  const [licensed, setLicensed] = useState(true); // Default to true during debug
-
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false;
-    // Check license but don't crash if it fails
-    import("@/utils/security/app-license").then(({ isAppActivated }) => {
-      return isAppActivated();
-    }).then((ok) => {
-      if (!cancelled) {
-        setLicensed(ok);
-        setLicenseChecked(true);
+    (async () => {
+      try {
+        const { isAppActivated } = await import("@/utils/security/app-license");
+        const ok = await isAppActivated();
+        if (!cancelled) {
+          setLicensed(ok);
+          setLicenseChecked(true);
+        }
+      } catch (e) {
+        console.warn("[RootLayout] License check failed:", e);
+        if (!cancelled) {
+          setLicensed(true);
+          setLicenseChecked(true);
+        }
       }
-    }).catch((e) => {
-      console.warn("[RootLayout] License check failed:", e);
-      if (!cancelled) {
-        setLicensed(true); // Fallback to licensed so users can still use the app if security fails
-        setLicenseChecked(true);
-      }
-    });
-
-    // Ensure creator identity is also ready
-    import("@/utils/security/creator").then(({ ensureCreatorIdentity }) => {
-      ensureCreatorIdentity().catch(() => {});
-    });
+      
+      try {
+        const { ensureCreatorIdentity } = await import("@/utils/security/creator");
+        await ensureCreatorIdentity();
+      } catch {}
+    })();
 
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
 
   return (
     <SafeAreaProvider>
@@ -365,17 +381,7 @@ export default function RootLayout() {
           <LanguageProvider>
             <OverlayProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
-                <ErrorBoundary>
-                  {licensed ? (
-                    <>
-                      <RootLayoutNav />
-                      <FloatingOverlay />
-                    </>
-                  ) : (
-                    <ActivateScreen onActivated={() => setLicensed(true)} />
-                  )}
-                  <ToastContainer />
-                </ErrorBoundary>
+                <AppContent licensed={licensed} setLicensed={setLicensed} />
               </GestureHandlerRootView>
             </OverlayProvider>
           </LanguageProvider>

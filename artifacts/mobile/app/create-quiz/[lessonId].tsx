@@ -1019,7 +1019,7 @@ export default function CreateQuizScreen() {
         style={styles.importToggle}
         onPress={() => setShowImport(!showImport)}
       >
-        <View style={styles.importToggleLeft}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Download size={15} color={colors.primary} />
           <Text style={styles.importToggleText}>Import JSON dari AI</Text>
         </View>
@@ -1154,14 +1154,14 @@ export default function CreateQuizScreen() {
 
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Audio Soal (opsional)</Text>
-          <View style={styles.audioRow}>
+          <View style={styles.audioPickedRow}>
             <TouchableOpacity
               onPress={() => pickAudio("new")}
-              style={styles.audioPickBtn}
+              style={styles.audioPickerBtn}
               activeOpacity={0.75}
             >
               <Music size={18} color={colors.primary} />
-              <Text style={styles.audioPickText} numberOfLines={1}>
+              <Text style={styles.audioPickerText} numberOfLines={1}>
                 {audioUri ? "Ganti audio" : "Pilih file audio"}
               </Text>
             </TouchableOpacity>
@@ -1169,14 +1169,14 @@ export default function CreateQuizScreen() {
               <>
                 <TouchableOpacity
                   onPress={() => playPreview("new")}
-                  style={styles.audioPlayBtn}
+                  style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center" }}
                   activeOpacity={0.75}
                 >
                   <Volume2 size={18} color="#fff" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setAudioUri(null)}
-                  style={styles.audioRemoveBtn}
+                  style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#fee2e2", alignItems: "center", justifyContent: "center" }}
                   activeOpacity={0.75}
                 >
                   <X size={18} color={colors.danger} />
@@ -1394,14 +1394,14 @@ export default function CreateQuizScreen() {
 
               {/* Audio */}
               <Text style={[styles.editFieldLabel, { marginTop: 12 }]}>Audio Soal (opsional)</Text>
-              <View style={styles.audioRow}>
+              <View style={styles.audioPickedRow}>
                 <TouchableOpacity
                   onPress={() => pickAudio("edit")}
-                  style={styles.audioPickBtn}
+                  style={styles.audioPickerBtn}
                   activeOpacity={0.75}
                 >
                   <Music size={18} color={colors.primary} />
-                  <Text style={styles.audioPickText} numberOfLines={1}>
+                  <Text style={styles.audioPickerText} numberOfLines={1}>
                     {editAudioUri ? "Ganti audio" : "Pilih file audio"}
                   </Text>
                 </TouchableOpacity>
@@ -1409,14 +1409,14 @@ export default function CreateQuizScreen() {
                   <>
                     <TouchableOpacity
                       onPress={() => playPreview("edit")}
-                      style={styles.audioPlayBtn}
+                      style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center" }}
                       activeOpacity={0.75}
                     >
                       <Volume2 size={18} color="#fff" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setEditAudioUri(null)}
-                      style={styles.audioRemoveBtn}
+                      style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#fee2e2", alignItems: "center", justifyContent: "center" }}
                       activeOpacity={0.75}
                     >
                       <X size={18} color={colors.danger} />
@@ -1470,7 +1470,7 @@ export default function CreateQuizScreen() {
                 disabled={editLoading}
                 activeOpacity={0.85}
               >
-                <Text style={styles.editSaveBtnText}>{editLoading ? "Menyimpan..." : "Simpan Perubahan"}</Text>
+                <Text style={styles.editSaveText}>{editLoading ? "Menyimpan..." : "Simpan Perubahan"}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

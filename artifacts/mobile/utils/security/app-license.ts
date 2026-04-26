@@ -47,6 +47,8 @@ export interface AppLicense {
   signature: string; // base64
 }
 
+export type LicenseMode = "trial" | "full";
+
 export type LicenseError =
   | "MISSING_FIELDS"
   | "WRONG_APP"
@@ -54,6 +56,7 @@ export type LicenseError =
   | "EXPIRED"
   | "DEVICE_MISMATCH"
   | "BAD_PUBLIC_KEY";
+
 
 const APP_MASTER_PUBLIC_KEY = (() => {
   try {

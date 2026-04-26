@@ -60,11 +60,16 @@ export default function ExternalViewPage() {
     );
   }
 
-  // Web platform: WebView is not supported — open in new tab and show fallback
   if (Platform.OS === "web") {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <Stack.Screen options={{ headerShown: false }} />
+        <Header
+          title={screen.title}
+          url={screen.url}
+          onBack={() => router.back()}
+          onReload={() => {}}
+          onForward={() => {}}
           canGoBack={false}
           colors={colors}
           styles={styles}
@@ -184,7 +189,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   iconBtn: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: c.bg ?? "#F6F7FB",
+    backgroundColor: c.background,
     alignItems: "center", justifyContent: "center",
   },
   title: { fontSize: 14, fontWeight: "700", color: c.text },

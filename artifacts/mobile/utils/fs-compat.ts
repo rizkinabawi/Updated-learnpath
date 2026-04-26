@@ -69,8 +69,8 @@ async function getNative(): Promise<typeof webStub> {
   const FileSystem = await import("expo-file-system/legacy");
 
   _native = {
-    cacheDirectory: FileSystem.Paths?.cache?.uri || FileSystem.cacheDirectory || null,
-    documentDirectory: FileSystem.Paths?.document?.uri || FileSystem.documentDirectory || null,
+    cacheDirectory: (FileSystem as any).Paths?.cache?.uri || FileSystem.cacheDirectory || null,
+    documentDirectory: (FileSystem as any).Paths?.document?.uri || FileSystem.documentDirectory || null,
 
     async getInfoAsync(fileUri: string): Promise<FileInfo> {
       try {
@@ -124,8 +124,8 @@ async function getNative(): Promise<typeof webStub> {
         return await (FileSystem as any).readAsBytesAsync(fileUri);
       }
       const b64 = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.Base64 });
-      const { decode } = await import("base64-js");
-      return decode(b64);
+      const base64js = await import("base64-js");
+      return base64js.toByteArray(b64);
     },
 
     async writeAsBytesAsync(fileUri: string, bytes: Uint8Array): Promise<void> {

@@ -54,7 +54,7 @@ export default function LockedCoursesScreen() {
   const renderItem = ({ item }: { item: LearningPath & { progress?: number } }) => (
     <TouchableOpacity 
       style={styles.card}
-      onPress={() => router.push({ pathname: "/(tabs)/collection", params: { pathId: item.id } })}
+      onPress={() => router.push({ pathname: "/(tabs)/collection" as any, params: { pathId: item.id } })}
     >
       <View style={styles.cardIcon}>
         <Feather name={(item.icon as any) || "shield"} size={24} color={colors.primary} />

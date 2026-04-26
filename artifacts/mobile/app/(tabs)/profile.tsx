@@ -26,7 +26,7 @@ import { isBundleUnlocked } from "@/utils/bundle-activation";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
 import { resolveAssetUri } from "@/utils/path-resolver";
-import { isFeatureAllowed } from "@/utils/security/app-license";
+import { isFeatureAllowed, getLicenseDetails } from "@/utils/security/app-license";
 import {
   shouldShowBackupReminder,
   snoozeBackupReminder,
@@ -57,20 +57,23 @@ export default function ProfileTab() {
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [daysSinceBackup, setDaysSinceBackup] = useState<number | null>(null);
+  const [license, setLicense] = useState<any>(null);
 
   useFocusEffect(useCallback(() => {
     (async () => {
-      const [u, s, paths, rem, shouldRemind, days] = await Promise.all([
+      const [u, s, paths, rem, shouldRemind, days, lic] = await Promise.all([
         getUser(),
         getStats(),
         getLearningPaths(),
         getReminderSettings(),
         shouldShowBackupReminder(),
         getDaysSinceLastBackup(),
+        getLicenseDetails(),
       ]);
       setUser(u); setStats(s); setPathCount(paths.length); setReminder(rem);
       setShowBackupReminder(shouldRemind);
       setDaysSinceBackup(days);
+      setLicense(lic);
     })();
   }, []));
 
@@ -186,6 +189,13 @@ export default function ProfileTab() {
       title: "Akun & Keamanan",
       items: [
         { icon: "user" as const, label: "Edit Profil", sub: "Ubah nama, foto & level", color: colors.primary, onPress: () => router.push("/edit-profile") },
+        { 
+          icon: (license?.isTrial ? "award" : (license ? "check-circle" : "shield")) as any, 
+          label: license?.isTrial ? "Upgrade Premium" : (license ? "License Aktif" : "Aktivasi License"), 
+          sub: license?.isTrial ? `Masa trial: ${license.daysLeft} hari lagi` : (license ? "Aplikasi Full Version" : "Buka fitur premium"), 
+          color: license ? colors.success : colors.warning, 
+          onPress: () => router.push({ pathname: "/activate", params: { mode: "upgrade" } }) 
+        },
         { icon: "key" as const, label: "AI Keys", sub: "API key OpenAI & Gemini", color: colors.success, onPress: () => router.push("/ai-keys") },
         { icon: "shield" as const, label: "Creator Studio", sub: "Buat bundle terenkripsi", color: colors.primary, onPress: () => router.push("/creator" as any) },
         { icon: "lock" as const, label: "Buka Bundle", sub: "Dekripsi bundle kursus", color: colors.teal, onPress: () => router.push("/bundle/open" as any) },

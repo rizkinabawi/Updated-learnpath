@@ -348,7 +348,7 @@ export async function exportMultipleFlashcardsToPDF(
           ${item.question.replace(/<[^>]*>?/gm, "").trim()}
         </td>
         <td style="color: #4a5568;">
-          ${truncateAnswer(item.answer, 5, batch.startIndex)}
+          ${truncateAnswer(item.answer)}
         </td>
       </tr>
     `).join("");

@@ -26,6 +26,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "@/utils/fs-compat";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
+import { type ColorScheme } from "@/constants/colors";
 import {
   describeBundleError,
   parseBundleInput,

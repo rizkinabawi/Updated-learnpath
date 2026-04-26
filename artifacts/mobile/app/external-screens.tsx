@@ -245,7 +245,7 @@ export default function ExternalScreensPage() {
 }
 
 const makeStyles = (c: ColorScheme) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: c.bg ?? "#F6F7FB" },
+  root: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -260,7 +260,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: c.bg ?? "#F6F7FB",
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -303,7 +303,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: c.bg ?? "#F6F7FB",
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -365,7 +365,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     paddingVertical: 12,
     fontSize: 14,
     color: c.text,
-    backgroundColor: c.bg ?? "#F6F7FB",
+    backgroundColor: c.background,
   },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 20 },
   modalBtn: {
@@ -377,7 +377,7 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  modalBtnGhost: { backgroundColor: c.bg ?? "#F6F7FB" },
+  modalBtnGhost: { backgroundColor: c.background },
   modalBtnGhostText: { color: c.text, fontWeight: "700" },
   modalBtnPrimary: { backgroundColor: c.primary },
   modalBtnPrimaryText: { color: "#fff", fontWeight: "700" },

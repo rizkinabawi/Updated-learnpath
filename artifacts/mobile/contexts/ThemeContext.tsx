@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "react-native";
 import Colors, {
@@ -27,7 +27,7 @@ interface ThemeCtx {
   themeKey: number;
 }
 
-const ThemeContext = createContext<ThemeCtx>({
+const ThemeContext = React.createContext<ThemeCtx>({
   isDark: false,
   mode: "system",
   palette: "color",
@@ -48,18 +48,18 @@ function syncTheme(palette: Palette, isDark: boolean) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>("system");
-  const [palette, setPaletteState] = useState<Palette>("color");
-  const [isDark, setIsDark] = useState(systemScheme === "dark");
-  const [themeKey, setThemeKey] = useState(0);
-  const [hydrated, setHydrated] = useState(false);
+  const [mode, setModeState] = React.useState<ThemeMode>("system");
+  const [palette, setPaletteState] = React.useState<Palette>("color");
+  const [isDark, setIsDark] = React.useState(systemScheme === "dark");
+  const [themeKey, setThemeKey] = React.useState(0);
+  const [hydrated, setHydrated] = React.useState(false);
 
   // Apply default theme synchronously on first render so children read the right colors.
   if (!hydrated) {
     syncTheme("color", systemScheme === "dark");
   }
 
-  useEffect(() => {
+  React.useEffect(() => {
     (async () => {
       try {
         const t = await AsyncStorage.getItem(THEME_KEY);
@@ -82,7 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Follow system scheme changes when in "system" mode.
-  useEffect(() => {
+  React.useEffect(() => {
     if (mode !== "system") return;
     const nextDark = systemScheme === "dark";
     if (nextDark !== isDark) {
@@ -113,7 +113,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // `Colors` is the live mutable object — pass a fresh shallow copy by reference
   // so consumers using `useColors()` re-render when themeKey changes.
-  const value = useMemo<ThemeCtx>(
+  const value = React.useMemo<ThemeCtx>(
     () => ({
       isDark,
       mode,
@@ -130,5 +130,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-export const useTheme = () => useContext(ThemeContext);
-export const useColors = () => useContext(ThemeContext).colors;
+export const useTheme = () => React.useContext(ThemeContext);
+export const useColors = () => React.useContext(ThemeContext).colors;

@@ -6,7 +6,7 @@
  * activation key signed by the APP MASTER private key.
  */
 
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -29,15 +29,21 @@ import {
 } from "@/utils/security/app-license";
 import { getDeviceId } from "@/utils/security/device";
 import { APP_ID } from "@/utils/security/master-public-key";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
-export default function ActivateScreen() {
+interface ActivateProps {
+  onActivated?: () => void;
+}
+
+export default function ActivateScreen({ onActivated }: ActivateProps) {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [deviceId, setDeviceId] = useState<string>("");
-  const [activated, setActivated] = useState(false);
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+  const isUpgrade = !onActivated; // If no callback, we're in route mode (upgrade)
+  const [input, setInput] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+  const [deviceId, setDeviceId] = React.useState<string>("");
+  const [activated, setActivated] = React.useState(false);
 
   React.useEffect(() => {
     getDeviceId().then(setDeviceId).catch(() => {});
@@ -47,20 +53,20 @@ export default function ActivateScreen() {
   // layout's gate will re-evaluate and route to the main app.
   React.useEffect(() => {
     if (!activated) return;
-    // Tiny grace period so the success state is visible.
     const t = setTimeout(() => {
-      // Route reset: replacing with `/` makes the layout pick the next screen.
-      // expo-router supports require to avoid pulling Router type in deps.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { router } = require("expo-router");
-      try {
-        router.replace("/");
-      } catch {
-        /* ignore */
+      if (onActivated) {
+        onActivated();
+      } else {
+        const { router } = require("expo-router");
+        if (isUpgrade) {
+          router.back();
+        } else {
+          router.replace("/");
+        }
       }
-    }, 500);
+    }, 800);
     return () => clearTimeout(t);
-  }, [activated]);
+  }, [activated, onActivated, isUpgrade]);
 
   const handleActivate = async () => {
     setErr(null);
@@ -109,13 +115,27 @@ export default function ActivateScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (isUpgrade) {
+                const { router } = require("expo-router");
+                router.back();
+              }
+            }} 
+            style={[styles.backBtn, !isUpgrade && { opacity: 0 }]}
+            disabled={!isUpgrade}
+          >
+            <Feather name="arrow-left" size={24} color={colors.text} />
+          </TouchableOpacity>
           <View style={styles.lockBadge}>
-            <Feather name="shield" size={28} color="#fff" />
+            <Feather name={isUpgrade ? "award" : "shield"} size={28} color="#fff" />
           </View>
-          <Text style={styles.title}>Aplikasi Terkunci</Text>
+          <Text style={styles.title}>{isUpgrade ? "Upgrade Premium" : "Aplikasi Terkunci"}</Text>
           <Text style={styles.subtitle}>
-            Aplikasi {APP_ID} memerlukan kunci aktivasi yang sah untuk dibuka.
-            Tempel kunci yang Anda terima dari penerbit.
+            {isUpgrade 
+              ? "Masukkan kunci aktivasi Full Version untuk membuka semua fitur premium." 
+              : `Aplikasi ${APP_ID} memerlukan kunci aktivasi yang sah untuk dibuka.`
+            }
           </Text>
         </View>
 
@@ -195,7 +215,8 @@ export default function ActivateScreen() {
 const makeStyles = (c: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     container: { padding: 20, paddingTop: 60, gap: 16 },
-    header: { alignItems: "center", marginBottom: 8 },
+    header: { alignItems: "center", marginBottom: 8, position: "relative", width: "100%" },
+    backBtn: { position: "absolute", left: 0, top: -10, padding: 10 },
     lockBadge: {
       width: 64,
       height: 64,

@@ -348,7 +348,7 @@ export default function ImportJLPTPage() {
               activeOpacity={0.85}
             >
               <Layers size={16} color="#fff" />
-              <Text style={styles.parseBtnText}>Analisa</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>Analisa</Text>
             </TouchableOpacity>
           </View>
 
@@ -449,7 +449,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   pasteBtnText: { fontSize: 11, fontWeight: "700", color: c.primary },
 
   inputContainer: { 
-    backgroundColor: c.surface, borderRadius: 16, borderHeight: 150, 
+    backgroundColor: c.surface, borderRadius: 16, minHeight: 150, 
     borderWidth: 1, borderColor: c.border, overflow: "hidden" 
   },
   jsonInput: {

@@ -14,7 +14,7 @@ import {
   getStandaloneCollections, saveStandaloneCollection,
   deleteStandaloneCollection, assignStandaloneCollection,
   type LearningPath, type Module, type Lesson, type StandaloneCollection,
-  type FlashcardItem
+  type Flashcard as FlashcardItem
 } from "@/utils/storage";
 import Colors, { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -235,7 +235,7 @@ function CollectionAssignModal({
 export default function FlashcardBrowseAll() {
   const colors = useColors();
   const { isDark, palette } = useTheme();
-  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();

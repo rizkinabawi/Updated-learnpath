@@ -12,6 +12,7 @@ import {
   Linking,
   Modal,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -45,6 +46,7 @@ import { isCancellationError } from "@/utils/safe-share";
 import { resolveAssetUri } from "@/utils/path-resolver";
 import { isFeatureAllowed } from "@/utils/security/app-license";
 import * as FileSystem from "@/utils/fs-compat";
+import { useOverlay } from "@/contexts/OverlayContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PLAYER_WIDTH = Math.min(SCREEN_WIDTH - 32, 720);
@@ -103,7 +105,6 @@ const makeTypeMeta = (colors: ColorScheme): Record<
   image: { label: "Gambar", color: colors.success, bg: colors.successLight, Icon: FileImage },
 });
 
-import { useOverlay } from "@/contexts/OverlayContext";
 
 function YoutubePlayer({ 
   url, 
@@ -236,6 +237,13 @@ export default function MaterialFullView() {
     })();
   }, [safeMatId, lessonId]);
 
+  const idx = useMemo(
+    () => materials.findIndex((m) => m.id === safeMatId),
+    [materials, safeMatId],
+  );
+
+  const current = idx >= 0 ? materials[idx] : null;
+
   // Handle CSV parsing when the material is a CSV
   useEffect(() => {
     const isCsv = 
@@ -283,12 +291,6 @@ export default function MaterialFullView() {
     }
   }, [current]);
 
-  const idx = useMemo(
-    () => materials.findIndex((m) => m.id === safeMatId),
-    [materials, safeMatId],
-  );
-
-  const current = idx >= 0 ? materials[idx] : null;
   const goPrev = () => {
     if (idx > 0) {
       router.replace({

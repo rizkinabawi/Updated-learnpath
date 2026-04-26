@@ -8,16 +8,17 @@ export interface TTSConfig {
   voiceIdentifier?: string;
   alternateVoiceIdentifier?: string; // For [M]/[F] type scripts
 }
-
 const STORAGE_KEY = "tts_config";
+
+export const DEFAULT_TTS_CONFIG: TTSConfig = {
+  rate: 0.9,
+  pitch: 1.0,
+};
 
 export const getTTSConfig = async (): Promise<TTSConfig> => {
   const data = await AsyncStorage.getItem(STORAGE_KEY);
   if (data) return JSON.parse(data);
-  return {
-    rate: 0.9,
-    pitch: 1.0,
-  };
+  return DEFAULT_TTS_CONFIG;
 };
 
 export const saveTTSConfig = async (config: TTSConfig) => {
@@ -60,7 +61,9 @@ export const speak = async (script: string, overrideConfig?: Partial<TTSConfig>)
   const finalConfig = { ...config, ...overrideConfig };
   
   const chunks = parseTTSScript(script);
-  await Speech.stop();
+  if (typeof Speech.stop === 'function') {
+    await Speech.stop();
+  }
 
   for (const chunk of chunks) {
     const cleanText = chunk.text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
@@ -96,11 +99,12 @@ export const speak = async (script: string, overrideConfig?: Partial<TTSConfig>)
   }
 };
 
-export const getAvailableVoices = async () => {
+export const getAvailableVoices = async (): Promise<Speech.Voice[]> => {
   try {
-    if (typeof Speech.getVoicesAsync === 'function') {
-      const voices = await Speech.getVoicesAsync();
-      return voices.sort((a, b) => a.language.localeCompare(b.language));
+    const SpeechAny = Speech as any;
+    if (typeof SpeechAny.getVoicesAsync === 'function') {
+      const voices: Speech.Voice[] = await SpeechAny.getVoicesAsync();
+      return voices.sort((a: Speech.Voice, b: Speech.Voice) => a.language.localeCompare(b.language));
     }
     console.warn("Speech.getVoicesAsync is not available on this platform");
     return [];

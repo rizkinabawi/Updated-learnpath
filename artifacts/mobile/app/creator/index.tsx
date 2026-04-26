@@ -21,6 +21,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
+import { type ColorScheme } from "@/constants/colors";
 import {
   ensureCreatorIdentity,
   getCreatorIdentity,

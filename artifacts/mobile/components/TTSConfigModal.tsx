@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { X, Volume2, Settings2, Check } from "lucide-react-native";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
-import { getTTSConfig, saveTTSConfig, getAvailableVoices, stop, type TTSConfig } from "@/utils/tts";
+import { getTTSConfig, saveTTSConfig, getAvailableVoices, stop, DEFAULT_TTS_CONFIG, type TTSConfig } from "@/utils/tts";
 import * as Speech from "expo-speech";
 
 interface TTSConfigModalProps {
@@ -22,7 +22,7 @@ interface TTSConfigModalProps {
 export const TTSConfigModal: React.FC<TTSConfigModalProps> = ({ visible, onClose }) => {
   const colors = useColors();
   const { isDark } = useTheme();
-  const [config, setConfig] = useState<TTSConfig | null>(null);
+  const [config, setConfig] = useState<TTSConfig>(DEFAULT_TTS_CONFIG);
   const [voices, setVoices] = useState<Speech.Voice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +59,7 @@ export const TTSConfigModal: React.FC<TTSConfigModalProps> = ({ visible, onClose
     }
   };
 
-  if (!config) return null;
+  // We don't return null anymore as we have a default config
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -158,8 +158,8 @@ export const TTSConfigModal: React.FC<TTSConfigModalProps> = ({ visible, onClose
                     key={`alt-${v.identifier}`}
                     style={[
                       styles.voiceItem,
-                      { backgroundColor: config.alternateVoiceIdentifier === v.identifier ? colors.secondary + "10" : colors.background },
-                      config.alternateVoiceIdentifier === v.identifier && { borderColor: colors.secondary, borderWidth: 1 }
+                      { backgroundColor: config.alternateVoiceIdentifier === v.identifier ? colors.teal + "10" : colors.background },
+                      config.alternateVoiceIdentifier === v.identifier && { borderColor: colors.teal, borderWidth: 1 }
                     ]}
                     onPress={() => handleSave({ ...config, alternateVoiceIdentifier: v.identifier })}
                   >
@@ -168,9 +168,9 @@ export const TTSConfigModal: React.FC<TTSConfigModalProps> = ({ visible, onClose
                       <Text style={[styles.voiceLang, { color: colors.textMuted }]}>{v.language} - {v.quality}</Text>
                     </View>
                     <TouchableOpacity onPress={() => testVoice(v.identifier)} style={styles.playBtn}>
-                      <Volume2 size={18} color={colors.secondary} />
+                      <Volume2 size={18} color={colors.teal} />
                     </TouchableOpacity>
-                    {config.alternateVoiceIdentifier === v.identifier && <Check size={18} color={colors.secondary} />}
+                    {config.alternateVoiceIdentifier === v.identifier && <Check size={18} color={colors.teal} />}
                   </TouchableOpacity>
                 ))
               )}

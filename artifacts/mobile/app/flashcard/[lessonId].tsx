@@ -245,8 +245,20 @@ export default function FlashcardScreen() {
     if (cards[currentIndex]) {
       isBookmarked(cards[currentIndex].id, "flashcard").then(setBookmarked);
       setScriptRevealed(false); // Reset reveal state on card change
+    }
+  }, [currentIndex, cards]);
 
-      // Auto-play TTS if in listening mode
+  const speakText = useCallback(async (text: string) => {
+    if (!text) return;
+    try {
+      await speak(text);
+    } catch (e) {
+      console.error("Critical TTS Error:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentIndex < cards.length) {
       const card = cards[currentIndex];
       if (viewMode === "card" && card.template === "listening") {
         const textToSpeak = card.ttsScript || card.question;
@@ -369,15 +381,6 @@ export default function FlashcardScreen() {
     }
   }, []);
 
-  const speakText = useCallback(async (text: string) => {
-    if (!text) return;
-    try {
-      await speak(text);
-    } catch (e) {
-      console.error("Critical TTS Error:", e);
-    }
-  }, []);
-
   const playPrimaryAudio = useCallback(() => playAudioUri(card?.audio), [card?.audio, playAudioUri]);
 
   // Cleanup player on unmount
@@ -386,7 +389,7 @@ export default function FlashcardScreen() {
       if (audioPlayerRef.current) {
         try {
           audioPlayerRef.current.pause();
-          audioPlayerRef.current.terminate();
+          try { (audioPlayerRef.current as any).remove?.(); } catch {}
         } catch {}
         audioPlayerRef.current = null;
       }
@@ -854,7 +857,8 @@ function FlashcardCardView({
   onWordTap,
 }: FlashcardCardViewProps) {
   const colors = useColors();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isDark, palette } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   if (!card) return null;
 
   const renderImageStrip = (uris: string[]) => {

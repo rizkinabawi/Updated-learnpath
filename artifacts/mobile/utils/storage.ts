@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
-import { deleteAsync, downloadAsync, documentDirectory, makeDirectoryAsync } from "./fs-compat";
+import { deleteAsync, downloadAsync, documentDirectory, makeDirectoryAsync, readAsStringAsync, writeAsStringAsync } from "./fs-compat";
+
 
 /** Special lessonId for flashcards/quizzes created without a course */
 export const STANDALONE_LESSON_ID = "__standalone__";
@@ -40,6 +41,7 @@ export interface LearningPath {
   tags?: string[];
   /** Feather icon name override (e.g. "book", "code") */
   icon?: string;
+  avatar?: string;
   completedLessons?: number;
   totalLessons?: number;
   isLocked?: boolean;
@@ -50,6 +52,7 @@ export interface LearningPath {
   targetDate?: string;
   /** Target daily study time in minutes */
   targetDailyMinutes?: number;
+  createdAt?: string;
 }
 
 export interface Module {
@@ -138,6 +141,8 @@ export interface Quiz {
   questionTranslation?: string;
   /** Optional translation of the explanation. */
   explanationTranslation?: string;
+  /** UI template: 'standard' or 'listening' */
+  template?: "standard" | "listening";
   createdAt: string;
 }
 
@@ -158,6 +163,8 @@ export interface Stats {
   correctAnswers: number;
   streak: number;
   lastStudyDate: string;
+  level?: number;
+  xp?: number;
 }
 
 export interface Note {
@@ -398,7 +405,7 @@ export const getSortedLearningPaths = async (): Promise<LearningPath[]> => {
     if (countA !== countB) return countB - countA;
     
     // 3. Finally by creation date (newest first)
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
   });
 };
 
@@ -1356,9 +1363,9 @@ export const importCourse = async (pack: CoursePack): Promise<number> => {
   }
 
   // Helper to re-map URIs in any object
-  const remapUris = <T extends any>(obj: T): T => {
+  const remapUris = <T extends object>(obj: T): T => {
     if (!obj || typeof obj !== "object") return obj;
-    const res = { ...obj };
+    const res = { ...obj } as Record<string, any>;
     const keys = ["image", "audio", "Avatar", "avatar", "icon", "filePath", "imageLocalPath"];
     for (const k of keys) {
       if (res[k] && uriMap.has(res[k])) res[k] = uriMap.get(res[k])!;
@@ -1367,10 +1374,10 @@ export const importCourse = async (pack: CoursePack): Promise<number> => {
     const arrayKeys = ["images", "imagesBack", "audios", "audiosBack"];
     for (const k of arrayKeys) {
       if (Array.isArray(res[k])) {
-        res[k] = res[k].map((u: string) => uriMap.get(u) || u);
+        res[k] = (res[k] as string[]).map((u: string) => uriMap.get(u) || u);
       }
     }
-    return res;
+    return res as T;
   };
 
   // 1. Core Structure

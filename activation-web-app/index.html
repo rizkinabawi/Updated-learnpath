@@ -1,119 +1,135 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LearningPath | Activation Key Manager</title>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        :root { --p: #4f6ef7; --bg: #f8fafc; --card: #ffffff; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #1e293b; line-height: 1.5; }
-        #app { display: flex; height: 100vh; overflow: hidden; }
-        .sidebar { width: 260px; background: #0f172a; color: white; padding: 24px 0; display: flex; flex-direction: column; }
-        .sidebar-brand { padding: 0 24px 32px; font-size: 20px; font-weight: 800; color: var(--p); }
-        .nav-item { padding: 12px 24px; cursor: pointer; transition: 0.2s; color: #94a3b8; font-weight: 500; border: none; background: none; text-align: left; width: 100%; font-size: 14px; }
-        .nav-item:hover { color: white; background: #1e293b; }
-        .nav-item.active { color: white; background: var(--p); }
-        .main { flex: 1; overflow-y: auto; padding: 40px; }
-        .card { background: var(--card); border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px #00000010; margin-bottom: 24px; }
-        h1 { margin-bottom: 8px; font-size: 24px; }
-        p { color: #64748b; margin-bottom: 24px; font-size: 14px; }
-        .input-group { margin-bottom: 16px; }
-        label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s; }
-        .btn { padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: 0.2s; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-p { background: var(--p); color: white; }
-        .code-box { background: #0f172a; color: #38bdf8; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; margin-top: 12px; word-break: break-all; }
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
-        #toast-root { position: fixed; bottom: 32px; right: 32px; z-index: 100; }
-        .toast { padding: 12px 20px; border-radius: 12px; background: white; box-shadow: 0 10px 15px -3px #00000015; margin-top: 8px; border-left: 4px solid var(--p); }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearningPath | System Activation Issuer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body>
-    <div id="app">
-        <aside class="sidebar">
-            <div class="sidebar-brand">LP KeyManager</div>
-            <nav id="nav-root">
-                <button class="nav-item active" data-tab="keygen">Keypair Generator</button>
-                <button class="nav-item" data-tab="issue">Issue Activation</button>
-                <button class="nav-item" data-tab="token">Buyer Token</button>
-                <button class="nav-item" data-tab="verify">Integrity Check</button>
-            </nav>
-        </aside>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo-area">
+        <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="logo-text">
+          <h1>System<span>Keys</span></h1>
+          <p>Activation Master</p>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <button class="nav-item active" data-tab="issuer">
+          <i class="fa-solid fa-key"></i>
+          <span>Issue Token</span>
+        </button>
+        <button class="nav-item" data-tab="verify">
+          <i class="fa-solid fa-check-double"></i>
+          <span>Audit/Verify</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <p>© 2026 Secured System</p>
+      </div>
+    </aside>
 
-        <main class="main">
-            <!-- TAB: Keygen -->
-            <section id="tab-keygen" class="tab-panel active">
-                <div class="card">
-                    <h1>Keypair Generator</h1>
-                    <button class="btn btn-p" id="btn-keygen">Generate New Keypair</button>
-                    <div id="keygen-result" class="hidden">
-                        <div class="code-box"><label>SK:</label><div id="sk-val"></div></div>
-                        <div class="code-box"><label>PK:</label><div id="pk-val"></div></div>
-                    </div>
+    <!-- Main -->
+    <main class="main-content">
+      <header class="top-bar">
+        <div class="search-wrap">
+          <i class="fa-solid fa-terminal"></i>
+          <span>Vercel Deploy Ready • v3.1 Unified</span>
+        </div>
+        <div class="user-pill">PREMIUM MASTER</div>
+      </header>
+
+      <div class="content-viewport">
+        <!-- ISSUER TAB -->
+        <section id="issuer" class="tab-panel active">
+          <div class="welcome-hero">
+            <h2>Generate <span>Activation Keys</span></h2>
+            <p>Issue high-level system activation tokens for LearningPath app. These tokens are cryptographically bound to your Master Private Key.</p>
+          </div>
+
+          <div class="premium-card">
+            <div class="section-header">
+              <h2>Key Configuration</h2>
+              <p>Prepare the payload for Ed25519 signing.</p>
+            </div>
+
+            <div class="grid-2">
+              <div class="input-group">
+                <label>Master Private Key (HEX)</label>
+                <input type="password" id="issue-sk" placeholder="fe24bf45..." />
+              </div>
+              <div class="input-group">
+                <label>Application ID</label>
+                <input type="text" id="issue-appid" value="learningpath" />
+              </div>
+              <div class="input-group">
+                <label>Optional Device ID (Hardware Binding)</label>
+                <input type="text" id="issue-device" placeholder="Leave empty for unbound token" />
+              </div>
+              <div class="input-group">
+                <label>Expiration Period</label>
+                <div class="flex-row gap-10">
+                  <input type="number" id="issue-expiry-val" value="36500" style="flex:1" />
+                  <select id="issue-expiry-unit" style="flex:1">
+                    <option value="minutes">Minutes</option>
+                    <option value="days" selected>Days</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="months">Months</option>
+                  </select>
                 </div>
-            </section>
+              </div>
+            </div>
 
-            <!-- TAB: Issue -->
-            <section id="tab-issue" class="tab-panel">
-                <div class="card">
-                    <h1>Issue Activation Key</h1>
-                    <div class="input-group"><label>Private Key</label><input type="password" id="issue-sk" /></div>
-                    <div class="input-group"><label>App ID</label><input type="text" id="issue-appid" value="learningpath" /></div>
-                    <div class="input-group"><label>Days</label><input type="number" id="issue-days" value="365" /></div>
-                    <button class="btn btn-p" id="btn-issue">Generate Key</button>
-                    <div id="issue-out" class="code-box" style="display:none"></div>
-                </div>
-            </section>
+            <div class="mt-20">
+              <button id="btn-issue" class="btn btn-primary">
+                <i class="fa-solid fa-signature"></i> Generate Secure Token
+              </button>
+            </div>
+          </div>
 
-            <!-- TAB: Token -->
-            <section id="tab-token" class="tab-panel">
-                <div class="card">
-                    <h1>Buyer Token</h1>
-                    <div class="input-group"><label>Private Key</label><input type="password" id="token-sk" /></div>
-                    <div class="input-group"><label>Bundle ID</label><input type="text" id="token-bid" /></div>
-                    <div class="input-group"><label>Buyer ID</label><input type="text" id="token-sid" /></div>
-                    <div class="input-group"><label>Creator ID</label><input type="text" id="token-cid" /></div>
-                    <div class="input-group"><label>Days</label><input type="number" id="token-days" value="365" /></div>
-                    <button class="btn btn-p" id="btn-token">Create Token</button>
-                    <div id="token-result" class="hidden"><div id="token-output" class="code-box"></div></div>
-                </div>
-            </section>
+          <div id="output-area" class="mt-20 hidden">
+            <div class="header-flex">
+              <div class="output-label">RESULTING ACTIVATION TOKEN</div>
+              <button class="btn btn-sm btn-outline" data-copy="issue-out">
+                <i class="fa-solid fa-copy"></i> Copy JSON
+              </button>
+            </div>
+            <div class="code-box success">
+              <pre id="issue-out" class="output-scroll-area"></pre>
+            </div>
+          </div>
+        </section>
 
-            <!-- TAB: Verify -->
-            <section id="tab-verify" class="tab-panel">
-                <div class="card">
-                    <h1>Verify</h1>
-                    <div class="input-group"><label>JSON Data</label><textarea id="verify-input"></textarea></div>
-                    <div class="input-group"><label>Public Key</label><input type="text" id="verify-pk" /></div>
-                    <button class="btn btn-p" id="btn-verify">Verify Authority</button>
-                    <div id="verify-status"></div>
-                </div>
-            </section>
-        </main>
-    </div>
+        <!-- VERIFY TAB -->
+        <section id="verify" class="tab-panel">
+          <div class="section-header">
+            <h2>Token Audit</h2>
+            <p>Verify if a token is valid under a given public key.</p>
+          </div>
+          <div class="premium-card">
+            <div class="input-group">
+              <label>Master Public Key (HEX)</label>
+              <input type="text" id="verify-pk" value="cb1188467c03070da7da70edab724a59b77a5728183b2132a9bc4d31e4b1965e" />
+            </div>
+            <div class="input-group mt-10">
+              <label>Activation Token (JSON)</label>
+              <textarea id="verify-input" placeholder='{"appId": "learningpath", ...}'></textarea>
+            </div>
+            <div id="verify-status" class="mt-10"></div>
+            <button id="btn-verify" class="btn btn-outline mt-10">
+              <i class="fa-solid fa-magnifying-glass"></i> Start Verification Audit
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
 
+    <!-- Toast -->
     <div id="toast-root"></div>
-
-    <script>
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                item.classList.add('active');
-                document.getElementById('tab-' + item.dataset.tab).classList.add('active');
-            });
-        });
-        window.showToast = (m) => {
-            const r = document.getElementById('toast-root');
-            const t = document.createElement('div');
-            t.className = 'toast'; t.textContent = m;
-            r.appendChild(t);
-            setTimeout(() => t.remove(), 3000);
-        };
-    </script>
-    <script type="module" src="/src/main.js"></script>
+  </div>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

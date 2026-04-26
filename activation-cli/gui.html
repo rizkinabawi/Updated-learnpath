@@ -635,7 +635,22 @@ const fromBase64 = b64 => {
   }
   return o.slice(0,idx);
 };
-const utf8    = s => new TextEncoder().encode(s);
+const utf8 = (s) => {
+  const bytes = [];
+  for (let i = 0; i < s.length; i++) {
+    let c = s.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) { bytes.push(0xc0 | (c >> 6)); bytes.push(0x80 | (c & 0x3f)); }
+    else if (c < 0xd800 || c >= 0xe000) {
+      bytes.push(0xe0 | (c >> 12)); bytes.push(0x80 | ((c >> 6) & 0x3f)); bytes.push(0x80 | (c & 0x3f));
+    } else {
+      i++; c = 0x10000 + (((c & 0x3ff) << 10) | (s.charCodeAt(i) & 0x3ff));
+      bytes.push(0xf0 | (c >> 18)); bytes.push(0x80 | ((c >> 12) & 0x3f));
+      bytes.push(0x80 | ((c >> 6) & 0x3f)); bytes.push(0x80 | (c & 0x3f));
+    }
+  }
+  return new Uint8Array(bytes);
+};
 const sha256h = s => sha256(utf8(s)); // returns Uint8Array
 const sha256hex = s => toHex(sha256h(s));
 const randomBytes = n => nobleRandom(n);

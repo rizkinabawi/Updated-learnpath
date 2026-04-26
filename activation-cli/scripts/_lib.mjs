@@ -1,89 +1,84 @@
 /**
- * _lib.mjs — shared CLI helpers (Ed25519 setup, hex/base64, canonical JSON,
- * AES-256-GCM, dynamic unlock token). Pure JS, no native modules.
- *
- * Mirrors `artifacts/mobile/utils/security/crypto.ts` exactly so the in-app
- * verifier and the offline CLI agree byte-for-byte.
+ * _lib.mjs — shared CLI helpers
  */
 import * as ed from "@noble/ed25519";
-import { sha256, sha512 } from "@noble/hashes/sha2.js";
+import { sha512 } from "@noble/hashes/sha2.js";
 import { concatBytes, randomBytes as nobleRandomBytes } from "@noble/hashes/utils.js";
-import { gcm } from "@noble/ciphers/aes.js";
 
-ed.utils.sha512Sync = (...m) => sha512(concatBytes(...m));
-ed.utils.sha512Async = async (...m) => sha512(concatBytes(...m));
+// v3 Noble setup
+try {
+  if (ed.etc && Object.isExtensible(ed.etc)) {
+    ed.etc.sha512Sync = (...m) => sha512(concatBytes(...m));
+    ed.etc.sha512Async = async (...m) => sha512(concatBytes(...m));
+  }
+} catch (e) {}
 
 export const randomBytes = (n) => nobleRandomBytes(n);
-
-export const toHex = (b) =>
-  Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
-
+export const toHex = (b) => Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
 export const fromHex = (h) => {
-  const clean = String(h).replace(/[^0-9a-fA-F]/g, "");
-  if (clean.length % 2 !== 0) throw new Error("hex length odd");
+  const clean = h.replace(/[^0-9a-fA-F]/g, "");
   const out = new Uint8Array(clean.length / 2);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
   return out;
 };
 
-export const toBase64 = (b) => Buffer.from(b).toString("base64");
-export const fromBase64 = (s) => new Uint8Array(Buffer.from(s, "base64"));
+const B64A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+export const toBase64 = (bytes) => {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i], b = i + 1 < bytes.length ? bytes[i + 1] : 0, c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    out += B64A[a >> 2]; out += B64A[((a & 3) << 4) | (b >> 4)];
+    out += i + 1 < bytes.length ? B64A[((b & 15) << 2) | (c >> 6)] : "=";
+    out += i + 2 < bytes.length ? B64A[c & 63] : "=";
+  }
+  return out;
+};
+export const fromBase64 = (b64) => {
+  const clean = b64.replace(/[^A-Za-z0-9+/=]/g, "").replace(/=+$/, "");
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let idx = 0, buf = 0, bits = 0;
+  for (let i = 0; i < clean.length; i++) {
+    const v = B64A.indexOf(clean[i]);
+    buf = (buf << 6) | v; bits += 6;
+    if (bits >= 8) { bits -= 8; out[idx++] = (buf >> bits) & 0xff; }
+  }
+  return out.slice(0, idx);
+};
 
-export const utf8 = (s) => new TextEncoder().encode(s);
+// Deterministic UTF-8 (MATCHES APP)
+export const utf8 = (s) => {
+  const bytes = [];
+  for (let i = 0; i < s.length; i++) {
+    let c = s.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) { bytes.push(0xc0 | (c >> 6)); bytes.push(0x80 | (c & 0x3f)); }
+    else if (c < 0xd800 || c >= 0xe000) {
+      bytes.push(0xe0 | (c >> 12)); bytes.push(0x80 | ((c >> 6) & 0x3f)); bytes.push(0x80 | (c & 0x3f));
+    } else {
+      i++; c = 0x10000 + (((c & 0x3ff) << 10) | (s.charCodeAt(i) & 0x3ff));
+      bytes.push(0xf0 | (c >> 18)); bytes.push(0x80 | ((c >> 12) & 0x3f));
+      bytes.push(0x80 | ((c >> 6) & 0x3f)); bytes.push(0x80 | (c & 0x3f));
+    }
+  }
+  return new Uint8Array(bytes);
+};
 
-export function canonicalJson(v) {
-  if (v === null || typeof v !== "object") return JSON.stringify(v);
-  if (Array.isArray(v)) return "[" + v.map(canonicalJson).join(",") + "]";
-  const keys = Object.keys(v).sort();
-  return "{" + keys.map((k) => JSON.stringify(k) + ":" + canonicalJson(v[k])).join(",") + "}";
-}
-
-export const sha256Hex = (b) => toHex(sha256(b));
-export const sha256OfString = (s) => sha256Hex(utf8(s));
+export const fromUtf8 = (b) => {
+  let s = "";
+  for (let i = 0; i < b.length; i++) {
+    const c = b[i];
+    if (c < 0x80) s += String.fromCharCode(c);
+    else if (c < 0xe0) { s += String.fromCharCode(((c & 0x1f) << 6) | (b[++i] & 0x3f)); }
+    else if (c < 0xf0) { s += String.fromCharCode(((c & 0x0f) << 12) | ((b[++i] & 0x3f) << 6) | (b[++i] & 0x3f)); }
+    else {
+      let code = ((c & 0x07) << 18) | ((b[++i] & 0x3f) << 12) | ((b[++i] & 0x3f) << 6) | (b[++i] & 0x3f);
+      s += String.fromCodePoint(code);
+    }
+  }
+  return s;
+};
 
 export const ed25519Sign = (sk, msg) => ed.signAsync(msg, sk);
-export const ed25519GetPublicKey = (sk) => ed.getPublicKeyAsync(sk);
-export const ed25519RandomSecret = () => ed.utils.randomSecretKey();
-
-export function deriveEncryptionKey(password) {
-  return sha256(utf8(password));
-}
-
-export function hashPassword(password) {
-  return sha256OfString(password);
-}
-
-export function aesEncrypt(key, plaintext) {
-  if (key.length !== 32) throw new Error("AES-256 requires a 32-byte key");
-  const iv = randomBytes(12);
-  const cipher = gcm(key, iv);
-  const ct = cipher.encrypt(plaintext);
-  const blob = new Uint8Array(iv.length + ct.length);
-  blob.set(iv, 0);
-  blob.set(ct, iv.length);
-  return toBase64(blob);
-}
-
-export function aesDecrypt(key, payloadB64) {
-  const blob = fromBase64(payloadB64);
-  const iv = blob.subarray(0, 12);
-  const ct = blob.subarray(12);
-  const cipher = gcm(key, iv);
-  return cipher.decrypt(ct);
-}
-
-/** Dynamic unlock token: SHA256(password + bundleId + timeWindow). */
-export function generateUnlockToken(password, bundleId, nowMs = Date.now()) {
-  const window = Math.floor(nowMs / 1000 / 3600);
-  return sha256OfString(`${password}${bundleId}${window}`);
-}
-
-/** creatorId = first 32 hex chars of sha256("creator:" + publicKeyHex). */
-export function deriveCreatorId(publicKeyHex) {
-  return sha256OfString(`creator:${publicKeyHex}`).slice(0, 32);
-}
-
-// ─── tiny argv parser ────────────────────────────────────────────────────────
 export function parseFlags(argv) {
   const out = {};
   for (const a of argv) {
@@ -94,19 +89,12 @@ export function parseFlags(argv) {
   return out;
 }
 
-// ─── load private key (env > file) ───────────────────────────────────────────
 import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+/** load private key */
 export function loadPrivateKey(envName, filePath) {
   let hex = process.env[envName];
-  if (!hex && filePath && existsSync(filePath)) {
-    hex = readFileSync(filePath, "utf8").trim();
-  }
-  if (!hex) {
-    throw new Error(
-      `Private key not found. Set $${envName} or place hex at ${filePath}`
-    );
-  }
-  const sk = fromHex(hex);
-  if (sk.length !== 32) throw new Error("private key must be 32 bytes");
-  return sk;
+  if (!hex && filePath && existsSync(filePath)) hex = readFileSync(filePath, "utf8").trim();
+  if (!hex) throw new Error("Private key not found.");
+  return fromHex(hex);
 }

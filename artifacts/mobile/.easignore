@@ -1,0 +1,7 @@
+node_modules
+.expo
+.gradle
+android/.gradle
+ios/Pods
+dist
+build

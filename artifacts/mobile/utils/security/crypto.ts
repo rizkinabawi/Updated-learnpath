@@ -26,15 +26,17 @@ try {
 
 // Noble v2/v3 compatibility
 try {
-  if (ed.etc) {
+  // In v3 ed.etc is often frozen, we must be careful
+  if (ed.etc && Object.isExtensible(ed.etc)) {
     Object.assign(ed.etc, {
       sha512Sync: (...m: Uint8Array[]) => sha512(concatBytes(...m)),
       sha512Async: async (...m: Uint8Array[]) => sha512(concatBytes(...m)),
     });
   }
-  (ed as any).hashes = (ed as any).hashes || {};
-  (ed as any).hashes.sha512 = sha512;
-  (ed as any).hashes.sha512Async = async (...m: Uint8Array[]) => sha512(concatBytes(...m));
+  const edAny = ed as any;
+  if (!edAny.hashes) edAny.hashes = {};
+  edAny.hashes.sha512 = sha512;
+  edAny.hashes.sha512Async = async (...m: Uint8Array[]) => sha512(concatBytes(...m));
 } catch (e) {}
 
 export function randomBytes(n: number): Uint8Array {
@@ -44,18 +46,48 @@ export function randomBytes(n: number): Uint8Array {
   return nobleRandomBytes(n);
 }
 
-// ─── UTF-8 ───
-let TE: any, TD: any;
-try {
-  TE = new TextEncoder();
-  TD = new TextDecoder();
-} catch {
-  TE = { encode: (s: string) => new Uint8Array(s.split('').map(c => c.charCodeAt(0))) };
-  TD = { decode: (b: Uint8Array) => String.fromCharCode(...b) };
-}
+// ─── Deterministic UTF-8 ───
+// We use a manual encoder to ensure byte-for-byte identity across Node, Browser, and React Native.
+export const utf8 = (s: string): Uint8Array => {
+  const bytes: number[] = [];
+  for (let i = 0; i < s.length; i++) {
+    let c = s.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) {
+      bytes.push(0xc0 | (c >> 6));
+      bytes.push(0x80 | (c & 0x3f));
+    } else if (c < 0xd800 || c >= 0xe000) {
+      bytes.push(0xe0 | (c >> 12));
+      bytes.push(0x80 | ((c >> 6) & 0x3f));
+      bytes.push(0x80 | (c & 0x3f));
+    } else {
+      i++;
+      c = 0x10000 + (((c & 0x3ff) << 10) | (s.charCodeAt(i) & 0x3ff));
+      bytes.push(0xf0 | (c >> 18));
+      bytes.push(0x80 | ((c >> 12) & 0x3f));
+      bytes.push(0x80 | ((c >> 6) & 0x3f));
+      bytes.push(0x80 | (c & 0x3f));
+    }
+  }
+  return new Uint8Array(bytes);
+};
 
-export const utf8 = (s: string) => TE.encode(s);
-export const fromUtf8 = (b: Uint8Array) => TD.decode(b);
+export const fromUtf8 = (b: Uint8Array): string => {
+  let s = "";
+  for (let i = 0; i < b.length; i++) {
+    const c = b[i];
+    if (c < 0x80) s += String.fromCharCode(c);
+    else if (c < 0xe0) {
+      s += String.fromCharCode(((c & 0x1f) << 6) | (b[++i] & 0x3f));
+    } else if (c < 0xf0) {
+      s += String.fromCharCode(((c & 0x0f) << 12) | ((b[++i] & 0x3f) << 6) | (b[++i] & 0x3f));
+    } else {
+      let code = ((c & 0x07) << 18) | ((b[++i] & 0x3f) << 12) | ((b[++i] & 0x3f) << 6) | (b[++i] & 0x3f);
+      s += String.fromCodePoint(code);
+    }
+  }
+  return s;
+};
 
 // ─── Hex / Base64 / JSON ───
 export function toHex(b: Uint8Array): string {

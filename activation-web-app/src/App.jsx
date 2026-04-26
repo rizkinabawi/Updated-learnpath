@@ -335,6 +335,17 @@ export default function App() {
                     </select>
                   </div>
                 </div>
+
+                <div className="input-group">
+                  <label><FileCode size={14} /> Batch Quantity</label>
+                  <input 
+                    type="number" 
+                    value={quantity} 
+                    onChange={e => setQuantity(Math.max(1, Math.min(100, Number(e.target.value))))} 
+                    min="1"
+                    max="100"
+                  />
+                </div>
               </div>
 
               <div className="quick-trial-section">

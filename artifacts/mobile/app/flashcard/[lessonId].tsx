@@ -343,19 +343,42 @@ export default function FlashcardScreen() {
 
   const speakText = useCallback(async (text: string) => {
     if (!text) return;
-    Alert.alert("TTS DEBUG", "Tombol ditekan: " + text.slice(0, 30));
     try {
       await Speech.stop();
       const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
       
+      // Auto Detection Logic
+      let lang = "id-ID"; // Default to Indonesian
+      
+      // Detect Japanese: Kanji (\u4e00-\u9faf), Hiragana (\u3040-\u309f), Katakana (\u30a0-\u30ff)
+      const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(cleanText);
+      if (hasJapanese) {
+        lang = "ja-JP";
+      } else {
+        // Detect English (very basic: frequent English words or just fallback if not JP)
+        const hasEnglish = /[a-zA-Z]/.test(cleanText) && !hasJapanese;
+        // If it's mostly Latin characters, we can try to guess English vs Indonesian
+        // But for this app, id-ID is a safe priority for the user.
+        // We'll use id-ID as default unless it looks purely English.
+        if (/^[a-zA-Z\s.,!?'-]+$/.test(cleanText) && cleanText.split(" ").length > 2) {
+           // If mostly long English-looking sentences without common ID words
+           // But actually, id-ID engine reads English "okay-ish", while en-US reads ID very badly.
+           // So id-ID is safer as default.
+           lang = "id-ID"; 
+        }
+      }
+
       Speech.speak(cleanText, {
-        language: "ja-JP",
+        language: lang,
         rate: 0.9,
         volume: 1.0,
+        onError: (err) => {
+          console.warn("Speech Error:", err);
+          Speech.speak(cleanText, { rate: 0.9, volume: 1.0 });
+        }
       });
     } catch (e) {
       console.error("Critical TTS Error:", e);
-      Alert.alert("Error", "Gagal memutar suara.");
     }
   }, []);
 

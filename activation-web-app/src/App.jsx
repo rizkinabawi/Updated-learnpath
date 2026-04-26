@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as ed from "@noble/ed25519";
-import { sha512 } from "@noble/hashes/sha2.js";
-import { concatBytes } from "@noble/hashes/utils.js";
+import { sha512 } from "@noble/hashes/sha512";
+import { concatBytes } from "@noble/hashes/utils";
 import { ShieldCheck, Key, Clock, Smartphone, Copy, CheckCircle2, AlertCircle, Terminal } from 'lucide-react';
 
 /** 

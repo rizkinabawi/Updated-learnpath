@@ -1,20 +1,24 @@
 {
-  "name": "activation-web-app",
-  "version": "0.0.0",
+  "name": "learningpath-activation-web",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "pnpm exec vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "vite": "^6.0.0",
-    "@fontsource/inter": "^5.2.8",
-    "@fontsource/jetbrains-mono": "^5.2.8",
-    "@noble/ciphers": "^2.2.0",
-    "@noble/ed25519": "^3.1.0",
-    "@noble/hashes": "^2.2.0",
-    "lucide": "^1.9.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@noble/ed25519": "3.1.0",
+    "@noble/hashes": "1.7.2",
+    "lucide-react": "^0.263.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "vite": "^4.4.5"
   }
 }

@@ -12,8 +12,11 @@ import {
   type LearningPath, type CoursePack,
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
+import { exportCoursePackAsZip } from "@/utils/zip-handler";
 import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
+
+type ShareFormat = "json" | "zip";
 
 interface PathStat {
   path: LearningPath;
@@ -36,6 +39,7 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
   const [sharing, setSharing] = useState<string | null>(null);
   const [sharingStep, setSharingStep] = useState<string>("");
   const [pathStats, setPathStats] = useState<PathStat[]>([]);
+  const [format, setFormat] = useState<ShareFormat>("json");
 
   useEffect(() => {
     if (!visible) return;
@@ -84,11 +88,18 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
       setSharingStep("Menyiapkan gambar & file...");
       const pack = await embedAssetsInPack(rawPack);
 
-      setSharingStep("Membuat file bundle...");
-      const json = JSON.stringify(pack);
       const pathName = pathId
         ? (pathStats.find((s) => s.path.id === pathId)?.path.name ?? "kursus")
         : "semua-kursus";
+
+      if (format === "zip") {
+        setSharingStep("Membuat file ZIP...");
+        await exportCoursePackAsZip(pack, pathName);
+        return;
+      }
+
+      setSharingStep("Membuat file bundle...");
+      const json = JSON.stringify(pack);
       const filename = `bundle-${pathName.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.json`;
 
       const assets = countEmbeddedAssets(pack);
@@ -144,6 +155,31 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
         <Text style={styles.subtitle}>
           Gambar, file, dan link materi belajar ikut dibundel. Teman cukup import satu file dan semua struktur kursus otomatis terbuat!
         </Text>
+
+        {/* Format toggle: JSON vs ZIP */}
+        <View style={styles.formatRow}>
+          <Text style={styles.formatLabel}>Format:</Text>
+          <View style={styles.segmented}>
+            <TouchableOpacity
+              style={[styles.segment, format === "json" && styles.segmentActive]}
+              onPress={() => setFormat("json")}
+              disabled={sharing !== null}
+              activeOpacity={0.8}
+            >
+              <Feather name="file-text" size={13} color={format === "json" ? colors.white : colors.textMuted} />
+              <Text style={[styles.segmentText, format === "json" && styles.segmentTextActive]}>JSON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.segment, format === "zip" && styles.segmentActive]}
+              onPress={() => setFormat("zip")}
+              disabled={sharing !== null}
+              activeOpacity={0.8}
+            >
+              <Feather name="archive" size={13} color={format === "zip" ? colors.white : colors.textMuted} />
+              <Text style={[styles.segmentText, format === "zip" && styles.segmentTextActive]}>ZIP</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Sharing progress step */}
         {sharing !== null && sharingStep ? (
@@ -230,7 +266,9 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
             <View style={styles.tipBox}>
               <Feather name="info" size={13} color={colors.primary} />
               <Text style={styles.tipText}>
-                File bundle akan dibagikan sebagai JSON. Teman cukup buka app → Profil → Import Bundle Kursus → pilih file.
+                {format === "zip"
+                  ? "Bundle dibagikan sebagai .zip — gambar & file disimpan terpisah agar ukuran lebih kecil. Import lewat Profil → Import Bundle Kursus → pilih file .zip."
+                  : "File bundle akan dibagikan sebagai .json. Pilih ZIP jika kursus berisi banyak gambar/file untuk hasil yang lebih kecil."}
               </Text>
             </View>
           </ScrollView>
@@ -463,6 +501,24 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     borderRadius: 14, padding: 14, alignItems: "flex-start",
   },
   tipText: { flex: 1, fontSize: 12, color: c.primary, fontWeight: "600", lineHeight: 18 },
+
+  formatRow: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 4, marginTop: 4,
+  },
+  formatLabel: { fontSize: 12, fontWeight: "700", color: c.textMuted },
+  segmented: {
+    flexDirection: "row", backgroundColor: c.background,
+    borderRadius: 10, padding: 3, gap: 3, flex: 1,
+    borderWidth: 1, borderColor: c.border,
+  },
+  segment: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, paddingVertical: 7, borderRadius: 8,
+  },
+  segmentActive: { backgroundColor: c.primary },
+  segmentText: { fontSize: 12, fontWeight: "700", color: c.textMuted },
+  segmentTextActive: { color: c.white },
 
   // Import preview
   previewPathCard: {

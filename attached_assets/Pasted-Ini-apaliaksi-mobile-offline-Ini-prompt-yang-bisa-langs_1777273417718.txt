@@ -1,0 +1,159 @@
+Ini apaliaksi mobile offline Ini prompt yang bisa langsung kamu kirim ke AI agent / developer untuk upgrade fitur aplikasi kamu. Sudah aku rapikan biar jelas, teknis, dan actionable:
+
+⸻
+
+PROMPT: FEATURE UPGRADE COURSE MANAGEMENT SYSTEM
+
+Saya ingin melakukan pengembangan lanjutan pada aplikasi course management saya. Berikut adalah daftar fitur yang perlu ditambahkan dan diperbaiki:
+
+1. Course & Module Management (Advanced)
+
+* Tambahkan kemampuan untuk:
+    * Memindahkan module ke course lain
+    * Memindahkan lesson/materi ke module lain atau course lain
+    * Merge / gabungkan beberapa course menjadi satu
+* Pastikan:
+    * Relasi data tetap konsisten (tidak ada orphan data)
+    * ID tetap unique
+    * Update otomatis pada navigation & struktur tree
+
+⸻
+
+2. Advanced Content Editor (Custom Tag System)
+
+Saya ingin sistem penulisan materi menggunakan custom tag sederhana (mirip markdown tapi custom).
+
+Contoh penggunaan:
+
+* p: → paragraf biasa
+* h1: → heading 1
+* h2: → heading 2
+* img: → embed gambar
+* link: → hyperlink
+* yt: → embed YouTube (iframe)
+* size: → mengatur ukuran (text/image)
+
+Contoh:
+
+h1: Belajar React
+p: Ini adalah materi dasar React
+img: https://example.com/image.png size:300x200
+yt: https://youtube.com/embed/xxxx
+
+Requirements:
+
+* Parser harus convert ke HTML render
+* Support nested dan kombinasi tag
+* Sanitasi input untuk keamanan (hindari XSS)
+* Responsive rendering
+
+⸻
+
+3. Mention System (Cross Reference)
+
+Tambahkan fitur mention:
+
+* Bisa mention:
+    * Course
+    * Module
+    * Lesson/Materi
+    * Catatan (Notes)
+
+Contoh:
+
+Pelajari juga di @React Basics atau @Module: State Management
+
+Behavior:
+
+* Auto detect dan convert jadi link
+* Bisa klik untuk navigate
+* Gunakan sistem indexing / search ringan
+
+⸻
+
+4. Smart Notes System (Dictionary-Based)
+
+Tambahkan fitur catatan pintar:
+
+* Notes disimpan sebagai dictionary (key-value)
+* Ketika kata tertentu muncul di materi:
+    * Otomatis highlight
+    * Bisa diklik untuk membuka catatan
+
+Contoh:
+
+* Note:
+
+React: Library JavaScript untuk UI
+
+* Di materi:
+
+React adalah library populer
+
+→ kata “React” otomatis bisa diklik dan menampilkan note
+
+⸻
+
+5. PDF Export Template (Flashcard & Quiz)
+
+Tambahkan fitur export ke PDF:
+
+* Bisa pilih template:
+    * Minimalist
+    * Modern
+    * Clean Study Notes
+* Berlaku untuk:
+    * Flashcard
+    * Quiz
+
+Requirements:
+
+* Layout rapi dan siap print
+* Support pagination
+* Support gambar dan formatting
+* Gunakan engine seperti:
+    * jsPDF / Puppeteer / HTML to PDF
+
+⸻
+
+6. Bulk Import Fix (Critical Bug)
+
+Saat ini fitur import bundle:
+
+* Tidak berjalan
+* Tidak ada feedback/error
+* Tidak render hasil
+
+Perbaikan:
+
+* Tambahkan:
+    * Loading indicator
+    * Success message
+    * Error handling (jelas dan informatif)
+* Validasi file sebelum import
+* Log error untuk debugging
+* Pastikan data benar-benar ter-render setelah import
+
+⸻
+
+7. UX Improvement
+
+* Tambahkan:
+    * Notifikasi (success / error)
+    * Progress bar untuk proses berat
+    * Empty state message (jangan blank screen)
+
+⸻
+
+8. Technical Notes
+
+* Gunakan struktur modular
+* Pastikan scalable (untuk banyak course)
+* Optimasi performa (lazy load untuk materi besar)
+* Gunakan clean architecture
+
+⸻
+
+Kalau kamu mau, next step aku bisa bantu:
+
+L)

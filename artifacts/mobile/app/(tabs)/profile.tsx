@@ -21,6 +21,7 @@ import {
 import { CourseBundleShareModal, CourseImportPreviewModal } from "@/components/CourseBundleModal";
 import { BundleActivationModal } from "@/components/BundleActivationModal";
 import { extractAssetsFromPack } from "@/utils/bundle-assets";
+import { extractCoursePackFromZipUri, looksLikeZipDocument } from "@/utils/zip-handler";
 import { verifyBundleSignature, describeVerifyError } from "@/utils/bundle-crypto";
 import { isBundleUnlocked } from "@/utils/bundle-activation";
 import { shadow, shadowSm, type ColorScheme } from "@/constants/colors";
@@ -124,11 +125,27 @@ export default function ProfileTab() {
     }
     
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: ["application/json", "*/*"], copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({ type: ["application/json", "application/zip", "*/*"], copyToCacheDirectory: true });
       if (result.canceled) return;
       const asset = result.assets[0];
-      const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
-      const pack = JSON.parse(text) as CoursePack;
+
+      let pack: CoursePack;
+      if (looksLikeZipDocument(asset.name, asset.mimeType)) {
+        try {
+          setImporting(true);
+          pack = await extractCoursePackFromZipUri(asset.uri);
+        } catch (zipErr: any) {
+          setImporting(false);
+          Alert.alert("Gagal Membaca ZIP", zipErr?.message ?? "File ZIP tidak dapat dibuka.");
+          return;
+        } finally {
+          setImporting(false);
+        }
+      } else {
+        const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
+        pack = JSON.parse(text) as CoursePack;
+      }
+
       if (!pack.version || !Array.isArray(pack.paths) || pack.paths.length === 0) {
         Alert.alert("Format Tidak Valid", "File bukan bundle kursus yang valid. Pastikan file dibuat dari fitur 'Bagikan Bundle Kursus'.");
         return;

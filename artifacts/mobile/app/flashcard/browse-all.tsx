@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, Platform, ActivityIndicator, Modal, Alert,
-  useWindowDimensions,
+  useWindowDimensions, TouchableWithoutFeedback,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { toast } from "@/components/Toast";
@@ -262,6 +262,8 @@ export default function FlashcardBrowseAll() {
   const [playingIdx, setPlayingIdx] = useState<number | null>(null);
   const [playlistItems, setPlaylistItems] = useState<FlashcardItem[]>([]);
   const [playlistTitle, setPlaylistTitle] = useState("");
+  const [actionMenuInfo, setActionMenuInfo] = useState<{ id: string, name: string, isCol: boolean, colData?: StandaloneCollection } | null>(null);
+
 
   useEffect(() => { loadAll(); }, []);
 
@@ -467,11 +469,10 @@ export default function FlashcardBrowseAll() {
       getAllFlashcardsGroupedByLesson(),
     ]);
 
-    // Build collection rows from the precomputed count map (O(1) per row).
     const colRows: CollectionRow[] = cols.map((col) => ({
       col,
       count: cardCounts.get(col.id) ?? 0,
-    }));
+    })).filter(c => c.count > 0);
     setCollections(colRows.sort((a, b) => b.col.createdAt.localeCompare(a.col.createdAt)));
 
     // Build course-linked rows. Modules / lessons are still loaded per path
@@ -483,7 +484,10 @@ export default function FlashcardBrowseAll() {
       for (const mod of mods) {
         const lessonList = (await getLessons(mod.id)).sort((a, b) => a.order - b.order);
         for (const lesson of lessonList) {
-          result.push({ path, module: mod, lesson, count: cardCounts.get(lesson.id) ?? 0 });
+          const count = cardCounts.get(lesson.id) ?? 0;
+          if (count > 0) {
+            result.push({ path, module: mod, lesson, count });
+          }
         }
       }
     }
@@ -616,6 +620,53 @@ export default function FlashcardBrowseAll() {
           </View>
         </View>
       </Modal>
+
+      {/* ACTION MENU MODAL */}
+      <Modal visible={actionMenuInfo !== null} transparent animationType="fade" onRequestClose={() => setActionMenuInfo(null)}>
+        <View style={styles.pmOverlay}>
+          <TouchableWithoutFeedback onPress={() => setActionMenuInfo(null)}>
+            <View style={{ flex: 1 }} />
+          </TouchableWithoutFeedback>
+          <View style={[styles.pmSheet, { padding: 0, paddingBottom: insets.bottom + 16 }]}>
+            <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: colors.text }}>
+                Opsi: {actionMenuInfo?.name}
+              </Text>
+            </View>
+            <View style={{ padding: 10 }}>
+              <TouchableOpacity style={styles.menuOptBtn} onPress={() => { handleExportPDF(actionMenuInfo!.id, actionMenuInfo!.name); setActionMenuInfo(null); }}>
+                <View style={[styles.menuOptIcon, { backgroundColor: colors.primary + "15" }]}><Feather name="file-text" size={18} color={colors.primary} /></View>
+                <Text style={styles.menuOptText}>Cetak PDF Biasa</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuOptBtn} onPress={() => { handleExportWS(actionMenuInfo!.id, actionMenuInfo!.name); setActionMenuInfo(null); }}>
+                <View style={[styles.menuOptIcon, { backgroundColor: colors.accent + "15" }]}><Feather name="edit-3" size={18} color={colors.accent} /></View>
+                <Text style={styles.menuOptText}>Cetak PDF Latihan (Worksheet)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuOptBtn} onPress={() => { handleExportTable(actionMenuInfo!.id, actionMenuInfo!.name); setActionMenuInfo(null); }}>
+                <View style={[styles.menuOptIcon, { backgroundColor: colors.teal + "15" }]}><Feather name="grid" size={18} color={colors.teal} /></View>
+                <Text style={styles.menuOptText}>Ekspor Tabel PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuOptBtn} onPress={() => { handleExportCSV(actionMenuInfo!.id, actionMenuInfo!.name); setActionMenuInfo(null); }}>
+                <View style={[styles.menuOptIcon, { backgroundColor: colors.primary + "15" }]}><Feather name="database" size={18} color={colors.primary} /></View>
+                <Text style={styles.menuOptText}>Ekspor Data CSV</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuOptBtn} onPress={() => { handleAudioPlaylist(actionMenuInfo!.id, actionMenuInfo!.name); setActionMenuInfo(null); }}>
+                <View style={[styles.menuOptIcon, { backgroundColor: colors.purple + "15" }]}><Feather name="headphones" size={18} color={colors.purple} /></View>
+                <Text style={styles.menuOptText}>Dengarkan Audio (Playlist)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuOptBtn} onPress={() => {
+                if (actionMenuInfo?.isCol && actionMenuInfo.colData) shareCollectionBeam(actionMenuInfo.colData, actionMenuInfo.name);
+                else shareCollectionBeam({ id: actionMenuInfo!.id, name: actionMenuInfo!.name, createdAt: "", type: "flashcard" } as any, actionMenuInfo!.name);
+                setActionMenuInfo(null);
+              }}>
+                <View style={[styles.menuOptIcon, { backgroundColor: colors.primary + "15" }]}><Feather name="share-2" size={18} color={colors.primary} /></View>
+                <Text style={styles.menuOptText}>Bagikan (Beam / Ekspor)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
 
       {/* FAB */}
       {selMode ? (
@@ -809,55 +860,15 @@ export default function FlashcardBrowseAll() {
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={styles.colAction}
-                              onPress={() => handleExportPDF(cr.col.id, cr.col.name)}
+                              onPress={() => setActionMenuInfo({ id: cr.col.id, name: cr.col.name, isCol: true, colData: cr.col })}
                               activeOpacity={0.7}
                             >
-                              <Feather name="file-text" size={14} color={colors.primary} />
-                              <Text style={[styles.colActionText, { color: colors.primary }]}>PDF Biasa</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.colAction}
-                              onPress={() => handleExportWS(cr.col.id, cr.col.name)}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="edit-3" size={14} color={colors.accent} />
-                              <Text style={[styles.colActionText, { color: colors.accent }]}>PDF Latihan (WS)</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.colAction}
-                              onPress={() => handleExportTable(cr.col.id, cr.col.name)}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="grid" size={14} color={colors.teal} />
-                              <Text style={[styles.colActionText, { color: colors.teal }]}>Tabel PDF</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.colAction}
-                              onPress={() => handleExportCSV(cr.col.id, cr.col.name)}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="file-text" size={14} color={colors.primary} />
-                              <Text style={[styles.colActionText, { color: colors.primary }]}>Data CSV</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.colAction}
-                              onPress={() => handleAudioPlaylist(cr.col.id, cr.col.name)}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="headphones" size={14} color={colors.purple} />
-                              <Text style={[styles.colActionText, { color: colors.purple }]}>Audio</Text>
-                            </TouchableOpacity>
-                            <View style={styles.colActionDivider} />
-                            <TouchableOpacity
-                              style={styles.colAction}
-                              onPress={() => shareCollectionBeam(cr.col, cr.col.name)}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="share-2" size={14} color={colors.primary} />
-                              <Text style={[styles.colActionText, { color: colors.primary }]}>Kirim</Text>
+                              <Feather name="more-horizontal" size={14} color={colors.textSecondary} />
+                              <Text style={[styles.colActionText, { color: colors.textSecondary }]}>Lainnya</Text>
                             </TouchableOpacity>
                             <View style={styles.colActionDivider} />
                           </>
+
                         )}
 
                         <TouchableOpacity
@@ -937,34 +948,10 @@ export default function FlashcardBrowseAll() {
                                   <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count} kartu</Text>
                                 </View>
                                 <TouchableOpacity 
-                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: grad[0] + "40", marginRight: 6 }]}
-                                  onPress={() => handleExportPDF(row.lesson.id, row.lesson.name)}
+                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginRight: 6 }]}
+                                  onPress={() => setActionMenuInfo({ id: row.lesson.id, name: row.lesson.name, isCol: false })}
                                 >
-                                  <Feather name="file-text" size={12} color={grad[0]} />
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.teal + "60", marginRight: 6 }]}
-                                  onPress={() => handleExportTable(row.lesson.id, row.lesson.name)}
-                                >
-                                  <Feather name="grid" size={12} color={colors.teal} />
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary + "60", marginRight: 6 }]}
-                                  onPress={() => handleExportCSV(row.lesson.id, row.lesson.name)}
-                                >
-                                  <Feather name="file-text" size={12} color={colors.primary} />
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary + "60", marginRight: 6 }]}
-                                  onPress={() => shareCollectionBeam({ id: row.lesson.id, name: row.lesson.name, createdAt: "", type: "flashcard" }, row.lesson.name)}
-                                >
-                                  <Feather name="share-2" size={12} color={colors.primary} />
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.purple + "60", marginRight: 6 }]}
-                                  onPress={() => handleAudioPlaylist(row.lesson.id, row.lesson.name)}
-                                >
-                                  <Feather name="headphones" size={12} color={colors.purple} />
+                                  <Feather name="more-horizontal" size={12} color={colors.textSecondary} />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   style={[styles.startBtn, { backgroundColor: grad[0] }]}
@@ -972,6 +959,7 @@ export default function FlashcardBrowseAll() {
                                 >
                                   <Feather name="play" size={12} color="#fff" />
                                 </TouchableOpacity>
+
                               </>
                             ) : (
                               <Text style={styles.emptyChip}>Kosong</Text>
@@ -1118,4 +1106,9 @@ const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   pmStopBtn: { width: "100%", borderRadius: 16, overflow: "hidden" },
   pmStopGrad: { paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   pmStopText: { color: "#fff", fontWeight: "900", fontSize: 16 },
+
+  // Menu Opt
+  menuOptBtn: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12 },
+  menuOptIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  menuOptText: { fontSize: 14, fontWeight: "600", color: c.text },
 });

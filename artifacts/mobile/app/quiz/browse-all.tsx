@@ -152,7 +152,9 @@ export default function QuizBrowseAll() {
         const lessonList = (await getLessons(mod.id)).sort((a, b) => a.order - b.order);
         for (const lesson of lessonList) {
           const quizzes = await getQuizzes(lesson.id);
-          result.push({ path, module: mod, lesson, count: quizzes.length });
+          if (quizzes.length > 0) {
+            result.push({ path, module: mod, lesson, count: quizzes.length });
+          }
         }
       }
     }

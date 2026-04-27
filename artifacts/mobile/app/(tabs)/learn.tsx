@@ -382,6 +382,19 @@ export default function LearnPage() {
                 </View>
                 <Text style={styles.menuText}>Scan QR Code Sync</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => { setShowTools(false); router.push("/smart-scanner"); }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#EEF2FF" }]}>
+                  <LucideIcons.Camera size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.menuText}>Smart Scan (Foto Buku)</Text>
+                <View style={styles.aiBadge}>
+                   <Text style={styles.aiBadgeText}>AI</Text>
+                </View>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity 
@@ -1050,7 +1063,9 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   mHandle: { width: 40, height: 4, backgroundColor: c.border, borderRadius: 2, alignSelf: "center", marginBottom: 12 },
   menuItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 4 },
   menuIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  menuText: { fontSize: 15, fontWeight: "700", color: c.text },
+  menuText: { fontSize: 15, fontWeight: "700", color: c.text, flex: 1 },
+  aiBadge: { backgroundColor: c.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 },
+  aiBadgeText: { fontSize: 9, fontWeight: "800", color: "#fff" },
   mInput: {
     backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,

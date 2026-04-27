@@ -6,9 +6,9 @@ export interface AIResponse {
 }
 
 // ─── Constants ───────────────────────────────────────────────────
-const FETCH_TIMEOUT_MS = 30_000; // 30 seconds
+const FETCH_TIMEOUT_MS = 60_000; // 60 seconds
 const MAX_RETRIES = 2;
-const RETRY_BASE_DELAY_MS = 2_000; // 2s, 4s
+const RETRY_BASE_DELAY_MS = 2_000;
 
 // Gemini free-tier fallback chain (ordered by quota friendliness)
 const GEMINI_FALLBACK_MODELS = [
@@ -148,21 +148,24 @@ async function callGeminiOnce(
       body: JSON.stringify({
         contents: [
           {
-            parts: [
-              {
-                text:
-                  "Return ONLY valid JSON. No explanation. No markdown. No extra text outside JSON.\n\n" +
-                  prompt,
-              },
-            ],
+            parts: [{ text: prompt }],
           },
         ],
-        generationConfig: { temperature: 0.7 },
+        generationConfig: { 
+          temperature: 0.7,
+          responseMimeType: "application/json"
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+        ]
       }),
     });
   } catch (netErr: any) {
     if (netErr?.name === "AbortError") {
-      throw new Error("Request ke Gemini timeout (30 detik). Coba lagi atau ganti model yang lebih kecil.");
+      throw new Error("Request ke Gemini timeout (60 detik). Coba lagi atau materi diperpendek.");
     }
     throw new Error("Tidak bisa terhubung ke Gemini. Periksa koneksi internet.");
   }

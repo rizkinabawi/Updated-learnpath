@@ -1,6 +1,15 @@
 import { printHtml } from "./print-compat";
 import { FlashcardItem, QuizItem } from "./json-export";
 
+export type PdfTheme = "classic" | "zen" | "minimalist" | "elegant";
+
+const THEME_DATA = {
+  classic: { primary: "#2c5282", secondary: "#718096", accent: "#f8fafc", font: "sans-serif" },
+  zen: { primary: "#276749", secondary: "#4a5568", accent: "#f0fff4", font: "'Segoe UI', Roboto, sans-serif" },
+  minimalist: { primary: "#1a202c", secondary: "#718096", accent: "#ffffff", font: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  elegant: { primary: "#744210", secondary: "#975a16", accent: "#fffaf0", font: "'Georgia', serif" }
+};
+
 function generateQRCodeImg(id: string, type: "flashcard" | "quiz"): string {
   const deepLink = `learningpath://${type}/${id}`;
   const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(deepLink)}&size=80x80&bgcolor=ffffff&color=2c5282&margin=0`;
@@ -14,61 +23,92 @@ function generateQRCodeImg(id: string, type: "flashcard" | "quiz"): string {
 
 function truncateAnswer(text: string, charLimit: number = 220): string {
   if (!text) return "";
-  
   const cleanText = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
-  
   if (cleanText.length <= charLimit) return cleanText;
-  
-  // Find a smart stopping point among . , ; within the limit
   const sub = cleanText.substring(0, charLimit);
-  // Find last index of punctuation
-  const lastStop = Math.max(
-    sub.lastIndexOf(". "),
-    sub.lastIndexOf(", "),
-    sub.lastIndexOf("; "),
-    sub.lastIndexOf("。"),
-    sub.lastIndexOf("、")
-  );
-
-  // If we found a punctuation point nearby, cut there
-  if (lastStop > charLimit * 0.6) {
-    return cleanText.substring(0, lastStop + 1) + " ...";
-  }
-
-  // Fallback to word boundary if no punctuation
+  const lastFullStop = Math.max(sub.lastIndexOf(". "), sub.lastIndexOf("。"));
+  if (lastFullStop > charLimit * 0.5) return cleanText.substring(0, lastFullStop + 1) + " ...";
+  const lastComma = Math.max(sub.lastIndexOf(", "), sub.lastIndexOf("; "), sub.lastIndexOf("、"));
+  if (lastComma > charLimit * 0.7) return cleanText.substring(0, lastComma + 1) + " ...";
   const lastSpace = sub.lastIndexOf(" ");
   return cleanText.substring(0, lastSpace > 0 ? lastSpace : charLimit) + " ...";
+}
+
+/**
+ * Smartly truncates text to a word limit, focusing on the area around a keyword.
+ */
+function smartTruncate(text: string, keyword: string, wordLimit: number = 12): string {
+  if (!text) return "";
+  const clean = text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+  const words = clean.split(" ");
+  if (words.length <= wordLimit) return clean;
+
+  // Try to find the keyword or its parts
+  const kw = keyword.replace(/<[^>]*>?/gm, "").trim().toLowerCase();
+  const keywordIdx = words.findIndex(w => w.toLowerCase().includes(kw));
+  
+  const start = keywordIdx === -1 ? 0 : Math.max(0, keywordIdx - Math.floor(wordLimit / 2));
+  const end = Math.min(words.length, start + wordLimit);
+  
+  let result = words.slice(start, end).join(" ");
+  if (start > 0) result = "... " + result;
+  if (end < words.length) result = result + " ...";
+  
+  return result;
 }
 
 export async function exportFlashcardsToPDF(
   topic: string, 
   items: FlashcardItem[], 
   id?: string,
-  startIndex: number = 1
+  startIndex: number = 1,
+  theme: PdfTheme = "classic"
 ): Promise<void> {
+  const t = THEME_DATA[theme] || THEME_DATA.classic;
   const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
   const qrHtml = id ? generateQRCodeImg(id, "flashcard") : "";
 
-  const tableRows = items.map((item, i) => {
-    let q = item.question.replace(/<[^>]*>?/gm, "").trim();
-    let a = item.answer.replace(/<[^>]*>?/gm, "").trim();
-    
-    // Cloze Deletion Detection: {{text}} -> [...]
-    if (q.match(/{{(.*?)}}/)) {
-      q = q.replace(/{{.*?}}/g, "[ ... ]");
-    }
+  const chunks: FlashcardItem[][] = [];
+  const chunkSize = 9;
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
 
-    const isPageBreak = (i + 1) % 10 === 0 && i !== items.length - 1;
+  const pagesHtml = chunks.map((chunk, pageIdx) => {
+    const tableRows = chunk.map((item, i) => {
+      const globalIdx = pageIdx * chunkSize + i;
+      let q = item.question.replace(/<[^>]*>?/gm, "").trim();
+      let a = item.answer.replace(/<[^>]*>?/gm, "").trim();
+      if (q.match(/{{(.*?)}}/)) q = q.replace(/{{.*?}}/g, "[ ... ]");
+
+      return `
+        <tr style="background: #ffffff">
+          <td class="num-cell" rowspan="2">${startIndex + globalIdx}</td>
+          <td class="q-cell"><strong>${q}</strong></td>
+        </tr>
+        <tr style="background: #fcfcfc">
+          <td class="a-cell">${truncateAnswer(a)}</td>
+        </tr>
+      `;
+    }).join("");
 
     return `
-      <tr style="background: #ffffff">
-        <td class="num-cell" rowspan="2">${startIndex + i + 1}</td>
-        <td class="q-cell"><strong>${q}</strong></td>
-      </tr>
-      <tr style="background: #fcfcfc">
-        <td class="a-cell">${truncateAnswer(a)}</td>
-      </tr>
-      ${isPageBreak ? '</tbody></table><div style="page-break-after: always;"></div><table><tbody>' : ''}
+      <div class="page-wrap" style="${pageIdx > 0 ? 'page-break-before: always;' : ''}">
+        <div class="header">
+          <div>
+            <p class="header-meta">Flashcard Study Workbook • Halaman ${pageIdx + 1}</p>
+            <h1 class="header-title">${topic}</h1>
+            <p style="margin: 4px 0 0 0; color: #4a5568; font-size: 8pt;">Dibuat pada ${dateStr}</p>
+          </div>
+          ${qrHtml}
+        </div>
+        <table>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <div style="margin-top: 15px; font-weight: bold; color: #718096; font-family: 'Georgia', serif; font-style: italic; font-size: 8pt; text-align: right;">
+          Digitally Signed by Rizki Nabawi
+        </div>
+      </div>
     `;
   }).join("");
 
@@ -78,97 +118,51 @@ export async function exportFlashcardsToPDF(
       <head>
         <meta charset="UTF-8">
         <style>
-          @page {
-            margin: 0;
-            size: A4;
-          }
+          * { box-sizing: border-box; }
+          @page { margin: 10mm; }
           body { 
-            font-family: 'Helvetica', 'Arial', sans-serif; 
-            padding: 12mm; 
-            color: #2d3748;
-            position: relative;
-            background: white;
-            line-height: 1.2;
+            font-family: ${t.font}; 
+            padding: 0; margin: 0; width: 100%;
+            color: #1a202c; background: white; line-height: 1.4;
+            -webkit-print-color-adjust: exact;
           }
-          /* Watermark Extra Large di tengah halaman */
-          body::before {
-            content: "LEARNPATH";
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 100pt;
-            color: rgba(255, 0, 0, 0.05);
-            font-weight: 900;
-            z-index: -1;
-            pointer-events: none;
-            white-space: nowrap;
+          .watermark {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120pt; color: rgba(0, 0, 0, 0.02); font-weight: 900; z-index: -100; pointer-events: none; white-space: nowrap;
           }
-          .header { text-align: left; margin-bottom: 20px; border-bottom: 1.5px solid #2c5282; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end; }
-          .header h1 { margin: 0; color: #2c5282; font-size: 16pt; text-transform: uppercase; }
-          .header p { margin: 0; color: #718096; font-size: 9pt; font-weight: bold; }
+          .page-wrap { padding: 5mm; min-height: 100%; }
+          .header { 
+            border-bottom: 2px solid ${t.primary}; padding-bottom: 8px; margin-bottom: 15px; 
+            display: flex; justify-content: space-between; align-items: flex-end; width: 100%;
+          }
+          .header-title { margin: 0; color: ${t.primary}; font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
+          .header-meta { margin: 0; color: ${t.secondary}; font-size: 9pt; font-weight: 600; text-transform: uppercase; }
           
-          table { width: 100%; border-collapse: collapse; table-layout: fixed; background: transparent; }
-          td { 
-            vertical-align: top; 
-            word-wrap: break-word; 
-            padding: 10px 14px; 
-            border: 1px solid #e2e8f0;
-          }
-          .num-cell { 
-            width: 35px; 
-            background: #f1f5f9; 
-            text-align: center; 
-            vertical-align: middle; 
-            font-weight: bold; 
-            color: #475569; 
-            font-size: 9pt;
-          }
-          .q-cell { 
-            font-size: 11pt; 
-            color: #1e293b; 
-            background: #ffffff; 
-            border-bottom: none;
-          }
-          .a-cell { 
-            font-size: 10pt; 
-            color: #4a5568; 
-            background: #fafafa; 
-            font-style: italic; 
-            border-top: 1px dashed #e2e8f0;
-            padding-bottom: 12px;
-          }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 5px; border: 1px solid #e2e8f0; }
+          td { vertical-align: top; word-wrap: break-word; padding: 10px; border: 1px solid #e2e8f0; }
+          .num-cell { width: 45px; background: ${t.accent}; text-align: center; font-weight: bold; color: ${t.secondary}; vertical-align: middle; border-right: 2px solid ${t.primary}; font-size: 9pt; }
+          .q-cell { width: auto; font-size: 11pt; font-weight: 700; color: #2d3748; background: #fff; }
+          .a-cell { width: auto; font-size: 9.5pt; color: #4a5568; background: #fafafa; font-style: italic; border-top: 1px dashed #cbd5e1; }
+          
           .footer { 
-            margin-top: 15px; 
-            text-align: center; 
-            font-size: 7pt; 
-            color: #cbd5e1; 
-            border-top: 1px solid #e2e8f0; 
-            padding-top: 10px;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            text-align: center; font-size: 8pt; color: #a0aec0; padding: 8px 0; border-top: 1px solid #edf2f7;
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div><p>Flashcard Workbook</p><h1>${topic}</h1><p>Generated on ${dateStr}</p></div>
-          ${qrHtml}
-        </div>
-        
-        <table>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-
+        <div class="watermark">LEARNPATH</div>
+        ${pagesHtml}
         <div class="footer">
-          Generated automatically by Mobile Learning App - Clean Text Version
+          LearnPath Flashcard System • ${topic} • Certified by Rizki Nabawi
         </div>
       </body>
     </html>
   `;
 
   try {
-    await printHtml(html, { dialogTitle: `Unduh PDF Flashcard - ${topic}` });
+    const filename = `LEARNPATH-PDF-EKSPORT-${topic.replace(/\s+/g, "-").toUpperCase()}-${(id || "WORKBOOK").substring(0, 6).toUpperCase()}`;
+    await printHtml(html, { filename, dialogTitle: `Unduh PDF Flashcard - ${topic}` });
   } catch (error) {
     console.error("PDF Export Error:", error);
   }
@@ -301,7 +295,7 @@ export async function exportQuizzesToPDF(topic: string, items: QuizItem[], id?: 
           ${qrHtml}
         </div>
         <div class="content">${quizBlocks}</div>
-        <div class="footer">Simulasi Ujian LearnPath - Kerjakan dengan jujur.</div>
+        <div class="footer">Simulasi Ujian LearnPath • Certified by Rizki Nabawi</div>
         ${extrasHtml}
       </body>
     </html>
@@ -376,9 +370,11 @@ export async function exportMultipleFlashcardsToPDF(
  * Batch Export Quizzes into a single Exam Paper PDF
  */
 export async function exportMultipleQuizzesToPDF(
-  title: string,
-  batches: { topic: string; items: QuizItem[] }[]
+  title: string, 
+  batches: { topic: string; items: QuizItem[] }[],
+  theme: PdfTheme = "classic"
 ): Promise<void> {
+  const t = THEME_DATA[theme] || THEME_DATA.classic;
   const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
 
   const contentHtml = batches.map(batch => {
@@ -415,17 +411,22 @@ export async function exportMultipleQuizzesToPDF(
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>
       @page { margin: 0; size: A4; }
-      body { font-family: 'Helvetica', 'Arial', sans-serif; padding: 12mm; color: #1a202c; position: relative; line-height: 1.3; background: white; }
+      body { font-family: ${t.font}; padding: 12mm; color: #1a202c; position: relative; line-height: 1.3; background: white; }
       body::before {
         content: "LEARNPATH EXAM";
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
-        font-size: 100pt; color: rgba(255, 0, 0, 0.03); font-weight: 900; z-index: -1; pointer-events: none; white-space: nowrap;
+        font-size: 100pt; color: rgba(0, 0, 0, 0.03); font-weight: 900; z-index: -1; pointer-events: none; white-space: nowrap;
       }
+      .header { border-bottom: 2px solid ${t.primary}; padding-bottom: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .header h1 { margin: 0; font-size: 16pt; color: ${t.primary}; text-transform: uppercase; }
     </style></head><body>${contentHtml}${extrasHtml}</body></html>`;
 
   try {
-    await printHtml(html, { dialogTitle: `Batch Exam - ${title}` });
-  } catch (e) { console.error(e); }
+    const filename = `LEARNPATH-PDF-EKSPORT-BATCH-${title.replace(/\s+/g, "-").toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    await printHtml(html, { filename, dialogTitle: `Unduh Batch PDF - ${title}` });
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 /**
@@ -434,8 +435,10 @@ export async function exportMultipleQuizzesToPDF(
 export async function exportFlashcardWorksheetToPDF(
   topic: string, 
   items: FlashcardItem[],
-  blankSide: "question" | "answer" = "answer"
+  blankSide: "question" | "answer" = "answer",
+  theme: PdfTheme = "classic"
 ): Promise<void> {
+  const t = THEME_DATA[theme] || THEME_DATA.classic;
   const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
 
   const tableRows = items.map((item, i) => {
@@ -462,22 +465,22 @@ export async function exportFlashcardWorksheetToPDF(
         <meta charset="UTF-8">
         <style>
           @page { margin: 0; size: A4; }
-          body { font-family: 'Helvetica', 'Arial', sans-serif; padding: 12mm; color: #2d3748; position: relative; background: white; }
+          body { font-family: ${t.font}; padding: 12mm; color: #2d3748; position: relative; background: white; }
           body::before {
             content: "LEARNPATH WORKBOOK";
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
             font-size: 80pt; color: rgba(0, 0, 0, 0.03); font-weight: 900; z-index: -1; pointer-events: none; white-space: nowrap;
           }
-          .header { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 20px; text-align: left; display: flex; justify-content: space-between; align-items: flex-end; }
-          .header h1 { margin: 0; font-size: 16pt; text-transform: uppercase; }
-          .header p { margin: 0; font-size: 9pt; color: #718096; }
+          .header { border-bottom: 2px solid ${t.primary}; padding-bottom: 8px; margin-bottom: 20px; text-align: left; display: flex; justify-content: space-between; align-items: flex-end; }
+          .header h1 { margin: 0; font-size: 16pt; color: ${t.primary}; text-transform: uppercase; }
+          .header p { margin: 0; font-size: 9pt; color: ${t.secondary}; }
           
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-          th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; font-size: 9pt; text-transform: uppercase; color: #475569; }
+          th { background: ${t.accent}; border: 1px solid #cbd5e1; padding: 10px; font-size: 9pt; text-transform: uppercase; color: ${t.secondary}; }
           td { border: 1px solid #cbd5e1; padding: 15px 10px; font-size: 11pt; }
           .num-cell { width: 30px; text-align: center; color: #94a3b8; font-weight: bold; font-size: 9pt; }
-          .write-line { border-bottom: 1px dotted #94a3b8; height: 20px; width: 100%; margin-top: 5px; }
-          .footer { margin-top: 20px; text-align: center; font-size: 7pt; color: #94a3b8; }
+          .write-line { border-bottom: 1px dotted ${t.primary}; height: 20px; width: 100%; margin-top: 5px; }
+          .footer { margin-top: 20px; text-align: center; font-size: 7pt; color: #94a3b8; font-style: italic; }
         </style>
       </head>
       <body>
@@ -491,14 +494,17 @@ export async function exportFlashcardWorksheetToPDF(
           </thead>
           <tbody> ${tableRows} </tbody>
         </table>
-        <div class="footer">LearnPath Flashcard Workbook - Practice makes perfect.</div>
+        <div class="footer">LearnPath Flashcard Workbook • Certified by Rizki Nabawi</div>
       </body>
     </html>
   `;
 
   try {
-    await printHtml(html, { dialogTitle: `Worksheet - ${topic}` });
-  } catch (e) { console.error(e); }
+    const filename = `LEARNPATH-PDF-EKSPORT-WORKSHEET-${topic.replace(/\s+/g, "-").toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    await printHtml(html, { filename, dialogTitle: `Unduh Worksheet - ${topic}` });
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 /**
@@ -618,7 +624,7 @@ export async function exportProgressReport(
       <head>
         <meta charset="UTF-8">
         <style>
-          @page { margin: 15mm; size: A4; }
+          @page { margin: 10mm; size: A4; }
           body { font-family: 'Helvetica', 'Arial', sans-serif; color: #2d3748; line-height: 1.5; }
           .header { border-bottom: 2px solid #2c5282; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
           .header h1 { margin: 0; color: #2c5282; font-size: 22pt; }
@@ -664,7 +670,7 @@ export async function exportProgressReport(
           <p style="font-size: 9pt; color: #718096;">Dibutuhkan ${1000 - (stats.xp % 1000)} XP lagi untuk mencapai Level ${stats.level + 1}</p>
         </div>
         
-        <div class="footer">LearnPath Academy - Teruslah belajar untuk masa depan yang lebih cerah.</div>
+        <div class="footer">LearnPath Academy • Progress Report Verified by Rizki Nabawi</div>
       </body>
     </html>
   `;
@@ -672,4 +678,124 @@ export async function exportProgressReport(
   try {
     await printHtml(html, { dialogTitle: `Progress Report - ${userName}` });
   } catch (e) { console.error(e); }
+}
+
+/**
+ * Structured Table Export: # | Kanji/Word | Meaning/Explanation
+ * Optimized for word lists where repetitions occur.
+ */
+export async function exportFlashcardsToTablePDF(
+  topic: string, 
+  items: FlashcardItem[], 
+  id?: string,
+  isConcise: boolean = false,
+  theme: PdfTheme = "classic"
+): Promise<void> {
+  const t = THEME_DATA[theme] || THEME_DATA.classic;
+  const dateStr = new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
+  const qrHtml = id ? generateQRCodeImg(id, "flashcard") : "";
+
+  const tableRows = items.map((item, i) => {
+    let q = item.question.replace(/<[^>]*>?/gm, "").trim();
+    let a = item.answer.replace(/<[^>]*>?/gm, "").trim();
+    
+    // Cloze Deletion Detection: {{text}} -> [...]
+    if (q.match(/{{(.*?)}}/)) {
+      q = q.replace(/{{.*?}}/g, "[ ... ]");
+    }
+
+    const displayAnswer = isConcise ? smartTruncate(a, q, 12) : truncateAnswer(a, 350);
+
+    return `
+      <tr>
+        <td class="num-col">${i + 1}</td>
+        <td class="word-col"><strong>${q}</strong></td>
+        <td class="info-col">${displayAnswer}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          * { box-sizing: border-box; }
+          @page { margin: 10mm; }
+          body { 
+            font-family: ${t.font}; 
+            padding: 0; margin: 0; width: 100%;
+            color: #2d3748; background: white; line-height: 1.6;
+            -webkit-print-color-adjust: exact;
+          }
+          .watermark {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120pt; color: rgba(0, 0, 0, 0.015); font-weight: 900; z-index: -100; pointer-events: none; white-space: nowrap;
+          }
+          .header { 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 4px solid ${t.primary}; padding-bottom: 15px; margin-bottom: 30px;
+            width: 100%;
+          }
+          .header h1 { margin: 0; color: ${t.primary}; font-size: 24pt; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
+          .header p { margin: 0; color: ${t.secondary}; font-size: 10pt; font-weight: bold; text-transform: uppercase; }
+          
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #e2e8f0; }
+          thead { display: table-header-group; }
+          tr { page-break-inside: auto; }
+          th { 
+            background: ${t.primary}; color: white; text-align: left; 
+            padding: 12px 15px; font-size: 10pt; text-transform: uppercase; letter-spacing: 1px;
+            border: 1px solid ${t.primary};
+          }
+          td { 
+            vertical-align: top; word-wrap: break-word; 
+            padding: 18px 15px; border: 1px solid #e2e8f0; font-size: 11pt;
+          }
+          tr:nth-child(even) { background: ${t.accent}; }
+          
+          .num-col { width: 8%; text-align: center; color: #cbd5e1; font-weight: 900; font-size: 10pt; border-right: 2px solid #edf2f7; }
+          .word-col { width: 27%; color: #1a202c; font-weight: 700; font-size: 12pt; border-right: 1px solid #edf2f7; }
+          .info-col { width: 65%; color: #4a5568; font-style: normal; }
+          
+          .footer { 
+            position: fixed; bottom: 0; left: 0; right: 0;
+            text-align: center; font-size: 8pt; color: #cbd5e1; padding: 10px 0; border-top: 1px solid #f1f5f9;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="watermark">LEARNPATH</div>
+        <div class="header">
+          <div><p>Vocab & Kanji Summary Table</p><h1>${topic}</h1><p style="margin-top:5px; text-transform:none; color:#a0aec0;">${dateStr}</p></div>
+          ${qrHtml}
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th class="num-col">#</th>
+              <th class="word-col">Kata / Kanji</th>
+              <th class="info-col">Arti / Penjelasan</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          LearnPath Flashcard Table System — Certified by Rizki Nabawi
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const filename = `LEARNPATH-PDF-EKSPORT-TABEL-${topic.replace(/\s+/g, "-").toUpperCase()}-${(id || "TABLE").substring(0, 6).toUpperCase()}`;
+    await printHtml(html, { filename, dialogTitle: `Unduh Tabel Flashcard - ${topic}` });
+  } catch (error) {
+    console.error("Table PDF Export Error:", error);
+  }
 }

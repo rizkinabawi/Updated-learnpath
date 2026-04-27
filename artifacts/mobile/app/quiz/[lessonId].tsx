@@ -80,7 +80,7 @@ export default function QuizScreen() {
     (async () => {
       const data = await getQuizzes(lessonId);
       setQuizzes(data);
-      
+
       if (lessonId && !lessonId.startsWith("__sc__")) {
         const { incrementCourseOpen } = await import("@/utils/storage");
         incrementCourseOpen(lessonId);
@@ -131,8 +131,8 @@ export default function QuizScreen() {
       if (audioPlayerRef.current) {
         try {
           audioPlayerRef.current.pause();
-          try { (audioPlayerRef.current as any).remove?.(); } catch {}
-        } catch {}
+          try { (audioPlayerRef.current as any).remove?.(); } catch { }
+        } catch { }
         audioPlayerRef.current = null;
       }
     };
@@ -152,7 +152,7 @@ export default function QuizScreen() {
       const q = quizzes[currentIndex];
       isBookmarked(q.id, "quiz").then(setBookmarked);
       setShowQText(q.template !== "listening");
-      
+
       if (q.template === "listening") {
         const timer = setTimeout(() => {
           if (!q.audio) {
@@ -196,7 +196,7 @@ export default function QuizScreen() {
   const handleBookmark = async () => {
     if (!quizzes[currentIndex]) return;
     const q = quizzes[currentIndex];
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
     const added = await toggleBookmark({ type: "quiz", itemId: q.id, question: q.question, answer: q.answer, lessonId: lessonId ?? "", lessonName });
     setBookmarked(added);
   };
@@ -397,8 +397,8 @@ export default function QuizScreen() {
                 {tokenizeJapanese(currentQuiz.question).map((token, i) => {
                   const entry = lookupWord(token);
                   return (
-                    <Text 
-                      key={i} 
+                    <Text
+                      key={i}
                       style={[styles.questionText, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
                       onPress={entry ? () => handleWordTap(token) : undefined}
                     >
@@ -517,7 +517,7 @@ export default function QuizScreen() {
               <Text style={styles.modalTitle}>Mode Tryout Ujian</Text>
             </View>
             <Text style={styles.modalDesc}>Atur timer untuk mensimulasikan ujian asli. Kuis akan otomatis selesai saat waktu habis.</Text>
-            
+
             <View style={styles.inputWrap}>
               <Text style={styles.inputLabel}>Durasi (Menit)</Text>
               <TextInput
@@ -542,13 +542,13 @@ export default function QuizScreen() {
         </View>
       </Modal>
 
-      <WordPopup 
+      <WordPopup
         visible={showPopup}
         entry={activeWord}
         onClose={() => setShowPopup(false)}
       />
 
-      <TTSConfigModal 
+      <TTSConfigModal
         visible={showTTSConfig}
         onClose={() => setShowTTSConfig(false)}
       />

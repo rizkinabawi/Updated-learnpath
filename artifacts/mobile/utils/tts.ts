@@ -242,4 +242,29 @@ export const stop = async () => {
   } catch {}
 };
 
+export const playPlaylist = async (
+  items: { question: string; answer: string }[], 
+  onItemStart?: (idx: number) => void,
+  isCancelled?: () => boolean
+) => {
+  for (let i = 0; i < items.length; i++) {
+    if (isCancelled?.()) break;
+    onItemStart?.(i);
+    
+    // Play Question
+    await speak(items[i].question);
+    if (isCancelled?.()) break;
+    await new Promise(r => setTimeout(r, 800)); // Short gap
+    
+    // Play Answer
+    if (isCancelled?.()) break;
+    await speak(items[i].answer);
+    
+    if (i < items.length - 1) {
+      if (isCancelled?.()) break;
+      await new Promise(r => setTimeout(r, 1500)); // Gap before next card
+    }
+  }
+};
+
 export { Speech };

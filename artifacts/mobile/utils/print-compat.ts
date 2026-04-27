@@ -17,6 +17,7 @@
 import { Platform } from "react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 
 interface PrintOpts {
   /** Filename (without extension) used for the share sheet on native. */
@@ -38,17 +39,30 @@ export async function printHtml(
     return printHtmlWeb(html);
   }
 
-  // Native: write to a real PDF file and share it
-  const { uri } = await Print.printToFileAsync({ html });
+  // Native: write to a real PDF file and share it (Default to A4: 595 x 842 points)
+  const { uri } = await Print.printToFileAsync({ 
+    html,
+    width: 595,
+    height: 842
+  });
+
+  let finalUri = uri;
+  if (opts.filename) {
+    // Sanitize filename and ensure .pdf extension
+    const cleanName = opts.filename.replace(/[\/\\?%*:|"<>]/g, "-");
+    finalUri = `${FileSystem.cacheDirectory}${cleanName}.pdf`;
+    await FileSystem.moveAsync({ from: uri, to: finalUri });
+  }
+
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, {
+    await Sharing.shareAsync(finalUri, {
       mimeType: "application/pdf",
       UTI: "com.adobe.pdf",
       dialogTitle: opts.dialogTitle ?? opts.filename ?? "Bagikan PDF",
     });
   } else {
     // Fallback: at least show the system print sheet
-    await Print.printAsync({ uri });
+    await Print.printAsync({ uri: finalUri });
   }
 }
 

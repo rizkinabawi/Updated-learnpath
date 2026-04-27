@@ -28,6 +28,8 @@ import {
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
 import { isCancellationError, safeShareFile } from "@/utils/safe-share";
+import { shareCourseBeam } from "@/utils/beam";
+import { CourseBundleShareModal } from "@/components/CourseBundleModal";
 import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "@/components/Toast";
@@ -77,6 +79,8 @@ export default function LearnPage() {
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [editingIconFor, setEditingIconFor] = useState<LearningPath | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showTools, setShowTools] = useState(false);
   const [viewMode, setViewMode] = useState<"large" | "compact">("large");
   const [completions, setCompletions] = useState<string[]>([]);
   // Merge mode state
@@ -285,11 +289,110 @@ export default function LearnPage() {
       setSharingId(null);
     }
   };
-
   const numCols = isTablet ? 2 : 1;
 
   return (
     <View style={styles.container}>
+      {/* TOOLS MODAL */}
+      <Modal visible={showTools} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.mOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowTools(false)}
+        >
+          <View style={styles.mBox}>
+            <View style={styles.mHandle} />
+            <Text style={styles.mTitle}>Fitur & Alat Bantu</Text>
+            
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {paths.length >= 2 && (
+                <TouchableOpacity 
+                  style={styles.menuItem} 
+                  onPress={() => {
+                    setShowTools(false);
+                    toggleMergeMode();
+                  }}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: mergeMode ? colors.primaryLight : "#F3F4F6" }]}>
+                    <Feather name="git-merge" size={18} color={mergeMode ? colors.primary : colors.text} />
+                  </View>
+                  <Text style={[styles.menuText, mergeMode && { color: colors.primary }]}>
+                    {mergeMode ? "Matikan Mode Gabung" : "Gabung Beberapa Kursus"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowTools(false);
+                  setShowShareModal(true);
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#EEF2FF" }]}>
+                  <Feather name="share-2" size={18} color="#4F46E5" />
+                </View>
+                <Text style={styles.menuText}>Bagikan Bundle Kursus</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowTools(false);
+                  if (paths.length > 0) {
+                    Alert.alert(
+                      "Pilih Kursus",
+                      "Pilih kursus yang ingin dikirim lewat WiFi/Bluetooth:",
+                      paths.map(p => ({
+                        text: p.name,
+                        onPress: () => shareCourseBeam(p.id, p.name)
+                      })).concat([{ text: "Batal", style: "cancel" }])
+                    );
+                  }
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#F0F9FF" }]}>
+                  <Feather name="zap" size={18} color="#0EA5E9" />
+                </View>
+                <Text style={styles.menuText}>Kirim Materi (WiFi/Bluetooth)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowTools(false);
+                  router.push("/import-jlpt");
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#FDF2F8" }]}>
+                  <Feather name="file-text" size={18} color="#DB2777" />
+                </View>
+                <Text style={styles.menuText}>JLPT Smart Import</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowTools(false);
+                  router.push("/qr-scanner");
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#F0FDF4" }]}>
+                  <Feather name="maximize" size={18} color="#16A34A" />
+                </View>
+                <Text style={styles.menuText}>Scan QR Code Sync</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.mBtnCancel} 
+              onPress={() => setShowTools(false)}
+            >
+              <Text style={styles.mBtnCancelText}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
       {/* HEADER */}
       <LinearGradient
         colors={[colors.primary, colors.purple]}
@@ -314,43 +417,28 @@ export default function LearnPage() {
                 <Feather name={viewMode === "large" ? "list" : "grid"} size={19} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
-            {paths.length >= 2 && (
-              <TouchableOpacity
-                onPress={toggleMergeMode}
-                style={styles.addBtn}
-                activeOpacity={0.8}
-                accessibilityLabel="Gabung kursus"
-              >
-                <LinearGradient
-                  colors={
-                    mergeMode
-                      ? ["rgba(255,255,255,0.6)", "rgba(255,255,255,0.4)"]
-                      : ["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]
-                  }
-                  style={styles.addGrad}
-                >
-                  <Feather name="git-merge" size={19} color={mergeMode ? colors.purple : "#fff"} />
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+            
             <TouchableOpacity
-              onPress={() => router.push("/import-roadmap")}
+              onPress={() => router.push("/qr-scanner")}
+              style={styles.addBtn}
+              activeOpacity={0.8}
+              accessibilityLabel="Scan QR"
+            >
+              <LinearGradient colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]} style={styles.addGrad}>
+                <Feather name="maximize" size={19} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowTools(true)}
               style={styles.addBtn}
               activeOpacity={0.8}
             >
-              <LinearGradient colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.1)"]} style={styles.addGrad}>
-                <Feather name="download" size={19} color="#fff" />
+              <LinearGradient colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]} style={styles.addGrad}>
+                <Feather name="more-horizontal" size={19} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/import-jlpt")}
-              style={styles.addBtn}
-              activeOpacity={0.8}
-            >
-              <LinearGradient colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.1)"]} style={styles.addGrad}>
-                <Feather name="file-text" size={19} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => setShowNewPath(true)}
               style={styles.addBtn}
@@ -769,6 +857,11 @@ export default function LearnPage() {
         onClose={() => setShowIconPicker(false)}
         onSelect={handleIconSelected}
       />
+
+      <CourseBundleShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </View>
   );
 }
@@ -953,7 +1046,11 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   },
   iconPickLabel: { fontSize: 13, fontWeight: "700", color: c.text },
   iconPickSub: { fontSize: 11, color: c.textMuted, marginTop: 2 },
-  mTitle: { fontSize: 20, fontWeight: "900", color: c.dark },
+  mTitle: { fontSize: 20, fontWeight: "900", color: c.text, marginBottom: 8 },
+  mHandle: { width: 40, height: 4, backgroundColor: c.border, borderRadius: 2, alignSelf: "center", marginBottom: 12 },
+  menuItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 4 },
+  menuIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  menuText: { fontSize: 15, fontWeight: "700", color: c.text },
   mInput: {
     backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,

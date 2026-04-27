@@ -28,6 +28,7 @@ import {
 import { toast } from "@/components/Toast";
 import * as LucideIcons from "lucide-react-native";
 import { type ColorScheme } from "@/constants/colors";
+import { shareCourseBeam } from "@/utils/beam";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { exportCourseCertificate } from "@/utils/flashcard-export";
 import { getUser } from "@/utils/storage";
@@ -94,10 +95,13 @@ export default function CourseDetailPage() {
   const [showEditTarget, setShowEditTarget] = useState(false);
   const [targetDateInput, setTargetDateInput] = useState("");
   const [targetDailyMin, setTargetDailyMin] = useState("30");
-  // Move-module modal state
   const [showMoveModule, setShowMoveModule] = useState(false);
   const [moveMod, setMoveMod] = useState<Module | null>(null);
   const [otherPaths, setOtherPaths] = useState<LearningPath[]>([]);
+
+  // Module Actions Menu state
+  const [showModActions, setShowModActions] = useState(false);
+  const [selectedMod, setSelectedMod] = useState<Module | null>(null);
 
   const loadData = async () => {
     if (!pathId) return;
@@ -463,6 +467,15 @@ export default function CourseDetailPage() {
               <LucideIcons.Plus size={20} color={colors.white} />
             </LinearGradient>
           </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => path && shareCourseBeam(path.id, path.name)}
+            style={[styles.addBtn, { marginLeft: 8 }]}
+            activeOpacity={0.8}
+          >
+            <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
+              <LucideIcons.Zap size={18} color={colors.white} />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
         {!!path?.description && (
           <Text style={styles.headerDesc} numberOfLines={2}>{path.description}</Text>
@@ -579,26 +592,14 @@ export default function CourseDetailPage() {
 
                   <View style={styles.moduleActionRow}>
                     <TouchableOpacity
-                      onPress={() => handleMoveModule(mod)}
-                      style={[styles.moduleActionBtn, { backgroundColor: colors.purpleLight }]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Pindah modul ke kursus lain"
+                      onPress={() => {
+                        setSelectedMod(mod);
+                        setShowModActions(true);
+                      }}
+                      style={styles.moreBtn}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <LucideIcons.ArrowRightLeft size={13} color={colors.purple} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleEditModule(mod)}
-                      style={[styles.moduleActionBtn, { backgroundColor: colors.primaryLight }]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <LucideIcons.Edit3 size={13} color={colors.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteModule(mod)}
-                      style={styles.moduleActionBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <LucideIcons.Trash2 size={13} color={colors.danger} />
+                      <LucideIcons.MoreVertical size={18} color={colors.textMuted} />
                     </TouchableOpacity>
                   </View>
 
@@ -692,6 +693,96 @@ export default function CourseDetailPage() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* MODULE ACTIONS MENU */}
+      <Modal visible={showModActions} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.mOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowModActions(false)}
+        >
+          <View style={styles.mBox}>
+            <View style={styles.mHandle} />
+            <Text style={styles.mTitle}>{selectedMod?.name ?? "Menu Modul"}</Text>
+            
+            <View style={{ gap: 8, marginTop: 10 }}>
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowModActions(false);
+                  if (selectedMod) handleEditModule(selectedMod);
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: colors.primaryLight }]}>
+                  <LucideIcons.Edit3 size={16} color={colors.primary} />
+                </View>
+                <Text style={styles.menuText}>Edit Nama & Ikon</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowModActions(false);
+                  if (selectedMod) handleMoveModule(selectedMod);
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: colors.purpleLight }]}>
+                  <LucideIcons.ArrowRightLeft size={16} color={colors.purple} />
+                </View>
+                <Text style={styles.menuText}>Pindahkan ke Kursus Lain</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowModActions(false);
+                  Alert.alert("Gabung Modul", "Pilih modul lain untuk digabungkan dengan modul ini. (Coming Soon)");
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#FFF7ED" }]}>
+                  <LucideIcons.GitMerge size={16} color="#F97316" />
+                </View>
+                <Text style={styles.menuText}>Gabungkan Modul</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowModActions(false);
+                  Alert.alert("Smart Kanji Import", "Impor data kanji pintar dari database eksternal ke modul ini. (Coming Soon)");
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#F0FDF4" }]}>
+                  <LucideIcons.Zap size={16} color="#22C55E" />
+                </View>
+                <Text style={styles.menuText}>Import Smart Kanji</Text>
+              </TouchableOpacity>
+
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 8 }} />
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setShowModActions(false);
+                  if (selectedMod) handleDeleteModule(selectedMod);
+                }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#FEF2F2" }]}>
+                  <LucideIcons.Trash2 size={16} color={colors.danger} />
+                </View>
+                <Text style={[styles.menuText, { color: colors.danger }]}>Hapus Modul</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.mBtnCancel} 
+              onPress={() => setShowModActions(false)}
+            >
+              <Text style={styles.mBtnCancelText}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* MODALS */}
       {[
@@ -1001,6 +1092,12 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   actionRow: { flexDirection: "row", gap: 5, alignItems: "center" },
   actionPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
   actionPillText: { fontSize: 10, fontWeight: "800", color: c.dark },
+
+  moreBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  mHandle: { width: 40, height: 4, backgroundColor: c.border, borderRadius: 2, alignSelf: "center", marginBottom: 12 },
+  menuItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 4 },
+  menuIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  menuText: { fontSize: 14, fontWeight: "700", color: c.text },
 
   addLessonRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
   addLessonText: { fontSize: 13, color: c.primary, fontWeight: "700" },

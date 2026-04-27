@@ -3,8 +3,10 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, Platform, ActivityIndicator, Modal, Alert,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { toast } from "@/components/Toast";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -20,7 +22,10 @@ import Colors, { shadowSm, type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { QuickAddFlashcardModal } from "@/components/QuickAddFlashcardModal";
 import { isFeatureAllowed } from "@/utils/security/app-license";
-import { exportFlashcardsToPDF, exportMultipleFlashcardsToPDF, exportFlashcardWorksheetToPDF } from "@/utils/flashcard-export";
+import { exportFlashcardsToPDF, exportMultipleFlashcardsToPDF, exportFlashcardWorksheetToPDF, exportFlashcardsToTablePDF } from "@/utils/flashcard-export";
+import { exportFlashcardsToCSV } from "@/utils/json-export";
+import { playPlaylist, stop as stopTTS } from "@/utils/tts";
+import { shareCollectionBeam } from "@/utils/beam";
 
 interface LessonRow {
   path: LearningPath;
@@ -254,6 +259,9 @@ export default function FlashcardBrowseAll() {
   const [exporting, setExporting] = useState(false);
   const [selMode, setSelMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [playingIdx, setPlayingIdx] = useState<number | null>(null);
+  const [playlistItems, setPlaylistItems] = useState<FlashcardItem[]>([]);
+  const [playlistTitle, setPlaylistTitle] = useState("");
 
   useEffect(() => { loadAll(); }, []);
 
@@ -306,56 +314,144 @@ export default function FlashcardBrowseAll() {
 
   const handleExportPDF = async (id: string, name: string) => {
     if (exporting) return;
-
     const allowed = await isFeatureAllowed("bundle");
-    if (!allowed) {
-      Alert.alert("Fitur Premium", "Ekspor PDF hanya tersedia di versi Premium.");
-      return;
-    }
-
-    setExporting(true);
-    try {
-      const cards: FlashcardItem[] = await getFlashcards(id);
-      if (cards.length === 0) {
-        Alert.alert("Kosong", "Tidak ada kartu untuk diekspor.");
-        return;
-      }
-      // Smart Detection: Skip index 0 jika topik berkaitan dengan Kanji/Bahasa Jepang
-      const isLanguageTopic = name.toLowerCase().includes("kanji") || 
-                              name.toLowerCase().includes("vocab") || 
-                              name.toLowerCase().includes("dek");
-      const startIndex = isLanguageTopic ? 1 : 0;
-
-      await exportFlashcardsToPDF(name, cards, id, startIndex);
-    } catch (e) {
-      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor PDF.");
-    } finally {
-      setExporting(false);
-    }
+    if (!allowed) { Alert.alert("Fitur Premium", "Ekspor PDF hanya tersedia di versi Premium."); return; }
+    
+    promptTheme(async (theme) => {
+      setExporting(true);
+      try {
+        const cards: FlashcardItem[] = await getFlashcards(id);
+        if (cards.length === 0) { Alert.alert("Kosong", "Tidak ada kartu."); return; }
+        const isLanguageTopic = name.toLowerCase().includes("kanji") || name.toLowerCase().includes("vocab") || name.toLowerCase().includes("dek");
+        const startIndex = isLanguageTopic ? 1 : 0;
+        await exportFlashcardsToPDF(name, cards, id, startIndex, theme);
+        toast.success("PDF berhasil dibuat!");
+      } catch (e) { toast.error("Gagal membuat PDF"); }
+      finally { setExporting(false); }
+    });
   };
 
   const handleExportWS = async (id: string, name: string) => {
     if (exporting) return;
-
     const allowed = await isFeatureAllowed("bundle");
-    if (!allowed) {
-      Alert.alert("Fitur Premium", "Ekspor Worksheet PDF hanya tersedia di versi Premium.");
-      return;
-    }
+    if (!allowed) { Alert.alert("Fitur Premium", "Ekspor Worksheet PDF hanya tersedia di versi Premium."); return; }
+    
+    promptTheme(async (theme) => {
+      setExporting(true);
+      try {
+        const cards = await getFlashcards(id);
+        if (cards.length === 0) { Alert.alert("Kosong", "Tidak ada kartu."); return; }
+        await exportFlashcardWorksheetToPDF(name, cards, "answer", theme);
+        toast.success("Worksheet berhasil dibuat!");
+      } catch (e) { toast.error("Gagal membuat Worksheet"); }
+      finally { setExporting(false); }
+    });
+  };
 
+  const promptTheme = (onSelect: (theme: any) => void) => {
+    Alert.alert(
+      "Pilih Tema PDF",
+      "Pilih gaya tampilan untuk dokumen Anda:",
+      [
+        { text: "Classic", onPress: () => onSelect("classic") },
+        { text: "Zen", onPress: () => onSelect("zen") },
+        { text: "Minimalist", onPress: () => onSelect("minimalist") },
+        { text: "Elegant", onPress: () => onSelect("elegant") },
+      ]
+    );
+  };
+
+  const handleExportTable = async (id: string, name: string) => {
+    if (exporting) return;
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) { Alert.alert("Fitur Premium", "Ekspor Tabel PDF hanya tersedia di versi Premium."); return; }
+    
+    Alert.alert(
+      "Opsi Ekspor Tabel PDF",
+      `Pilih mode untuk "${name}":\n\n• Semua: Full Kartu & Full Teks\n• Ringkas: Cek Duplikat & Max 12 Kata\n• 12 Kartu: Batasi 12 kartu teratas`,
+      [
+        { text: "Batal", style: "cancel" },
+        { text: "Semua", onPress: () => promptTheme((t) => performTableExport(id, name, "all", t)) },
+        { text: "Ringkas", onPress: () => promptTheme((t) => performTableExport(id, name, "concise", t)) },
+        { text: "12 Kartu", onPress: () => promptTheme((t) => performTableExport(id, name, "limit12", t)) }
+      ]
+    );
+  };
+
+  const performTableExport = async (id: string, name: string, mode: "all" | "concise" | "limit12", theme: any = "classic") => {
     setExporting(true);
     try {
-      const cards = await getFlashcards(id);
-      if (cards.length === 0) {
-        Alert.alert("Kosong", "Tidak ada kartu untuk diekspor.");
-        return;
+      let cards = await getFlashcards(id);
+      if (cards.length === 0) { Alert.alert("Kosong", "Tidak ada kartu."); return; }
+
+      let isConcise = false;
+      if (mode === "concise") {
+        isConcise = true;
+        const seen = new Set<string>();
+        cards = cards.filter(c => {
+          const q = c.question.replace(/<[^>]*>?/gm, "").trim().toLowerCase();
+          if (seen.has(q)) return false;
+          seen.add(q);
+          return true;
+        });
+      } else if (mode === "limit12") {
+        cards = cards.slice(0, 12);
       }
-      await exportFlashcardWorksheetToPDF(name, cards, "answer");
-    } catch (e) {
-      Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor Worksheet.");
-    } finally {
-      setExporting(false);
-    }
+
+      await exportFlashcardsToTablePDF(name, cards, id, isConcise, theme);
+      toast.success("Tabel PDF berhasil dibuat!");
+    } catch { toast.error("Gagal membuat Tabel PDF"); }
+    finally { setExporting(false); }
+  };
+
+  const handleAudioPlaylist = async (id: string, name: string) => {
+    if (exporting) return;
+    const cards = await getFlashcards(id);
+    if (cards.length === 0) { Alert.alert("Kosong", "Tidak ada kartu."); return; }
+
+    setPlaylistItems(cards);
+    setPlaylistTitle(name);
+    setPlayingIdx(0);
+    toast.success("Audio Playlist dimulai");
+
+    playPlaylist(
+      cards.map(c => ({ question: c.question, answer: c.answer })),
+      (idx) => setPlayingIdx(idx),
+      () => playingIdx === null
+    ).then(() => {
+      setPlayingIdx(null);
+    });
+  };
+
+  const stopPlaylist = () => {
+    setPlayingIdx(null);
+    stopTTS();
+  };
+  const handleExportCSV = async (id: string, name: string) => {
+    if (exporting) return;
+    const allowed = await isFeatureAllowed("bundle");
+    if (!allowed) { Alert.alert("Fitur Premium", "Ekspor CSV hanya tersedia di versi Premium."); return; }
+    
+    Alert.alert(
+      "Ekspor Data CSV",
+      `Apakah Anda ingin mengunduh data mentah "${name}" dalam format CSV (Excel)?`,
+      [
+        { text: "Batal", style: "cancel" },
+        { 
+          text: "Unduh", 
+          onPress: async () => {
+            setExporting(true);
+            try {
+              const cards = await getFlashcards(id);
+              if (cards.length === 0) { Alert.alert("Kosong", "Tidak ada kartu."); return; }
+              await exportFlashcardsToCSV(name, cards);
+              toast.success("CSV berhasil diunduh!");
+            } catch { toast.error("Gagal ekspor CSV"); }
+            finally { setExporting(false); }
+          }
+        }
+      ]
+    );
   };
 
   const loadAll = useCallback(async () => {
@@ -478,6 +574,49 @@ export default function FlashcardBrowseAll() {
         />
       )}
 
+
+      {/* PROCESSING OVERLAY */}
+      <Modal visible={exporting} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}>
+          <View style={{ backgroundColor: colors.surface, padding: 30, borderRadius: 20, alignItems: "center", gap: 15 }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Menyiapkan File...</Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted }}>Mohon tunggu sebentar</Text>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={playingIdx !== null} transparent animationType="fade">
+        <View style={styles.pmOverlay}>
+          <View style={styles.pmSheet}>
+            <LinearGradient colors={[colors.primary, colors.purple]} style={styles.pmHeader}>
+              <Feather name="headphones" size={32} color="#fff" />
+              <Text style={styles.pmTitle}>{playlistTitle}</Text>
+              <Text style={styles.pmSub}>Memainkan Materi Audio...</Text>
+            </LinearGradient>
+            
+            <View style={styles.pmBody}>
+              <Text style={styles.pmProgress}>Kartu {playingIdx !== null ? playingIdx + 1 : 0} dari {playlistItems.length}</Text>
+              <View style={styles.pmCard}>
+                <Text style={styles.pmQuestion} numberOfLines={2}>
+                  {playingIdx !== null ? playlistItems[playingIdx]?.question.replace(/<[^>]*>?/gm, "").trim() : ""}
+                </Text>
+                <View style={styles.pmDivider} />
+                <Text style={styles.pmAnswer} numberOfLines={3}>
+                  {playingIdx !== null ? playlistItems[playingIdx]?.answer.replace(/<[^>]*>?/gm, "").trim() : ""}
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.pmStopBtn} onPress={stopPlaylist}>
+                <LinearGradient colors={[colors.danger, "#ef4444"]} style={styles.pmStopGrad}>
+                  <Feather name="square" size={18} color="#fff" />
+                  <Text style={styles.pmStopText}>Berhenti & Tutup</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* FAB */}
       {selMode ? (
         <TouchableOpacity
@@ -589,46 +728,50 @@ export default function FlashcardBrowseAll() {
                   const grad = COL_GRADS[idx % COL_GRADS.length];
                   const createdDate = new Date(cr.col.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
                   return (
-                    <TouchableOpacity
+                    <View
                       key={cr.col.id}
                       style={[styles.colCard, shadowSm, selectedIds.has(cr.col.id) && { borderColor: colors.primary, borderWidth: 2 }]}
-                      onPress={() => {
-                        if (selMode) toggleSelect(cr.col.id);
-                        else if (cr.count > 0) router.push(`/flashcard/${cr.col.id}` as any);
-                      }}
-                      activeOpacity={0.8}
                     >
-                      {selMode && (
-                        <View style={styles.selCheck}>
-                          <Feather name={selectedIds.has(cr.col.id) ? "check-circle" : "circle"} size={20} color={selectedIds.has(cr.col.id) ? colors.primary : colors.textMuted} />
-                        </View>
-                      )}
-                      {/* Color accent bar */}
-                      <LinearGradient colors={grad} style={styles.colCardBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+                      <TouchableOpacity 
+                        style={styles.colCardBodyTouch}
+                        onPress={() => {
+                          if (selMode) toggleSelect(cr.col.id);
+                          else if (cr.count > 0) router.push(`/flashcard/${cr.col.id}` as any);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {selMode && (
+                          <View style={styles.selCheck}>
+                            <Feather name={selectedIds.has(cr.col.id) ? "check-circle" : "circle"} size={20} color={selectedIds.has(cr.col.id) ? colors.primary : colors.textMuted} />
+                          </View>
+                        )}
+                        {/* Color accent bar */}
+                        <LinearGradient colors={grad} style={styles.colCardBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
 
-                      {/* Card body */}
-                      <View style={styles.colCardBody}>
-                        <View style={styles.colCardTop}>
-                          <LinearGradient colors={grad} style={styles.colCardIcon}>
-                            <Feather name="layers" size={18} color="#fff" />
-                          </LinearGradient>
-                          <View style={styles.colBadge}>
-                            <Text style={[styles.colBadgeText, { color: grad[0] }]}>FLASHCARD</Text>
+                        {/* Card body */}
+                        <View style={styles.colCardBody}>
+                          <View style={styles.colCardTop}>
+                            <LinearGradient colors={grad} style={styles.colCardIcon}>
+                              <Feather name="layers" size={18} color="#fff" />
+                            </LinearGradient>
+                            <View style={styles.colBadge}>
+                              <Text style={[styles.colBadgeText, { color: grad[0] }]}>FLASHCARD</Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.colCardName} numberOfLines={2}>{cr.col.name}</Text>
+                          {cr.col.description ? (
+                            <Text style={styles.colCardDesc} numberOfLines={1}>{cr.col.description}</Text>
+                          ) : null}
+
+                          <View style={styles.colCardMeta}>
+                            <View style={[styles.countPill, { backgroundColor: grad[0] + "18" }]}>
+                              <Text style={[styles.countPillText, { color: grad[0] }]}>{cr.count} kartu</Text>
+                            </View>
+                            <Text style={styles.colCardDate}>{createdDate}</Text>
                           </View>
                         </View>
-
-                        <Text style={styles.colCardName} numberOfLines={2}>{cr.col.name}</Text>
-                        {cr.col.description ? (
-                          <Text style={styles.colCardDesc} numberOfLines={1}>{cr.col.description}</Text>
-                        ) : null}
-
-                        <View style={styles.colCardMeta}>
-                          <View style={[styles.countPill, { backgroundColor: grad[0] + "18" }]}>
-                            <Text style={[styles.countPillText, { color: grad[0] }]}>{cr.count} kartu</Text>
-                          </View>
-                          <Text style={styles.colCardDate}>{createdDate}</Text>
-                        </View>
-                      </View>
+                      </TouchableOpacity>
 
                       {/* Action row */}
                       <View style={styles.colCardActions}>
@@ -670,7 +813,7 @@ export default function FlashcardBrowseAll() {
                               activeOpacity={0.7}
                             >
                               <Feather name="file-text" size={14} color={colors.primary} />
-                              <Text style={[styles.colActionText, { color: colors.primary }]}>PDF</Text>
+                              <Text style={[styles.colActionText, { color: colors.primary }]}>PDF Biasa</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={styles.colAction}
@@ -678,7 +821,40 @@ export default function FlashcardBrowseAll() {
                               activeOpacity={0.7}
                             >
                               <Feather name="edit-3" size={14} color={colors.accent} />
-                              <Text style={[styles.colActionText, { color: colors.accent }]}>WS</Text>
+                              <Text style={[styles.colActionText, { color: colors.accent }]}>PDF Latihan (WS)</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.colAction}
+                              onPress={() => handleExportTable(cr.col.id, cr.col.name)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="grid" size={14} color={colors.teal} />
+                              <Text style={[styles.colActionText, { color: colors.teal }]}>Tabel PDF</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.colAction}
+                              onPress={() => handleExportCSV(cr.col.id, cr.col.name)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="file-text" size={14} color={colors.primary} />
+                              <Text style={[styles.colActionText, { color: colors.primary }]}>Data CSV</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.colAction}
+                              onPress={() => handleAudioPlaylist(cr.col.id, cr.col.name)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="headphones" size={14} color={colors.purple} />
+                              <Text style={[styles.colActionText, { color: colors.purple }]}>Audio</Text>
+                            </TouchableOpacity>
+                            <View style={styles.colActionDivider} />
+                            <TouchableOpacity
+                              style={styles.colAction}
+                              onPress={() => shareCollectionBeam(cr.col, cr.col.name)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="share-2" size={14} color={colors.primary} />
+                              <Text style={[styles.colActionText, { color: colors.primary }]}>Kirim</Text>
                             </TouchableOpacity>
                             <View style={styles.colActionDivider} />
                           </>
@@ -693,7 +869,7 @@ export default function FlashcardBrowseAll() {
                           <Text style={[styles.colActionText, { color: colors.danger }]}>Hapus</Text>
                         </TouchableOpacity>
                       </View>
-                    </TouchableOpacity>
+                    </View>
                   );
                 })}
               </View>
@@ -732,54 +908,76 @@ export default function FlashcardBrowseAll() {
                       <Text style={styles.moduleName} numberOfLines={1}>{module.name}</Text>
                     </View>
                     {lessons.map((row) => (
-                      <TouchableOpacity
-                        key={row.lesson.id}
-                        style={[styles.lessonRow, { opacity: row.count === 0 ? 0.5 : 1 }, selectedIds.has(row.lesson.id) && { backgroundColor: colors.primary + "10", borderColor: colors.primary, borderWidth: 1 }]}
-                        onPress={() => {
-                          if (selMode) toggleSelect(row.lesson.id);
-                          else if (row.count > 0) router.push(`/flashcard/${row.lesson.id}` as any);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        {selMode && (
-                          <Feather name={selectedIds.has(row.lesson.id) ? "check-square" : "square"} size={18} color={selectedIds.has(row.lesson.id) ? colors.primary : colors.textMuted} style={{ marginRight: 10 }} />
-                        )}
-                        <View style={styles.lessonLeft}>
-                          <View style={styles.lessonDot} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.lessonName} numberOfLines={1}>{row.lesson.name}</Text>
-                            {row.lesson.description ? (
-                              <Text style={styles.lessonDesc} numberOfLines={1}>{row.lesson.description}</Text>
-                            ) : null}
+                        <View key={row.lesson.id} style={styles.lessonRowInner}>
+                          {selMode && (
+                            <TouchableOpacity onPress={() => toggleSelect(row.lesson.id)}>
+                              <Feather name={selectedIds.has(row.lesson.id) ? "check-square" : "square"} size={18} color={colors.primary} style={{ marginRight: 10 }} />
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity 
+                            style={styles.lessonLeft}
+                            onPress={() => {
+                              if (selMode) toggleSelect(row.lesson.id);
+                              else if (row.count > 0) router.push(`/flashcard/${row.lesson.id}` as any);
+                            }}
+                          >
+                            <View style={styles.lessonDot} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.lessonName} numberOfLines={1}>{row.lesson.name}</Text>
+                              {row.lesson.description ? (
+                                <Text style={styles.lessonDesc} numberOfLines={1}>{row.lesson.description}</Text>
+                              ) : null}
+                            </View>
+                          </TouchableOpacity>
+                          
+                          <View style={styles.lessonRight}>
+                            {row.count > 0 ? (
+                              <>
+                                <View style={[styles.countChip, { backgroundColor: grad[0] + "18" }]}>
+                                  <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count} kartu</Text>
+                                </View>
+                                <TouchableOpacity 
+                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: grad[0] + "40", marginRight: 6 }]}
+                                  onPress={() => handleExportPDF(row.lesson.id, row.lesson.name)}
+                                >
+                                  <Feather name="file-text" size={12} color={grad[0]} />
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.teal + "60", marginRight: 6 }]}
+                                  onPress={() => handleExportTable(row.lesson.id, row.lesson.name)}
+                                >
+                                  <Feather name="grid" size={12} color={colors.teal} />
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary + "60", marginRight: 6 }]}
+                                  onPress={() => handleExportCSV(row.lesson.id, row.lesson.name)}
+                                >
+                                  <Feather name="file-text" size={12} color={colors.primary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary + "60", marginRight: 6 }]}
+                                  onPress={() => shareCollectionBeam({ id: row.lesson.id, name: row.lesson.name, createdAt: "", type: "flashcard" }, row.lesson.name)}
+                                >
+                                  <Feather name="share-2" size={12} color={colors.primary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.purple + "60", marginRight: 6 }]}
+                                  onPress={() => handleAudioPlaylist(row.lesson.id, row.lesson.name)}
+                                >
+                                  <Feather name="headphones" size={12} color={colors.purple} />
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[styles.startBtn, { backgroundColor: grad[0] }]}
+                                  onPress={() => router.push(`/flashcard/${row.lesson.id}` as any)}
+                                >
+                                  <Feather name="play" size={12} color="#fff" />
+                                </TouchableOpacity>
+                              </>
+                            ) : (
+                              <Text style={styles.emptyChip}>Kosong</Text>
+                            )}
                           </View>
                         </View>
-                        <View style={styles.lessonRight}>
-                          {row.count > 0 ? (
-                            <>
-                              <View style={[styles.countChip, { backgroundColor: grad[0] + "18" }]}>
-                                <Text style={[styles.countChipText, { color: grad[0] }]}>{row.count} kartu</Text>
-                              </View>
-                              <TouchableOpacity 
-                                style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: grad[0] + "40", marginRight: 6 }]}
-                                onPress={() => handleExportPDF(row.lesson.id, row.lesson.name)}
-                              >
-                                <Feather name="file-text" size={12} color={grad[0]} />
-                              </TouchableOpacity>
-                              <TouchableOpacity 
-                                style={[styles.startBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accent + "60", marginRight: 6 }]}
-                                onPress={() => handleExportWS(row.lesson.id, row.lesson.name)}
-                              >
-                                <Feather name="edit-3" size={12} color={colors.accent} />
-                              </TouchableOpacity>
-                              <View style={[styles.startBtn, { backgroundColor: grad[0] }]}>
-                                <Feather name="play" size={12} color="#fff" />
-                              </View>
-                            </>
-                          ) : (
-                            <Text style={styles.emptyChip}>Kosong</Text>
-                          )}
-                        </View>
-                      </TouchableOpacity>
                     ))}
                   </View>
                 ))}
@@ -836,6 +1034,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   colCardName: { fontSize: 16, fontWeight: "800", color: c.text, lineHeight: 22 },
   colCardDesc: { fontSize: 12, color: c.textMuted, fontWeight: "500" },
   colCardMeta: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
+  colCardBodyTouch: { flex: 1 },
   countPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   countPillText: { fontSize: 12, fontWeight: "800" },
   colCardDate: { fontSize: 11, color: c.textMuted, fontWeight: "500" },
@@ -856,7 +1055,12 @@ const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   moduleLabel: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   moduleDot: { width: 8, height: 8, borderRadius: 4 },
   moduleName: { fontSize: 12, fontWeight: "800", color: c.textSecondary, flex: 1 },
-  lessonRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingLeft: 16, paddingRight: 4, borderRadius: 12, marginBottom: 4, backgroundColor: c.background },
+  lessonRow: { paddingVertical: 4 },
+  lessonRowInner: {
+    flexDirection: "row", alignItems: "center",
+    paddingVertical: 12, paddingHorizontal: 12,
+    borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.04)",
+  },
   lessonLeft: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 10, minWidth: 0 },
   lessonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border, flexShrink: 0, marginTop: 5 },
   lessonName: { fontSize: 13, fontWeight: "700", color: c.text, lineHeight: 18 },
@@ -898,4 +1102,20 @@ const makeStyles = (c: ColorScheme, isDark: boolean) => StyleSheet.create({
   batchCount: { position: "absolute", top: -5, right: -5, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.primary },
   batchCountText: { fontSize: 12, fontWeight: "900", color: c.primary },
   selCheck: { position: "absolute", top: 12, right: 12, zIndex: 10 },
+
+  // Audio Playlist Styles
+  pmOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 24 },
+  pmSheet: { width: "100%", backgroundColor: c.surface, borderRadius: 24, overflow: "hidden", elevation: 12 },
+  pmHeader: { padding: 32, alignItems: "center", gap: 12 },
+  pmTitle: { color: "#fff", fontSize: 20, fontWeight: "900", textAlign: "center" },
+  pmSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "700" },
+  pmBody: { padding: 24, alignItems: "center" },
+  pmProgress: { fontSize: 14, color: c.textSecondary, fontWeight: "bold", marginBottom: 20 },
+  pmCard: { width: "100%", backgroundColor: c.background, borderRadius: 20, padding: 24, borderLeftWidth: 6, borderLeftColor: c.primary, marginBottom: 32 },
+  pmQuestion: { fontSize: 22, fontWeight: "900", color: c.text, marginBottom: 12 },
+  pmDivider: { height: 1, backgroundColor: c.border, width: "100%", marginVertical: 12 },
+  pmAnswer: { fontSize: 16, color: c.textSecondary, fontStyle: "italic" },
+  pmStopBtn: { width: "100%", borderRadius: 16, overflow: "hidden" },
+  pmStopGrad: { paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  pmStopText: { color: "#fff", fontWeight: "900", fontSize: 16 },
 });

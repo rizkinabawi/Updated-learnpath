@@ -1517,16 +1517,51 @@ export const importCourse = async (pack: CoursePack): Promise<number> => {
   return imported;
 };
 
+export const importCollection = async (pack: { collection: StandaloneCollection; flashcards: Flashcard[] }): Promise<void> => {
+  const newId = generateId();
+  const oldId = pack.collection.id;
+  
+  const newCol: StandaloneCollection = {
+    ...pack.collection,
+    id: newId,
+    userId: "imported", // Mark as imported to prevent re-sharing
+    createdAt: new Date().toISOString()
+  };
+  
+  await saveStandaloneCollection(newCol);
+  
+  const remappedCards = pack.flashcards.map(c => ({
+    ...c,
+    id: generateId(),
+    lessonId: newId,
+    createdAt: new Date().toISOString()
+  }));
+  
+  await saveFlashcardsBulk(remappedCards);
+};
+
 export const exportCourse = async (pathId: string): Promise<CoursePack> => {
   const allPaths = await getLearningPaths();
-  const path = allPaths.find((p) => p.id === pathId);
-  if (!path) throw new Error("Kursus tidak ditemukan.");
   
-  if (path.isLocked) {
-    throw new Error("Pelajaran ini terkunci (DRM Protected) dan tidak dapat disebarkan ulang.");
+  let paths: LearningPath[] = [];
+  if (pathId === "*") {
+    // Export ALL unlocked paths
+    paths = allPaths.filter(p => !p.isLocked);
+  } else {
+    const path = allPaths.find((p) => p.id === pathId);
+    if (!path) throw new Error("Kursus tidak ditemukan.");
+    if (path.isLocked) {
+      throw new Error("Pelajaran ini terkunci (DRM Protected) dan tidak dapat disebarkan ulang.");
+    }
+    paths = [path];
   }
 
-  const modules = await getModules(pathId);
+  if (paths.length === 0) throw new Error("Tidak ada kursus yang dapat diekspor.");
+
+  const pathIds = paths.map(p => p.id);
+
+  const allModules = await getModules();
+  const modules = allModules.filter(m => pathIds.includes(m.pathId));
   const modIds = modules.map((m) => m.id);
 
   const allLessons = await getLessons();
@@ -1566,7 +1601,7 @@ export const exportCourse = async (pathId: string): Promise<CoursePack> => {
     }
   };
 
-  path.avatar && collect(path.avatar);
+  paths.forEach(p => p.avatar && collect(p.avatar));
   modules.forEach(m => m.icon && collect(m.icon));
   filteredFlashcards.forEach(c => {
     collect(c.image);
@@ -1596,7 +1631,7 @@ export const exportCourse = async (pathId: string): Promise<CoursePack> => {
   return {
     version: 2,
     exportedAt: new Date().toISOString(),
-    paths: [path],
+    paths,
     modules,
     lessons,
     flashcardPacks,

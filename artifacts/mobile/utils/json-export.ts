@@ -4,6 +4,11 @@ import * as FileSystem from "@/utils/fs-compat";
 import * as Sharing from "expo-sharing";
 import { isCancellationError } from "./safe-share";
 
+function sanitizeFilename(name: string): string {
+  // Remove slashes and other characters that might break file paths
+  return name.replace(/[\/\\?%*:|"<>]/g, "-").replace(/\s+/g, "_").toLowerCase();
+}
+
 // ─── Canonical AI output types (these match the format AI is asked to produce) ─
 
 /**
@@ -99,4 +104,34 @@ export async function downloadJson(data: LearningJsonOutput): Promise<string> {
     encoding: FileSystem.EncodingType.UTF8,
   });
   return path;
+}
+
+export async function exportFlashcardsToCSV(topic: string, items: FlashcardItem[]): Promise<void> {
+  const header = "Question,Answer,Tag\n";
+  const rows = items.map(item => {
+    const q = `"${item.question.replace(/"/g, '""').replace(/<[^>]*>?/gm, "").trim()}"`;
+    const a = `"${item.answer.replace(/"/g, '""').replace(/<[^>]*>?/gm, "").trim()}"`;
+    const t = `"${(item.tag || "").replace(/"/g, '""').trim()}"`;
+    return `${q},${a},${t}`;
+  }).join("\n");
+
+  const csv = header + rows;
+  const filename = `flashcards_${sanitizeFilename(topic)}.csv`;
+
+  if (Platform.OS === "web") {
+    await Clipboard.setStringAsync(csv);
+    alert("CSV copied to clipboard (Platform: Web)");
+    return;
+  }
+
+  try {
+    const path = `${FileSystem.cacheDirectory}${filename}`;
+    await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
+    await Sharing.shareAsync(path, {
+      mimeType: "text/csv",
+      dialogTitle: `Unduh CSV Flashcard — ${topic}`,
+    });
+  } catch (e) {
+    console.error("CSV Export Error:", e);
+  }
 }

@@ -185,6 +185,7 @@ function parseTxt(text: string): ParsedDeck {
     const front = parts[0]!.trim();
     const back = parts[1]!.trim();
     const tags = parts[2]?.trim();
+    // Data cleaning: Skip if either side is missing
     if (!front || !back) continue;
     cards.push({ front, back, tags });
   }

@@ -28,7 +28,8 @@ import {
   saveQuizPack, saveQuizzesBulk,
   generateId,
   type LearningPath, type Module, type Lesson,
-  type QuizPack, type Quiz
+  type QuizPack, type Quiz,
+  importCourse, importCollection
 } from "@/utils/storage";
 import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
@@ -168,11 +169,46 @@ export default function ImportJLPTPage() {
       const text = await FileSystem.readAsStringAsync(result.assets[0].uri, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      setJsonText(text);
-      toast.info("File dimuat. Tap Analisa untuk melihat preview.");
-    } catch {
+      
+      const parsed = tryParse(text);
+      if (parsed && (parsed.type === "course" || parsed.type === "collection")) {
+        handleBeamImport(parsed);
+      } else {
+        setJsonText(text);
+        toast.info("File dimuat. Tap Analisa untuk melihat preview.");
+      }
+    } catch (e) {
+      console.error("[Import] Read file failed:", e);
       toast.error("Gagal membaca file.");
     }
+  };
+
+  const handleBeamImport = (pack: any) => {
+    Alert.alert(
+      "Impor Materi",
+      `Ditemukan data ${pack.type === "course" ? "Kursus" : "Koleksi"}. Impor sekarang?`,
+      [
+        { text: "Batal", style: "cancel" },
+        { 
+          text: "Impor", 
+          onPress: async () => {
+            setBusy(true);
+            try {
+              if (pack.type === "course") {
+                await importCourse(pack.data);
+                toast.success("Kursus berhasil diimpor!");
+              } else {
+                await importCollection(pack.data);
+                toast.success("Koleksi berhasil diimpor!");
+              }
+              router.back();
+            } catch (e) {
+              toast.error("Gagal impor materi.");
+            } finally { setBusy(false); }
+          }
+        }
+      ]
+    );
   };
 
   const doImport = async () => {

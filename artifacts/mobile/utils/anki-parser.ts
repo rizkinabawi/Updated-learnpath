@@ -572,7 +572,8 @@ async function parseAnkiPackageOnce(
           : fields[0] ?? "";
       const back = stripHtmlAndMedia(backRaw || fields[0] || "");
 
-      if (!front.text && !back.text) continue; // skip completely empty cards
+      // Skip cards where either side is empty (cleaner data)
+      if (!front.text.trim() || !back.text.trim()) continue;
 
       const allMedia = [...new Set([...front.media, ...back.media])];
 

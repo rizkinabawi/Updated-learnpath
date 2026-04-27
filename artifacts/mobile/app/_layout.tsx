@@ -347,6 +347,10 @@ function RootLayoutNav() {
         name="theme-settings"
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="qr-scanner"
+        options={{ headerShown: false, presentation: "fullScreenModal" }}
+      />
     </Stack>
   );
 }

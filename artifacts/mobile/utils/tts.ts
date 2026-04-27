@@ -53,20 +53,113 @@ export const parseTTSScript = (script: string) => {
   return chunks;
 };
 
+// ─── Web-only helpers ────────────────────────────────────────────────────────
+// The Web Speech API has a few well-known quirks we have to work around so
+// TTS feels reliable in the browser:
+//   1. Voices load asynchronously — we have to wait for `voiceschanged` on
+//      the first call, otherwise `voice` is silently ignored.
+//   2. Calling `cancel()` immediately followed by `speak()` is racy in Chrome
+//      and frequently swallows the new utterance — add a small gap.
+//   3. `onend` is not always fired (page hidden, voice mismatch, etc.) — we
+//      need a timeout fallback so chunked playback doesn't hang.
+//   4. Chrome cuts off utterances longer than ~15 s — split long text.
+
+const isWeb = Platform.OS === "web";
+
+const waitForWebVoices = async (timeoutMs = 1500): Promise<void> => {
+  if (!isWeb || typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return;
+  }
+  const synth = window.speechSynthesis;
+  if (synth.getVoices().length > 0) return;
+  await new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try {
+        synth.removeEventListener("voiceschanged", finish);
+      } catch {}
+      resolve();
+    };
+    synth.addEventListener("voiceschanged", finish, { once: true });
+    setTimeout(finish, timeoutMs);
+  });
+};
+
+/**
+ * Estimated ms it takes to speak `text` at the given rate. Used as a safety
+ * timeout so we don't hang forever if `onDone` never fires.
+ */
+const estimateSpeechMs = (text: string, rate: number): number => {
+  const words = Math.max(1, text.trim().split(/\s+/).length);
+  const wpm = 160 * Math.max(0.3, rate);
+  return Math.ceil((words / wpm) * 60_000) + 1500;
+};
+
+/**
+ * Split a long string at sentence/word boundaries so each chunk fits under
+ * Chrome's ~15 s utterance limit.
+ */
+const splitLongText = (text: string, maxChars = 180): string[] => {
+  if (text.length <= maxChars) return [text];
+  const out: string[] = [];
+  const sentences = text.split(/(?<=[.!?。！？])\s+/);
+  let buffer = "";
+  for (const s of sentences) {
+    if ((buffer + " " + s).trim().length <= maxChars) {
+      buffer = (buffer ? buffer + " " : "") + s;
+      continue;
+    }
+    if (buffer) out.push(buffer);
+    if (s.length <= maxChars) {
+      buffer = s;
+    } else {
+      // Hard wrap on words
+      const words = s.split(/\s+/);
+      buffer = "";
+      for (const w of words) {
+        if ((buffer + " " + w).trim().length > maxChars) {
+          if (buffer) out.push(buffer);
+          buffer = w;
+        } else {
+          buffer = (buffer ? buffer + " " : "") + w;
+        }
+      }
+    }
+  }
+  if (buffer) out.push(buffer);
+  return out;
+};
+
 /**
  * Plays a TTS script, supporting multi-voice tags.
  */
 export const speak = async (script: string, overrideConfig?: Partial<TTSConfig>) => {
   const config = await getTTSConfig();
   const finalConfig = { ...config, ...overrideConfig };
-  
+
   const chunks = parseTTSScript(script);
-  if (typeof Speech.stop === 'function') {
+
+  if (typeof Speech.stop === "function") {
     await Speech.stop();
+  }
+  // Web quirk: cancel() then speak() back-to-back is racy in Chrome.
+  if (isWeb) {
+    await waitForWebVoices();
+    await new Promise((r) => setTimeout(r, 60));
+  }
+
+  if (typeof Speech.speak !== "function") {
+    console.warn("Speech.speak is not a function");
+    return;
   }
 
   for (const chunk of chunks) {
-    const cleanText = chunk.text.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+    const cleanText = chunk.text
+      .replace(/<[^>]*>?/gm, "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (!cleanText) continue;
 
     let lang = "id-ID";
@@ -75,27 +168,54 @@ export const speak = async (script: string, overrideConfig?: Partial<TTSConfig>)
 
     // Select voice based on gender tag
     let voiceId = finalConfig.voiceIdentifier;
-    if (chunk.gender === 'F' && finalConfig.alternateVoiceIdentifier) {
+    if (chunk.gender === "F" && finalConfig.alternateVoiceIdentifier) {
       voiceId = finalConfig.alternateVoiceIdentifier;
-    } else if (chunk.gender === 'M' && finalConfig.voiceIdentifier) {
+    } else if (chunk.gender === "M" && finalConfig.voiceIdentifier) {
       voiceId = finalConfig.voiceIdentifier;
     }
 
-    if (typeof Speech.speak !== 'function') {
-      console.warn("Speech.speak is not a function");
-      return;
-    }
+    // On web, split long text into Chrome-friendly chunks.
+    const subChunks = isWeb ? splitLongText(cleanText) : [cleanText];
 
-    await new Promise<void>((resolve) => {
-      Speech.speak(cleanText, {
-        language: lang,
-        rate: finalConfig.rate,
-        pitch: finalConfig.pitch,
-        voice: voiceId,
-        onDone: () => resolve(),
-        onError: () => resolve(), // Continue on error
+    for (const piece of subChunks) {
+      await new Promise<void>((resolve) => {
+        let resolved = false;
+        const done = () => {
+          if (resolved) return;
+          resolved = true;
+          resolve();
+        };
+        const safetyTimeout = setTimeout(
+          done,
+          estimateSpeechMs(piece, finalConfig.rate) + 4000,
+        );
+
+        try {
+          Speech.speak(piece, {
+            language: lang,
+            rate: finalConfig.rate,
+            pitch: finalConfig.pitch,
+            voice: voiceId,
+            onDone: () => {
+              clearTimeout(safetyTimeout);
+              done();
+            },
+            onStopped: () => {
+              clearTimeout(safetyTimeout);
+              done();
+            },
+            onError: () => {
+              clearTimeout(safetyTimeout);
+              done();
+            },
+          });
+        } catch (e) {
+          console.warn("[tts] speak threw:", e);
+          clearTimeout(safetyTimeout);
+          done();
+        }
       });
-    });
+    }
   }
 };
 

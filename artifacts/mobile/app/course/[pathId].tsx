@@ -29,8 +29,7 @@ import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { exportCourseCertificate } from "@/utils/flashcard-export";
 import { getUser } from "@/utils/storage";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
+import { printHtml } from "@/utils/print-compat";
 import { isFeatureAllowed } from "@/utils/security/app-license";
 
 const makeGradPalette = (colors: ColorScheme): [string, string][] => [
@@ -385,8 +384,7 @@ export default function CourseDetailPage() {
         </html>
       `;
 
-      const { uri } = await Print.printToFileAsync({ html: reportHtml });
-      await Sharing.shareAsync(uri);
+      await printHtml(reportHtml, { dialogTitle: "Laporan Kursus" });
     } catch (e) {
       Alert.alert("Gagal", "Terjadi kesalahan saat mengekspor laporan.");
     }

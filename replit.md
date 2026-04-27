@@ -174,3 +174,39 @@ artifacts-monorepo/
 ├── tsconfig.json
 └── package.json
 ```
+
+## Web/PWA Compatibility Audit (April 2026)
+
+The following web-only fixes were applied so PWA and mobile share behavior correctly:
+
+### `utils/fs-compat.ts`
+- **Web file reads now functional.** `readAsStringAsync` / `readAsBytesAsync` /
+  `getInfoAsync` previously returned empty stubs on web. They now `fetch()` the
+  URI (works for `blob:`, `data:`, `http(s):` URIs returned by DocumentPicker
+  & ImagePicker). This fixes Smart JLPT import, Bundle import, Anki import,
+  Roadmap import, Backup/Restore on web.
+- **Mobile asset-restoration bug fixed.** The wrapper `writeAsStringAsync` was
+  silently dropping its `encoding` option, so base64 asset blobs were written
+  as UTF-8 — corrupting any image/audio inside an imported course bundle.
+
+### `utils/print-compat.ts` (NEW)
+- Cross-platform `printHtml(html, opts)` helper. On web it injects HTML into a
+  hidden iframe and calls `iframe.contentWindow.print()` — this prints only
+  the HTML content (previously `expo-print.printAsync` would print a screenshot
+  of the running app). On native it falls back to `Print.printToFileAsync` +
+  `Sharing.shareAsync`.
+- All seven Print call sites refactored: `flashcard-export.ts`,
+  `notes/[lessonId].tsx`, `notes/view/[noteId].tsx`, `course/[pathId].tsx`,
+  `components/learning/NotesSection.tsx`.
+
+### `components/FloatingOverlay.tsx`
+- PiP video player now renders a native `<iframe>` on web (instead of
+  `react-native-webview`, which has no web build). `react-native-webview`
+  is now `require()`d lazily and only on native, so the web bundle no longer
+  attempts to resolve it.
+
+### `utils/tts.ts`
+- Web Speech API reliability hardening: wait for `voiceschanged`, add small
+  gap after `cancel()`, safety-timeout the `onDone` Promise (so chunked
+  playback never hangs), and split long text into ~180-char pieces to dodge
+  Chrome's ~15-second utterance cutoff.

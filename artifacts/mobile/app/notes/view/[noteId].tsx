@@ -21,7 +21,7 @@ import {
   Clock,
   Download,
 } from "lucide-react-native";
-import * as Print from "expo-print";
+import { printHtml } from "@/utils/print-compat";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "@/utils/fs-compat";
 import { toast } from "@/components/Toast";
@@ -133,8 +133,7 @@ export default function NoteFullView() {
           </body>
         </html>
       `;
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
+      await printHtml(html, { dialogTitle: current.title || "Catatan" });
     } catch {
       toast.error("Gagal mengekspor PDF");
     }

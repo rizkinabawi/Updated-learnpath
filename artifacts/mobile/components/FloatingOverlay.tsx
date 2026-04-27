@@ -10,11 +10,22 @@ import {
   PanResponder,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { WebView } from "react-native-webview";
 import { useOverlay } from "@/contexts/OverlayContext";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import { type ColorScheme } from "@/constants/colors";
+
+// react-native-webview has no web build. Load it lazily and only on native to
+// avoid breaking the web bundle.
+let WebView: any = null;
+if (Platform.OS !== "web") {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    WebView = require("react-native-webview").WebView;
+  } catch {
+    WebView = null;
+  }
+}
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -91,17 +102,27 @@ export const FloatingOverlay: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMusicMode, setIsMusicMode] = useState(false);
 
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
   const togglePlay = () => {
-    if (!webViewRef.current) return;
-    const cmd = isPlaying ? 'pauseVideo' : 'playVideo';
-    webViewRef.current.injectJavaScript(`
-      (function() {
-        const ifr = document.getElementsByTagName('iframe')[0];
-        if (ifr && ifr.contentWindow) {
-          ifr.contentWindow.postMessage('{"event":"command","func":"${cmd}","args":""}', '*');
-        }
-      })()
-    `);
+    const cmd = isPlaying ? "pauseVideo" : "playVideo";
+    const message = `{"event":"command","func":"${cmd}","args":""}`;
+
+    if (Platform.OS === "web") {
+      try {
+        iframeRef.current?.contentWindow?.postMessage(message, "*");
+      } catch {}
+    } else {
+      if (!webViewRef.current) return;
+      webViewRef.current.injectJavaScript(`
+        (function() {
+          const ifr = document.getElementsByTagName('iframe')[0];
+          if (ifr && ifr.contentWindow) {
+            ifr.contentWindow.postMessage('${message}', '*');
+          }
+        })()
+      `);
+    }
     setIsPlaying(!isPlaying);
   };
 
@@ -177,18 +198,35 @@ export const FloatingOverlay: React.FC = () => {
             </View>
 
             <View style={[styles.videoPlaceholder, isMusicMode && { height: 0, opacity: 0 }]}>
-              <WebView
-                ref={webViewRef}
-                source={{ 
-                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><iframe src="https://www.youtube-nocookie.com/embed/${vId}?autoplay=1&playsinline=1&enablejsapi=1&modestbranding=1" allow="autoplay;encrypted-media;picture-in-picture" allowfullscreen="0"></iframe></body></html>`,
-                  baseUrl: "https://www.youtube-nocookie.com"
-                }}
-                style={{ flex: 1 }}
-                scrollEnabled={false}
-                mediaPlaybackRequiresUserAction={false}
-                allowsInlineMediaPlayback={true}
-                allowsFullscreenVideo={false}
-              />
+              {Platform.OS === "web" ? (
+                // @ts-ignore — native iframe element on web
+                <iframe
+                  ref={iframeRef}
+                  src={`https://www.youtube-nocookie.com/embed/${vId}?autoplay=1&playsinline=1&enablejsapi=1&modestbranding=1&rel=0`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    border: 0,
+                    background: "#000",
+                    display: "block",
+                  }}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen={false}
+                />
+              ) : WebView ? (
+                <WebView
+                  ref={webViewRef}
+                  source={{
+                    html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><iframe src="https://www.youtube-nocookie.com/embed/${vId}?autoplay=1&playsinline=1&enablejsapi=1&modestbranding=1" allow="autoplay;encrypted-media;picture-in-picture" allowfullscreen="0"></iframe></body></html>`,
+                    baseUrl: "https://www.youtube-nocookie.com",
+                  }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                  mediaPlaybackRequiresUserAction={false}
+                  allowsInlineMediaPlayback={true}
+                  allowsFullscreenVideo={false}
+                />
+              ) : null}
             </View>
             
             {!isMusicMode && (

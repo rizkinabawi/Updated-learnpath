@@ -1,6 +1,4 @@
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
-import { Platform } from "react-native";
+import { printHtml } from "./print-compat";
 import { FlashcardItem, QuizItem } from "./json-export";
 
 function generateQRCodeImg(id: string, type: "flashcard" | "quiz"): string {
@@ -170,18 +168,7 @@ export async function exportFlashcardsToPDF(
   `;
 
   try {
-    if (Platform.OS === "web") {
-      // Untuk web, kita print langsung
-      await Print.printAsync({ html });
-    } else {
-      // Untuk mobile, kita buat file PDF lalu buka dialog sharing
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, {
-        mimeType: "application/pdf",
-        dialogTitle: `Unduh PDF Flashcard - ${topic}`,
-        UTI: "com.adobe.pdf"
-      });
-    }
+    await printHtml(html, { dialogTitle: `Unduh PDF Flashcard - ${topic}` });
   } catch (error) {
     console.error("PDF Export Error:", error);
   }
@@ -321,12 +308,7 @@ export async function exportQuizzesToPDF(topic: string, items: QuizItem[], id?: 
   `;
 
   try {
-    if (Platform.OS === "web") {
-      await Print.printAsync({ html });
-    } else {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Exam Paper - ${topic}`, UTI: "com.adobe.pdf" });
-    }
+    await printHtml(html, { dialogTitle: `Exam Paper - ${topic}` });
   } catch (error) {
     console.error("Quiz PDF Export Error:", error);
   }
@@ -386,8 +368,7 @@ export async function exportMultipleFlashcardsToPDF(
     </style></head><body>${contentHtml}</body></html>`;
 
   try {
-    const { uri } = await Print.printToFileAsync({ html });
-    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Batch Flashcards - ${title}`, UTI: "com.adobe.pdf" });
+    await printHtml(html, { dialogTitle: `Batch Flashcards - ${title}` });
   } catch (e) { console.error(e); }
 }
 
@@ -443,8 +424,7 @@ export async function exportMultipleQuizzesToPDF(
     </style></head><body>${contentHtml}${extrasHtml}</body></html>`;
 
   try {
-    const { uri } = await Print.printToFileAsync({ html });
-    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Batch Exam - ${title}`, UTI: "com.adobe.pdf" });
+    await printHtml(html, { dialogTitle: `Batch Exam - ${title}` });
   } catch (e) { console.error(e); }
 }
 
@@ -517,8 +497,7 @@ export async function exportFlashcardWorksheetToPDF(
   `;
 
   try {
-    const { uri } = await Print.printToFileAsync({ html });
-    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Worksheet - ${topic}` });
+    await printHtml(html, { dialogTitle: `Worksheet - ${topic}` });
   } catch (e) { console.error(e); }
 }
 
@@ -619,8 +598,7 @@ export async function exportCourseCertificate(
   `;
 
   try {
-    const { uri } = await Print.printToFileAsync({ html });
-    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Certificate - ${userName}`, UTI: "com.adobe.pdf" });
+    await printHtml(html, { dialogTitle: `Certificate - ${userName}` });
   } catch (e) { console.error(e); }
 }
 
@@ -692,7 +670,6 @@ export async function exportProgressReport(
   `;
 
   try {
-    const { uri } = await Print.printToFileAsync({ html });
-    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Progress Report - ${userName}`, UTI: "com.adobe.pdf" });
+    await printHtml(html, { dialogTitle: `Progress Report - ${userName}` });
   } catch (e) { console.error(e); }
 }

@@ -27,36 +27,129 @@ export interface FileInfo {
   modificationTime?: number;
 }
 
-// Web stubs
+// ─────────────────────────────────────────────────────────────────────────────
+// Web helpers
+// ─────────────────────────────────────────────────────────────────────────────
+// On web, file URIs from DocumentPicker / ImagePicker are typically blob URLs
+// (`blob:https://...`) or data URLs (`data:...`). We can fetch them directly.
+// Plain URLs (http/https) also work. For unsupported schemes (file://, content://)
+// we throw a clear error.
+
+const isWebFetchable = (uri: string): boolean => {
+  if (!uri) return false;
+  return (
+    uri.startsWith("blob:") ||
+    uri.startsWith("data:") ||
+    uri.startsWith("http://") ||
+    uri.startsWith("https://") ||
+    uri.startsWith("/")
+  );
+};
+
+const arrayBufferToBase64 = (buf: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(
+      null,
+      Array.from(bytes.subarray(i, i + CHUNK)),
+    );
+  }
+  return btoa(binary);
+};
+
+const base64ToArrayBuffer = (b64: string): ArrayBuffer => {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+};
+
+// Web stubs (now functional for in-memory file URIs)
 const webStub = {
   cacheDirectory: null as string | null,
   documentDirectory: null as string | null,
-  async getInfoAsync(_uri: string): Promise<FileInfo> {
-    return { exists: false, uri: _uri };
+
+  async getInfoAsync(uri: string): Promise<FileInfo> {
+    if (!isWebFetchable(uri)) return { exists: false, uri };
+    try {
+      const res = await fetch(uri);
+      if (!res.ok) return { exists: false, uri };
+      const blob = await res.blob();
+      return { exists: true, uri, size: blob.size };
+    } catch {
+      return { exists: false, uri };
+    }
   },
+
   async readAsStringAsync(
-    _uri: string,
-    _options?: { encoding?: "utf8" | "base64" },
+    uri: string,
+    options?: { encoding?: "utf8" | "base64" },
   ): Promise<string> {
-    return "";
+    if (!isWebFetchable(uri)) {
+      throw new Error(
+        `[fs-compat:web] Cannot read URI on web: "${uri.slice(0, 60)}". ` +
+          `Only blob:, data:, http(s):, and absolute paths are supported.`,
+      );
+    }
+    const res = await fetch(uri);
+    if (!res.ok) throw new Error(`[fs-compat:web] Fetch failed: ${res.status}`);
+    if (options?.encoding === "base64") {
+      const buf = await res.arrayBuffer();
+      return arrayBufferToBase64(buf);
+    }
+    return await res.text();
   },
-  async writeAsStringAsync(_uri: string, _contents: string): Promise<void> {},
+
+  async writeAsStringAsync(
+    _uri: string,
+    _contents: string,
+    _options?: { encoding?: "utf8" | "base64" },
+  ): Promise<void> {
+    // Writing arbitrary files isn't supported on web — caller should persist
+    // to AsyncStorage / IndexedDB or trigger a download instead.
+    console.warn("[fs-compat:web] writeAsStringAsync is a no-op on web");
+  },
+
   async makeDirectoryAsync(
     _uri: string,
     _options?: { intermediates?: boolean },
   ): Promise<void> {},
+
   async deleteAsync(_uri: string): Promise<void> {},
-  async copyAsync(_opts: { from: string; to: string }): Promise<void> {},
+
+  async copyAsync(opts: { from: string; to: string }): Promise<void> {
+    // On web we can't truly copy to a "to" path. Best-effort: return silently —
+    // callers that depend on `to` being a usable URI should check the source URI.
+    console.warn("[fs-compat:web] copyAsync no-op:", opts.from, "→", opts.to);
+  },
+
   async readDirectoryAsync(_uri: string): Promise<string[]> {
     return [];
   },
+
   async downloadAsync(_url: string, _fileUri: string): Promise<{ uri: string }> {
-    return { uri: _fileUri };
+    // Just return the original URL — it's already accessible from the browser
+    return { uri: _url };
   },
-  async readAsBytesAsync(_uri: string): Promise<Uint8Array> {
-    return new Uint8Array(0);
+
+  async readAsBytesAsync(uri: string): Promise<Uint8Array> {
+    if (!isWebFetchable(uri)) {
+      throw new Error(
+        `[fs-compat:web] Cannot read URI on web: "${uri.slice(0, 60)}". ` +
+          `Only blob:, data:, http(s):, and absolute paths are supported.`,
+      );
+    }
+    const res = await fetch(uri);
+    if (!res.ok) throw new Error(`[fs-compat:web] Fetch failed: ${res.status}`);
+    const buf = await res.arrayBuffer();
+    return new Uint8Array(buf);
   },
-  async writeAsBytesAsync(_uri: string, _bytes: Uint8Array): Promise<void> {},
+
+  async writeAsBytesAsync(_uri: string, _bytes: Uint8Array): Promise<void> {
+    console.warn("[fs-compat:web] writeAsBytesAsync is a no-op on web");
+  },
 };
 
 // Lazy-load native implementation only on non-web platforms
@@ -175,10 +268,10 @@ export async function readAsStringAsync(
 export async function writeAsStringAsync(
   fileUri: string,
   contents: string,
-  _options?: { encoding?: "utf8" | "base64" }
+  options?: { encoding?: "utf8" | "base64" }
 ): Promise<void> {
   const n = await getNative();
-  return n.writeAsStringAsync(fileUri, contents);
+  return n.writeAsStringAsync(fileUri, contents, options);
 }
 
 export async function makeDirectoryAsync(

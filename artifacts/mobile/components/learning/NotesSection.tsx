@@ -28,8 +28,7 @@ import {
 } from "@/utils/storage";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
+import { printHtml } from "@/utils/print-compat";
 import * as FileSystem from "@/utils/fs-compat";
 import { toast } from "@/components/Toast";
 
@@ -77,8 +76,7 @@ export default function NotesSection({ lessonId, lessonName }: Props) {
     if (notes.length === 0) return;
     try {
       const html = `<html><body><h1>${lessonName}</h1>${notes.map(n => `<h3>${n.title}</h3><p>${n.content}</p>`).join("")}</body></html>`;
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri);
+      await printHtml(html, { dialogTitle: `Catatan - ${lessonName}` });
     } catch { toast.error("Gagal ekspor"); }
   };
 

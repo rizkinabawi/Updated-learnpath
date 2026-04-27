@@ -32,7 +32,7 @@ import {
   Download,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
-import * as Print from "expo-print";
+import { printHtml } from "@/utils/print-compat";
 import * as Sharing from "expo-sharing";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
@@ -296,8 +296,7 @@ export default function NotesScreen() {
           </body>
         </html>
       `;
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
+      await printHtml(html, { dialogTitle: `Catatan - ${lessonName}` });
     } catch {
       toast.error("Gagal mengekspor PDF");
     }

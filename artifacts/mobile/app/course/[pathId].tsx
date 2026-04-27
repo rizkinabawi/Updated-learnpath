@@ -1,4 +1,5 @@
 import { useColors, useTheme } from "@/contexts/ThemeContext";
+import * as LucideIcons from "lucide-react-native";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   View,
@@ -12,6 +13,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   useWindowDimensions,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -25,8 +27,14 @@ import {
   generateId, getCompletedLessons, setLessonCompleted,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
+import { getApiKeys } from "@/utils/ai-keys";
+import { callAI } from "@/utils/ai-providers";
 import { toast } from "@/components/Toast";
-import * as LucideIcons from "lucide-react-native";
+import { 
+  Edit2, Plus, Zap, ArrowLeft, ArrowRightLeft, GitMerge, MoreVertical, 
+  ChevronDown, Check, Edit3, Trash2, ChevronRight, FileDown, Award, Sparkles,
+  Calendar, Target, PlusCircle, Info
+} from "lucide-react-native";
 import { type ColorScheme } from "@/constants/colors";
 import { shareCourseBeam } from "@/utils/beam";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -102,6 +110,10 @@ export default function CourseDetailPage() {
   // Module Actions Menu state
   const [showModActions, setShowModActions] = useState(false);
   const [selectedMod, setSelectedMod] = useState<Module | null>(null);
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
+  const [showAIModal, setShowAIModal] = useState(false);
 
   const loadData = async () => {
     if (!pathId) return;
@@ -321,6 +333,30 @@ export default function CourseDetailPage() {
     }
   };
 
+  const handleAISummary = async () => {
+    if (aiLoading || !path) return;
+    setAiLoading(true);
+    try {
+      const keys = await getApiKeys();
+      const key = keys.find(k => k.provider === "gemini") || keys[0];
+      if (!key) {
+        Alert.alert("API Key Dibutuhkan", "Harap pasang API Key di pengaturan untuk menggunakan asisten AI.");
+        return;
+      }
+
+      const modNames = modules.map(m => m.name).join(", ");
+      const prompt = `Berikan ringkasan materi dan saran rencana belajar (roadmap) singkat untuk kursus ini.\nNama Kursus: ${path.name}\nModul: ${modNames}\nBahasa: Bahasa Indonesia.`;
+
+      const { content } = await callAI(key.provider as any, prompt, key.apiKey, key.model);
+      setAiResponse(content);
+      setShowAIModal(true);
+    } catch (e: any) {
+      toast.error("Gagal memanggil AI.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleDownloadReport = async () => {
     if (!path) return;
     
@@ -447,14 +483,14 @@ export default function CourseDetailPage() {
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <LucideIcons.ArrowLeft size={20} color={colors.white} />
+            <ArrowLeft size={20} color={colors.white} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.headerSub}>{t.course.header_sub}</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text style={[styles.headerTitle, { flex: 1 }]} numberOfLines={1}>{path?.name ?? "..."}</Text>
               <TouchableOpacity onPress={handleEditCourse} style={styles.miniEditBtn}>
-                <LucideIcons.Edit2 size={12} color="rgba(255,255,255,0.7)" />
+                <Edit2 size={12} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>
           </View>
@@ -464,80 +500,89 @@ export default function CourseDetailPage() {
             activeOpacity={0.8}
           >
             <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
-              <LucideIcons.Plus size={20} color={colors.white} />
+              <Plus size={20} color={colors.white} />
             </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => path && shareCourseBeam(path.id, path.name)}
-            style={[styles.addBtn, { marginLeft: 8 }]}
-            activeOpacity={0.8}
-          >
-            <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
-              <LucideIcons.Zap size={18} color={colors.white} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-        {!!path?.description && (
-          <Text style={styles.headerDesc} numberOfLines={2}>{path.description}</Text>
-        )}
-
-        {/* PROGRESS BAR */}
-        <View style={styles.progContainer}>
-          <View style={styles.progHeader}>
-            <Text style={styles.progLabel}>Progres Belajar</Text>
-            <Text style={styles.progVal}>{Math.round(courseProgress.pct * 100)}%</Text>
-          </View>
-          <View style={styles.progTrack}>
-            <View style={[styles.progFill, { width: `${courseProgress.pct * 100}%` }]} />
-          </View>
-          <Text style={styles.progSub}>
-            {courseProgress.done} dari {courseProgress.total} materi selesai
-          </Text>
-          
-          <View style={styles.targetRow}>
-            {path?.targetDate ? (
-              <TouchableOpacity onPress={handleEditTarget} style={styles.targetStatusInfo}>
-                <LucideIcons.Calendar size={12} color="#fff" />
-                <Text style={styles.targetStatusText}>
-                  Target: {new Date(path.targetDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} 
-                  {courseProgress.status === "behind" && " • Perlu Kejar!"}
-                  {courseProgress.status === "ontrack" && " • On Track"}
-                  {courseProgress.status === "overdue" && " • Lewat Target!"}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={handleEditTarget} style={styles.setTargetBtn}>
-                <LucideIcons.Target size={12} color="#fff" />
-                <Text style={styles.targetStatusText}>Atur Target Selesai</Text>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity 
-              onPress={handleDownloadReport}
-              style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}
+            <TouchableOpacity
+              onPress={handleAISummary}
+              style={[styles.addBtn, { marginLeft: 8 }]}
+              activeOpacity={0.8}
             >
-              <LucideIcons.FileDown size={14} color="#fff" />
-              <Text style={styles.downloadReportText}>Laporan</Text>
+              <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
+                {aiLoading ? <ActivityIndicator size="small" color="#fff" /> : <Sparkles size={18} color={colors.white} />}
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => path && shareCourseBeam(path.id, path.name)}
+              style={[styles.addBtn, { marginLeft: 8 }]}
+              activeOpacity={0.8}
+            >
+              <LinearGradient colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.15)"]} style={styles.addGrad}>
+                <Zap size={18} color={colors.white} />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+          {!!path?.description && (
+            <Text style={styles.headerDesc} numberOfLines={2}>{path.description}</Text>
+          )}
 
-        {courseProgress.pct === 1 && courseProgress.total > 0 && (
-          <TouchableOpacity 
-            style={styles.certClaimCard} 
-            onPress={handleClaimCertificate}
-            activeOpacity={0.85}
-          >
-            <LinearGradient colors={["#F59E0B", "#D97706"]} style={styles.certClaimGrad} start={{x:0,y:0}} end={{x:1,y:1}}>
-              <LucideIcons.Award size={20} color="#fff" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.certClaimTitle}>Kursus Selesai!</Text>
-                <Text style={styles.certClaimSub}>Klik untuk klaim Sertifikat Kelulusan Anda</Text>
-              </View>
-              <LucideIcons.ChevronRight size={18} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+          {/* PROGRESS BAR */}
+          <View style={styles.progContainer}>
+            <View style={styles.progHeader}>
+              <Text style={styles.progLabel}>Progres Belajar</Text>
+              <Text style={styles.progVal}>{Math.round(courseProgress.pct * 100)}%</Text>
+            </View>
+            <View style={styles.progTrack}>
+              <View style={[styles.progFill, { width: `${courseProgress.pct * 100}%` }]} />
+            </View>
+            <Text style={styles.progSub}>
+              {courseProgress.done} dari {courseProgress.total} materi selesai
+            </Text>
+            
+            <View style={styles.targetRow}>
+              {path?.targetDate ? (
+                <TouchableOpacity onPress={handleEditTarget} style={styles.targetStatusInfo}>
+                  <Calendar size={12} color="#fff" />
+                  <Text style={styles.targetStatusText}>
+                    Target: {new Date(path.targetDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} 
+                    {courseProgress.status === "behind" && " • Perlu Kejar!"}
+                    {courseProgress.status === "ontrack" && " • On Track"}
+                    {courseProgress.status === "overdue" && " • Lewat Target!"}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={handleEditTarget} style={styles.setTargetBtn}>
+                  <Target size={12} color="#fff" />
+                  <Text style={styles.targetStatusText}>Atur Target Selesai</Text>
+                </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity 
+                onPress={handleDownloadReport}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}
+              >
+                <FileDown size={14} color="#fff" />
+                <Text style={styles.downloadReportText}>Laporan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {courseProgress.pct === 1 && courseProgress.total > 0 && (
+            <TouchableOpacity 
+              style={styles.certClaimCard} 
+              onPress={handleClaimCertificate}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={["#F59E0B", "#D97706"]} style={styles.certClaimGrad} start={{x:0,y:0}} end={{x:1,y:1}}>
+                <Award size={20} color="#fff" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.certClaimTitle}>Kursus Selesai!</Text>
+                  <Text style={styles.certClaimSub}>Klik untuk klaim Sertifikat Kelulusan Anda</Text>
+                </View>
+                <ChevronRight size={18} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
       </LinearGradient>
 
       {/* MODULE LIST */}
@@ -555,7 +600,7 @@ export default function CourseDetailPage() {
             style={styles.emptyModBtn}
             activeOpacity={0.8}
           >
-            <LucideIcons.PlusCircle size={18} color={colors.primary} />
+            <PlusCircle size={18} color={colors.primary} />
             <Text style={styles.emptyModText}>{t.course.empty_mod}</Text>
           </TouchableOpacity>
         )}
@@ -599,11 +644,11 @@ export default function CourseDetailPage() {
                       style={styles.moreBtn}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <LucideIcons.MoreVertical size={18} color={colors.textMuted} />
+                      <MoreVertical size={18} color={colors.textMuted} />
                     </TouchableOpacity>
                   </View>
 
-                  <LucideIcons.ChevronDown
+                  <ChevronDown
                     size={16} color={colors.textMuted}
                     style={isExpanded && { transform: [{ rotate: "180deg" }] }}
                   />
@@ -635,7 +680,7 @@ export default function CourseDetailPage() {
                               ]}
                             >
                               {completions.includes(lesson.id) && (
-                                <LucideIcons.Check size={10} color={grad[0]} />
+                                <Check size={10} color={grad[0]} />
                               )}
                             </TouchableOpacity>
                             <Text 
@@ -653,14 +698,14 @@ export default function CourseDetailPage() {
                               style={[styles.lessonActionBtn, { backgroundColor: colors.primaryLight, marginRight: 6 }]}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
-                              <LucideIcons.Edit3 size={12} color={colors.primary} />
+                              <Edit3 size={12} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleDeleteLesson(lesson)}
                               style={styles.lessonActionBtn}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
-                              <LucideIcons.Trash2 size={12} color={colors.danger} />
+                              <Trash2 size={12} color={colors.danger} />
                             </TouchableOpacity>
                           </View>
                           {!!lesson.description && (
@@ -714,7 +759,7 @@ export default function CourseDetailPage() {
                 }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: colors.primaryLight }]}>
-                  <LucideIcons.Edit3 size={16} color={colors.primary} />
+                  <Edit3 size={16} color={colors.primary} />
                 </View>
                 <Text style={styles.menuText}>Edit Nama & Ikon</Text>
               </TouchableOpacity>
@@ -727,7 +772,7 @@ export default function CourseDetailPage() {
                 }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: colors.purpleLight }]}>
-                  <LucideIcons.ArrowRightLeft size={16} color={colors.purple} />
+                  <ArrowRightLeft size={16} color={colors.purple} />
                 </View>
                 <Text style={styles.menuText}>Pindahkan ke Kursus Lain</Text>
               </TouchableOpacity>
@@ -740,7 +785,7 @@ export default function CourseDetailPage() {
                 }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: "#FFF7ED" }]}>
-                  <LucideIcons.GitMerge size={16} color="#F97316" />
+                  <GitMerge size={16} color="#F97316" />
                 </View>
                 <Text style={styles.menuText}>Gabungkan Modul</Text>
               </TouchableOpacity>
@@ -753,7 +798,7 @@ export default function CourseDetailPage() {
                 }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: "#F0FDF4" }]}>
-                  <LucideIcons.Zap size={16} color="#22C55E" />
+                  <Zap size={16} color="#22C55E" />
                 </View>
                 <Text style={styles.menuText}>Import Smart Kanji</Text>
               </TouchableOpacity>
@@ -768,7 +813,7 @@ export default function CourseDetailPage() {
                 }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: "#FEF2F2" }]}>
-                  <LucideIcons.Trash2 size={16} color={colors.danger} />
+                  <Trash2 size={16} color={colors.danger} />
                 </View>
                 <Text style={[styles.menuText, { color: colors.danger }]}>Hapus Modul</Text>
               </TouchableOpacity>
@@ -782,6 +827,23 @@ export default function CourseDetailPage() {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showAIModal} transparent animationType="fade" onRequestClose={() => setShowAIModal(false)}>
+        <View style={styles.mOverlay}>
+           <View style={[styles.mBox, { padding: 24 }]}>
+              <View style={styles.modalHeader}>
+                 <Sparkles size={22} color={colors.primary} />
+                 <Text style={styles.mTitle}>AI Smart Planner</Text>
+              </View>
+              <ScrollView style={{ maxHeight: 350, marginVertical: 12 }}>
+                 <Text style={styles.aiContent}>{aiResponse}</Text>
+              </ScrollView>
+              <TouchableOpacity style={styles.startBtn} onPress={() => setShowAIModal(false)}>
+                 <Text style={styles.startBtnText}>Ayo Belajar!</Text>
+              </TouchableOpacity>
+           </View>
+        </View>
       </Modal>
 
       {/* MODALS */}
@@ -878,7 +940,7 @@ export default function CourseDetailPage() {
                 placeholderTextColor={colors.textMuted}
               />
               <View style={styles.calloutTarget}>
-                <LucideIcons.Info size={14} color={colors.primary} />
+                <Info size={14} color={colors.primary} />
                 <Text style={styles.calloutTargetText}>
                   Sistem akan menghitung beban belajar harian agar Anda selesai tepat waktu.
                 </Text>
@@ -935,7 +997,7 @@ export default function CourseDetailPage() {
                       <Text style={styles.movePathDesc} numberOfLines={1}>{p.description}</Text>
                     )}
                   </View>
-                  <LucideIcons.ChevronRight size={16} color={colors.textMuted} />
+                  <ChevronRight size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -1111,6 +1173,10 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   mOverlay: { flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.8)" : "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
   mBox: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
   mTitle: { fontSize: 20, fontWeight: "900", color: c.text },
+  modalHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  aiContent: { fontSize: 14, color: c.textSecondary, lineHeight: 22, fontWeight: "500" },
+  startBtn: { backgroundColor: c.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  startBtnText: { fontSize: 14, fontWeight: "900", color: "#fff" },
   mInput: {
     backgroundColor: c.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 13,

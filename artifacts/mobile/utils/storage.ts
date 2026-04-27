@@ -18,6 +18,7 @@ export interface StandaloneCollection {
   id: string;          // always starts with STANDALONE_COLLECTION_PREFIX
   name: string;
   description?: string;
+  userId?: string;
   type: "flashcard" | "quiz";
   createdAt: string;
 }

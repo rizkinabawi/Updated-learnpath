@@ -25,7 +25,6 @@ try {
 } catch(e) {
   console.warn("Native PDF/Sharing modules unavailable at top-level");
 }
-import { PromptBuilder } from "@/components/PromptBuilder";
 import {
   getStats, getProgress, getUser, getLearningPaths, getModules, getLessons,
   getSessionLogs,
@@ -212,7 +211,6 @@ export default function ProgressTab() {
   const TABS: { key: Tab; icon: React.ComponentProps<typeof Feather>["name"]; label: string }[] = [
     { key: "stats",    icon: "bar-chart-2", label: t.progress.tab_stats },
     { key: "classify", icon: "layers",      label: t.progress.tab_classify },
-    { key: "prompts",  icon: "zap",         label: t.progress.tab_prompts },
   ];
 
   return (
@@ -713,7 +711,6 @@ export default function ProgressTab() {
         </ScrollView>
       )}
 
-      {tab === "prompts" && <PromptBuilder />}
 
       {/* ===== HIDDEN SHARE CARD (captured by react-native-view-shot) ===== */}
       <View

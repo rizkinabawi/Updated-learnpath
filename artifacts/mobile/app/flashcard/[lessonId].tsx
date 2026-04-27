@@ -13,15 +13,16 @@ import {
   InteractionManager,
   Modal,
   TouchableWithoutFeedback,
+  ActivityIndicator,
+  Alert,
   type ListRenderItem,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, Plus, RotateCcw, Check, Volume2 } from "lucide-react-native";
+import { X, Plus, RotateCcw, Check, Volume2, MoreVertical, Settings2, Sparkles, PlusCircle, Bookmark } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { speak, stop } from "@/utils/tts";
 import { TTSConfigModal } from "@/components/TTSConfigModal";
-import { Settings2 } from "lucide-react-native";
 // NOTE: Do NOT call useAudioPlayer() at module scope with undefined/null as the
 // initial source — on release builds the native AVPlayer (iOS) / MediaPlayer
 // (Android) constructor throws immediately, causing an open-time crash that
@@ -51,6 +52,9 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { resolveAssetUri, resolveAssetUris } from "@/utils/path-resolver";
+import { getApiKeys } from "@/utils/ai-keys";
+import { callAI } from "@/utils/ai-providers";
+import { toast } from "@/components/Toast";
 
 // ─── Defensive coercion helpers ─────────────────────────────────────
 // Anki-imported (or 3rd-party JSON-imported) flashcards can occasionally have
@@ -168,7 +172,10 @@ export default function FlashcardScreen() {
   const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showTTSConfig, setShowTTSConfig] = useState(false);
-
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [showToolMenu, setShowToolMenu] = useState(false);
   const card = cards[currentIndex];
 
   // ── Imperative audio player (BUG FIX) ───────────────────────────────────
@@ -281,6 +288,31 @@ export default function FlashcardScreen() {
   const triggerXP = () => {
     xpAnim.setValue(0);
     Animated.timing(xpAnim, { toValue: 1, duration: 1200, useNativeDriver: true }).start();
+  };
+
+  const handleAIAssist = async (type: "explain" | "example") => {
+    if (aiLoading || !card) return;
+    setAiLoading(true);
+    try {
+      const keys = await getApiKeys();
+      const key = keys.find(k => k.provider === "gemini") || keys[0];
+      if (!key) {
+        Alert.alert("API Key Dibutuhkan", "Harap pasang API Key di pengaturan untuk menggunakan asisten AI.");
+        return;
+      }
+
+      const prompt = type === "explain" 
+        ? `Jelaskan secara mendalam tentang kartu ini (tata bahasa, penggunaan, atau nuansa).\nDepan: ${card.question}\nBelakang: ${card.answer}`
+        : `Berikan 3 contoh kalimat yang natural menggunakan kata/kalimat ini: "${card.question}" (jika bahasa Jepang, sertakan furigana/romaji).`;
+
+      const { content } = await callAI(key.provider as any, prompt, key.apiKey, key.model);
+      setAiResponse(content);
+      setShowAIModal(true);
+    } catch (e: any) {
+      toast.error("Gagal memanggil AI.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleWordTap = useCallback((word: string) => {
@@ -562,35 +594,14 @@ export default function FlashcardScreen() {
         </Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
-            onPress={() =>
-              setViewMode((m) => (m === "card" ? "table" : "card"))
-            }
+            onPress={() => setViewMode((m) => (m === "card" ? "table" : "card"))}
             style={styles.navBtn}
             accessibilityLabel="Ganti tampilan"
           >
-            <Feather
-              name={viewMode === "card" ? "list" : "credit-card"}
-              size={18}
-              color={colors.text}
-            />
+            <Feather name={viewMode === "card" ? "list" : "credit-card"} size={18} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowTTSConfig(true)} style={styles.navBtn}>
-            <Settings2 size={18} color={colors.text} />
-          </TouchableOpacity>
-          {viewMode === "card" && (
-            <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
-              <Feather
-                name="bookmark"
-                size={18}
-                color={bookmarked ? "#F59E0B" : colors.textMuted}
-              />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={() => router.push(`/create-flashcard/${lessonId}`)}
-            style={styles.navBtn}
-          >
-            <Plus size={20} color={colors.text} />
+          <TouchableOpacity style={styles.navBtn} onPress={() => setShowToolMenu(true)}>
+            <MoreVertical size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -669,6 +680,91 @@ export default function FlashcardScreen() {
         visible={showTTSConfig}
         onClose={() => setShowTTSConfig(false)}
       />
+
+      <Modal visible={showAIModal} transparent animationType="fade" onRequestClose={() => setShowAIModal(false)}>
+        <View style={styles.modalBg}>
+           <View style={styles.aiModal}>
+              <View style={styles.modalHeader}>
+                 <Sparkles size={22} color={colors.primary} />
+                 <Text style={styles.modalTitle}>Asisten AI</Text>
+              </View>
+              <ScrollView style={{ maxHeight: 350, marginVertical: 12 }}>
+                 <Text style={styles.aiContent}>{aiResponse}</Text>
+              </ScrollView>
+              <View style={styles.aiModalFooter}>
+                <TouchableOpacity style={styles.aiExampleBtn} onPress={() => handleAIAssist("example")}>
+                   <PlusCircle size={16} color={colors.primary} />
+                   <Text style={styles.aiExampleText}>Contoh Lain</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.aiCloseBtn} onPress={() => setShowAIModal(false)}>
+                   <Text style={styles.aiCloseText}>Paham</Text>
+                </TouchableOpacity>
+              </View>
+           </View>
+        </View>
+      </Modal>
+
+      {/* ── Tool menu popup ─────────────────────────────────────── */}
+      <Modal visible={showToolMenu} transparent animationType="fade" onRequestClose={() => setShowToolMenu(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowToolMenu(false)}>
+          <View style={styles.toolOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={[styles.toolSheet, { backgroundColor: colors.surface }]}>
+                <View style={[styles.toolHandle, { backgroundColor: colors.border }]} />
+
+                {/* TTS */}
+                <TouchableOpacity style={styles.toolItem} onPress={() => { setShowToolMenu(false); setShowTTSConfig(true); }}>
+                  <View style={[styles.toolIcon, { backgroundColor: colors.primaryLight }]}>
+                    <Settings2 size={18} color={colors.primary} />
+                  </View>
+                  <View style={styles.toolItemText}>
+                    <Text style={[styles.toolItemTitle, { color: colors.text }]}>Pengaturan TTS</Text>
+                    <Text style={[styles.toolItemSub, { color: colors.textMuted }]}>Kecepatan & suara text-to-speech</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* AI */}
+                <TouchableOpacity style={styles.toolItem} onPress={() => { setShowToolMenu(false); handleAIAssist("explain"); }}>
+                  <View style={[styles.toolIcon, { backgroundColor: colors.primaryLight }]}>
+                    {aiLoading
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Sparkles size={18} color={colors.primary} />}
+                  </View>
+                  <View style={styles.toolItemText}>
+                    <Text style={[styles.toolItemTitle, { color: colors.text }]}>Asisten AI</Text>
+                    <Text style={[styles.toolItemSub, { color: colors.textMuted }]}>Minta penjelasan kartu ini ke AI</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Bookmark */}
+                {viewMode === "card" && (
+                  <TouchableOpacity style={styles.toolItem} onPress={() => { setShowToolMenu(false); handleBookmark(); }}>
+                    <View style={[styles.toolIcon, { backgroundColor: bookmarked ? "#FEF3C7" : colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+                      <Bookmark size={18} color={bookmarked ? "#F59E0B" : colors.textMuted} fill={bookmarked ? "#F59E0B" : "transparent"} />
+                    </View>
+                    <View style={styles.toolItemText}>
+                      <Text style={[styles.toolItemTitle, { color: colors.text }]}>{bookmarked ? "Hapus Bookmark" : "Simpan Bookmark"}</Text>
+                      <Text style={[styles.toolItemSub, { color: colors.textMuted }]}>Tandai kartu ini untuk diulas nanti</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {/* Add card */}
+                <TouchableOpacity style={styles.toolItem} onPress={() => { setShowToolMenu(false); router.push(`/create-flashcard/${lessonId}`); }}>
+                  <View style={[styles.toolIcon, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+                    <Plus size={18} color={colors.text} />
+                  </View>
+                  <View style={styles.toolItemText}>
+                    <Text style={[styles.toolItemTitle, { color: colors.text }]}>Tambah Kartu</Text>
+                    <Text style={[styles.toolItemSub, { color: colors.textMuted }]}>Buat flashcard baru di pelajaran ini</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
     </View>
   );
 }
@@ -1085,6 +1181,16 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   },
   addBtnText: { color: c.white, fontWeight: "800", fontSize: 14 },
   backLink: { marginTop: 8 },
+  modalCloseBtn: { position: "absolute", top: 40, right: 20, padding: 10 },
+  aiModal: { backgroundColor: c.surface, width: "85%", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: c.border },
+  aiContent: { fontSize: 15, color: c.textSecondary, lineHeight: 22, fontWeight: "500" },
+  aiModalFooter: { flexDirection: "row", gap: 10, marginTop: 10 },
+  aiExampleBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: c.primary + "15", paddingVertical: 12, borderRadius: 14 },
+  aiExampleText: { fontSize: 14, fontWeight: "700", color: c.primary },
+  aiCloseBtn: { flex: 1, backgroundColor: c.primary, paddingVertical: 12, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  aiCloseText: { fontSize: 14, fontWeight: "800", color: "#fff" },
+  modalHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontWeight: "900", color: c.text },
   backLinkText: { color: c.primary, fontWeight: "700", fontSize: 14 },
   nav: {
     flexDirection: "row",
@@ -1328,14 +1434,6 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     alignItems: "center",
   },
   modalImg: { width: "90%", height: "80%" },
-  modalCloseBtn: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    padding: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 20,
-  },
   tableMediaRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1450,4 +1548,19 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     elevation: 8,
   },
   xpText: { fontSize: 18, fontWeight: "900", color: "#fff" },
+
+  // ── Tool menu popup ─────────────────────────────────────────────
+  toolOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  toolSheet: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: 20, paddingBottom: 40, paddingTop: 14, gap: 4,
+    shadowColor: "#000", shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15, shadowRadius: 20, elevation: 20,
+  },
+  toolHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  toolItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12 },
+  toolIcon: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  toolItemText: { flex: 1 },
+  toolItemTitle: { fontSize: 15, fontWeight: "700" },
+  toolItemSub: { fontSize: 12, marginTop: 1 },
 });

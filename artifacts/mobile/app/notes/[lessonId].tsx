@@ -30,6 +30,8 @@ import {
   Paperclip,
   Share2,
   Download,
+  Camera,
+  Sparkles,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { printHtml } from "@/utils/print-compat";
@@ -447,9 +449,18 @@ export default function NotesScreen() {
             ]}
           >
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
-              {editNote ? t.notes.modal_edit : t.notes.modal_new}
-            </Text>
+            <View style={styles.modalHeaderRow}>
+               <Text style={styles.modalTitle}>
+                 {editNote ? t.notes.modal_edit : t.notes.modal_new}
+               </Text>
+               <TouchableOpacity 
+                 onPress={() => router.push({ pathname: "/smart-scanner", params: { mode: "note", lessonId } })}
+                 style={styles.scanBtn}
+               >
+                 <Camera size={18} color={colors.primary} />
+                 <Text style={styles.scanBtnText}>Smart Scan</Text>
+               </TouchableOpacity>
+            </View>
 
             <ScrollView
               keyboardShouldPersistTaps="handled"
@@ -662,11 +673,16 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   },
   modalBox: {
     backgroundColor: c.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 24,
     paddingTop: 12,
-    gap: 8,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
   },
   modalHandle: {
     width: 40,
@@ -676,13 +692,16 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     alignSelf: "center",
     marginBottom: 8,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text, marginBottom: 4 },
+  modalHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text },
+  scanBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.primary + "15", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  scanBtnText: { fontSize: 12, fontWeight: "800", color: c.primary },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
     color: c.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
   },
   input: {
     backgroundColor: c.background,

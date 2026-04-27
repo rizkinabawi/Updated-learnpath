@@ -11,15 +11,16 @@ import {
   Animated,
   Modal,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, ChevronRight, Check, Plus, RotateCcw, Volume2, Timer as TimerIcon } from "lucide-react-native";
+import { X, ChevronRight, Check, Plus, RotateCcw, Volume2, Timer as TimerIcon, Sparkles, Settings2 } from "lucide-react-native";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { Feather } from "@expo/vector-icons";
 import { speak, stop } from "@/utils/tts";
 import { TTSConfigModal } from "@/components/TTSConfigModal";
-import { Settings2 } from "lucide-react-native";
 import { AdBanner } from "@/components/AdBanner";
 import * as Haptics from "expo-haptics";
 import {
@@ -42,6 +43,9 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { resolveAssetUri } from "@/utils/path-resolver";
+import { getApiKeys } from "@/utils/ai-keys";
+import { callAI } from "@/utils/ai-providers";
+import { toast } from "@/components/Toast";
 
 export default function QuizScreen() {
   const colors = useColors();
@@ -72,6 +76,9 @@ export default function QuizScreen() {
   const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showTTSConfig, setShowTTSConfig] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
+  const [showAIModal, setShowAIModal] = useState(false);
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -212,6 +219,31 @@ export default function QuizScreen() {
   const triggerXP = () => {
     xpAnim.setValue(0);
     Animated.timing(xpAnim, { toValue: 1, duration: 1200, useNativeDriver: true }).start();
+  };
+
+  const handleAIAssist = async (type: "hint" | "explain") => {
+    if (aiLoading || !currentQuiz) return;
+    setAiLoading(true);
+    try {
+      const keys = await getApiKeys();
+      const key = keys.find(k => k.provider === "gemini") || keys[0];
+      if (!key) {
+        Alert.alert("API Key Dibutuhkan", "Harap pasang API Key di pengaturan untuk menggunakan asisten AI.");
+        return;
+      }
+
+      const prompt = type === "hint" 
+        ? `Berikan petunjuk (hint) kecil untuk soal kuis berikut tanpa membocorkan jawaban langsungnya.\nSoal: ${currentQuiz.question}\nPilihan: ${currentQuiz.options.join(", ")}`
+        : `Jelaskan secara singkat kenapa jawaban "${currentQuiz.answer}" adalah jawaban yang benar untuk soal ini.\nSoal: ${currentQuiz.question}`;
+
+      const { content } = await callAI(key.provider as any, prompt, key.apiKey, key.model);
+      setAiResponse(content);
+      setShowAIModal(true);
+    } catch (e: any) {
+      toast.error("Gagal memanggil AI.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleOptionSelect = async (idx: number) => {
@@ -359,6 +391,9 @@ export default function QuizScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={handleBookmark} style={styles.navBtn}>
             <Feather name="bookmark" size={18} color={bookmarked ? "#F59E0B" : colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleAIAssist(isAnswered ? "explain" : "hint")} style={[styles.navBtn, { backgroundColor: colors.primary + "15" }]}>
+            {aiLoading ? <ActivityIndicator size="small" color={colors.primary} /> : <Sparkles size={18} color={colors.primary} />}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push(`/create-quiz/${lessonId}`)} style={styles.navBtn}>
             <Plus size={20} color={colors.text} />
@@ -552,6 +587,23 @@ export default function QuizScreen() {
         visible={showTTSConfig}
         onClose={() => setShowTTSConfig(false)}
       />
+
+      <Modal visible={showAIModal} transparent animationType="fade" onRequestClose={() => setShowAIModal(false)}>
+        <View style={styles.modalOverlay}>
+           <View style={styles.aiModal}>
+              <View style={styles.modalHeader}>
+                 <Sparkles size={22} color={colors.primary} />
+                 <Text style={styles.modalTitle}>Asisten AI</Text>
+              </View>
+              <ScrollView style={{ maxHeight: 300, marginVertical: 12 }}>
+                 <Text style={styles.aiContent}>{aiResponse}</Text>
+              </ScrollView>
+              <TouchableOpacity style={[styles.startBtn, { marginTop: 10 }]} onPress={() => setShowAIModal(false)}>
+                 <Text style={styles.startBtnText}>Paham</Text>
+              </TouchableOpacity>
+           </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -815,8 +867,10 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     alignItems: "center",
     gap: 10,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text },
-  modalDesc: { fontSize: 14, color: c.textMuted, lineHeight: 20 },
+  modalTitle: { fontSize: 18, fontWeight: "900", color: c.text },
+  aiModal: { backgroundColor: c.surface, width: "85%", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: c.border },
+  aiContent: { fontSize: 15, color: c.textSecondary, lineHeight: 22, fontWeight: "500" },
+  modalDesc: { fontSize: 14, color: c.textMuted, marginTop: 4, lineHeight: 20, fontWeight: "500" },
   inputWrap: { gap: 8 },
   inputLabel: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
   timerInput: {

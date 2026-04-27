@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import { Camera } from "lucide-react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "@/utils/fs-compat";
@@ -343,10 +344,10 @@ export default function LearnPage() {
                     Alert.alert(
                       "Pilih Kursus",
                       "Pilih kursus yang ingin dikirim lewat WiFi/Bluetooth:",
-                      paths.map(p => ({
+                      (paths.map(p => ({
                         text: p.name,
-                        onPress: () => shareCourseBeam(p.id, p.name)
-                      })).concat([{ text: "Batal", style: "cancel" }])
+                        onPress: async () => { shareCourseBeam(p.id, p.name); }
+                      })) as any[]).concat([{ text: "Batal", style: "cancel" }])
                     );
                   }
                 }}
@@ -361,13 +362,13 @@ export default function LearnPage() {
                 style={styles.menuItem} 
                 onPress={() => {
                   setShowTools(false);
-                  router.push("/import-jlpt");
+                  router.push("/import-manager");
                 }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: "#FDF2F8" }]}>
-                  <Feather name="file-text" size={18} color="#DB2777" />
+                  <Feather name="download" size={18} color="#DB2777" />
                 </View>
-                <Text style={styles.menuText}>JLPT Smart Import</Text>
+                <Text style={styles.menuText}>Smart Import Hub</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -388,7 +389,7 @@ export default function LearnPage() {
                 onPress={() => { setShowTools(false); router.push("/smart-scanner"); }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: "#EEF2FF" }]}>
-                  <LucideIcons.Camera size={18} color={colors.primary} />
+                  <Camera size={18} color={colors.primary} />
                 </View>
                 <Text style={styles.menuText}>Smart Scan (Foto Buku)</Text>
                 <View style={styles.aiBadge}>
@@ -530,7 +531,7 @@ export default function LearnPage() {
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push("/import-jlpt")} activeOpacity={0.85}>
+            <TouchableOpacity onPress={() => router.push("/import-manager")} activeOpacity={0.85}>
               <LinearGradient
                 colors={[colors.purple, colors.accent]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -538,10 +539,10 @@ export default function LearnPage() {
               >
                 <View style={styles.hdot1} /><View style={styles.hdot2} />
                 <View style={styles.emptyIconWrap}>
-                  <Feather name="book-open" size={40} color="rgba(255,255,255,0.9)" />
+                  <Feather name="download" size={40} color="rgba(255,255,255,0.9)" />
                 </View>
-                <Text style={styles.emptyTitle}>JLPT Smart Import</Text>
-                <Text style={styles.emptySub}>Impor ribuan soal JLPT dari file JSON secara instan</Text>
+                <Text style={styles.emptyTitle}>Smart Import Hub</Text>
+                <Text style={styles.emptySub}>Impor kursus (.lpack) atau koleksi (.lcoll) secara instan</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

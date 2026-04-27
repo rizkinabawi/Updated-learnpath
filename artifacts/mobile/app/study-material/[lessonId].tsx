@@ -37,6 +37,8 @@ import {
   Video,
   FileImage,
   Globe,
+  Camera,
+  Sparkles,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "@/utils/fs-compat";
@@ -932,7 +934,20 @@ export default function StudyMaterialScreen() {
             ]}
           >
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{editMat ? "Edit Materi" : `${t.common.add} ${t.common.material}`}</Text>
+            <View style={styles.modalHeaderRow}>
+               <Text style={styles.modalTitle}>
+                 {editMat ? "Edit Materi" : `${t.common.add} ${t.common.material}`}
+               </Text>
+               {(activeTab === "text" || activeTab === "html") && (
+                 <TouchableOpacity 
+                   onPress={() => router.push({ pathname: "/smart-scanner", params: { mode: "material", lessonId: safeLesson } })}
+                   style={styles.scanBtn}
+                 >
+                   <Camera size={18} color={colors.primary} />
+                   <Text style={styles.scanBtnText}>Smart Scan</Text>
+                 </TouchableOpacity>
+               )}
+            </View>
 
             <ScrollView
               keyboardShouldPersistTaps="handled"
@@ -1275,14 +1290,25 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   },
   modalBox: {
     backgroundColor: c.surface,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingHorizontal: 20, paddingTop: 12, gap: 8,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
   },
   modalHandle: {
     width: 40, height: 4, borderRadius: 2,
     backgroundColor: c.border, alignSelf: "center", marginBottom: 8,
   },
-  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text, marginBottom: 4 },
+  modalHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text },
+  scanBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.primary + "15", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  scanBtnText: { fontSize: 12, fontWeight: "800", color: c.primary },
   tabRow: { flexDirection: "row", gap: 6, marginBottom: 4 },
   tabBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,

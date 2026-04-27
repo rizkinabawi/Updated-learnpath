@@ -10,11 +10,19 @@ import {
   TouchableOpacity,
   Animated,
   InteractionManager,
+  Alert,
+  Modal,
+  ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as LucideIcons from "lucide-react-native";
-import { getLessons, getModules, type Lesson, type Module } from "@/utils/storage";
+import { ChevronLeft, FileText, BookOpen, Layers, CheckSquare, Settings, Sparkles, ChevronRight, Send, X } from "lucide-react-native";
+import { getLessons, getModules, getStudyMaterials, saveNote, generateId, type Lesson, type Module } from "@/utils/storage";
+import { getApiKeys } from "@/utils/ai-keys";
+import { callAI } from "@/utils/ai-providers";
+import { toast } from "@/components/Toast";
+import { LinearGradient } from "expo-linear-gradient";
 
 import MaterialSection from "@/components/learning/MaterialSection";
 import NotesSection from "@/components/learning/NotesSection";
@@ -38,11 +46,16 @@ export default function LessonHub() {
   const scrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
+
   const tabs = [
-    { id: "material", label: "Materi", icon: LucideIcons.BookOpen },
-    { id: "notes", label: "Catatan", icon: LucideIcons.FileText },
-    { id: "flashcard", label: "Flashcard", icon: LucideIcons.Layers },
-    { id: "quiz", label: "Kuis", icon: LucideIcons.CheckSquare },
+    { id: "material", label: "Materi", icon: BookOpen },
+    { id: "notes", label: "Catatan", icon: FileText },
+    { id: "flashcard", label: "Flashcard", icon: Layers },
+    { id: "quiz", label: "Kuis", icon: CheckSquare },
   ];
 
   useEffect(() => {
@@ -115,6 +128,54 @@ export default function LessonHub() {
     }
   };
 
+  const handleAINoteGen = async () => {
+    if (aiLoading || !lessonId) return;
+    setAiLoading(true);
+    try {
+      const keys = await getApiKeys();
+      const key = keys.find(k => k.provider === "gemini") || keys[0];
+      if (!key) {
+        Alert.alert("API Key Dibutuhkan", "Harap pasang API Key di pengaturan.");
+        return;
+      }
+
+      const materials = await getStudyMaterials(lessonId);
+      const textMaterials = materials.filter(m => m.type === "text" || m.type === "html");
+      
+      if (textMaterials.length === 0) {
+        toast.error("Tidak ada materi teks untuk dianalisa.");
+        return;
+      }
+
+      const content = textMaterials.map(m => `Title: ${m.title}\nContent: ${m.content}`).join("\n\n");
+      
+      const prompt = customPrompt.trim() 
+        ? `${customPrompt}\n\nMATERI REFERENSI:\n${content}`
+        : `Buatkan catatan ringkasan poin-poin penting (bullet points) dari materi berikut.\n\nMATERI:\n${content}\n\nBahasa: Bahasa Indonesia.`;
+
+      const { content: aiNote } = await callAI(key.provider as any, prompt, key.apiKey, key.model);
+      
+      await saveNote({
+        id: generateId(),
+        lessonId,
+        title: "AI Summary: " + (lesson?.name || "Materi"),
+        content: aiNote,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      setAiResponse(aiNote);
+      setShowAIModal(true);
+      toast.success("Catatan AI berhasil dibuat!");
+      scrollToIndex(1); // Switch to notes tab
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Gagal generate catatan.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const indicatorTranslate = scrollX.interpolate({
     inputRange: [0, SCREEN_WIDTH * (tabs.length - 1)],
     outputRange: [0, (SCREEN_WIDTH - 32) * ((tabs.length - 1) / tabs.length)],
@@ -126,14 +187,17 @@ export default function LessonHub() {
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 20 : insets.top + 10 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <LucideIcons.ChevronLeft size={22} color={colors.text} />
+            <ChevronLeft size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.headerTitle} numberOfLines={1}>{lesson?.name || "Memuat..."}</Text>
             <Text style={styles.headerSub}>Lesson Hub</Text>
           </View>
+          <TouchableOpacity onPress={handleAINoteGen} style={[styles.backBtn, { marginRight: 8, backgroundColor: colors.primary + "15" }]}>
+            {aiLoading ? <ActivityIndicator size="small" color={colors.primary} /> : <Sparkles size={18} color={colors.primary} />}
+          </TouchableOpacity>
           <TouchableOpacity style={styles.backBtn}>
-            <LucideIcons.Settings size={18} color={colors.textMuted} />
+            <Settings size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
@@ -144,7 +208,7 @@ export default function LessonHub() {
              style={[styles.navStep, !hasPrev && { opacity: 0.3 }]}
              disabled={!hasPrev}
            >
-              <LucideIcons.ChevronLeft size={14} color={colors.text} />
+              <ChevronLeft size={14} color={colors.text} />
               <Text style={styles.navStepText}>Prev</Text>
            </TouchableOpacity>
            <View style={styles.navDivider} />
@@ -154,7 +218,7 @@ export default function LessonHub() {
              disabled={!hasNext}
            >
               <Text style={styles.navStepText}>Next</Text>
-              <LucideIcons.ChevronRight size={14} color={colors.text} />
+              <ChevronRight size={14} color={colors.text} />
            </TouchableOpacity>
         </View>
 
@@ -222,6 +286,57 @@ export default function LessonHub() {
            <QuizSection lessonId={lessonId} />
         </View>
       </Animated.ScrollView>
+
+      <Modal visible={showAIModal} transparent animationType="fade" onRequestClose={() => setShowAIModal(false)}>
+        <View style={styles.modalBg}>
+           <View style={styles.aiModal}>
+              <View style={styles.modalHeader}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                  <View style={{ backgroundColor: colors.primary + "15", padding: 8, borderRadius: 10 }}>
+                    <Sparkles size={20} color={colors.primary} />
+                  </View>
+                  <Text style={styles.modalTitle}>AI Assistant</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowAIModal(false)} style={styles.closeModalBtn}>
+                  <X size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 300, marginVertical: 12 }}>
+                 <Text style={styles.aiContent}>{aiResponse || "Tanyakan sesuatu tentang materi ini..."}</Text>
+              </ScrollView>
+
+              <View style={styles.aiInputRow}>
+                <TextInput 
+                  style={styles.aiInput}
+                  placeholder="Tanya kustom (cth: Ringkas dalam 3 poin)"
+                  placeholderTextColor={colors.textMuted}
+                  value={customPrompt}
+                  onChangeText={setCustomPrompt}
+                  multiline
+                />
+                <TouchableOpacity 
+                  style={[styles.aiSendBtn, aiLoading && { opacity: 0.7 }]} 
+                  onPress={handleAINoteGen}
+                  disabled={aiLoading}
+                >
+                  {aiLoading ? <ActivityIndicator size="small" color="#fff" /> : <Send size={18} color="#fff" />}
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowAIModal(false)}>
+                   <LinearGradient
+                     colors={[colors.primary, colors.purple]}
+                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                     style={styles.startBtn}
+                   >
+                     <Text style={styles.startBtnText}>Simpan ke Catatan</Text>
+                   </LinearGradient>
+                </TouchableOpacity>
+              </View>
+           </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -285,4 +400,15 @@ const makeStyles = (c: any, isDark: boolean, palette: string) => StyleSheet.crea
   hubPager: { flexGrow: 1 },
   page: { width: SCREEN_WIDTH },
   placeholderText: { fontSize: 16, fontWeight: "600", color: c.textMuted },
+  aiInputRow: { flexDirection: "row", gap: 10, alignItems: "flex-end", backgroundColor: c.background, padding: 8, borderRadius: 16, borderWidth: 1, borderColor: c.border },
+  aiInput: { flex: 1, maxHeight: 100, fontSize: 14, color: c.text, paddingHorizontal: 8, paddingVertical: 4 },
+  aiSendBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" },
+  modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
+  aiModal: { backgroundColor: c.surface, width: "92%", borderRadius: 32, padding: 24, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+  modalHeader: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  closeModalBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.background, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border },
+  modalTitle: { fontSize: 18, fontWeight: "900", color: c.text },
+  aiContent: { fontSize: 14, color: c.textSecondary, lineHeight: 22, fontWeight: "500" },
+  startBtn: { paddingVertical: 14, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  startBtnText: { color: "#fff", fontWeight: "900", fontSize: 15 },
 });

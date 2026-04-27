@@ -285,6 +285,54 @@ export async function callGemini(
   );
 }
 
+export async function callGeminiVision(
+  prompt: string,
+  base64: string,
+  apiKey: string,
+  model = "gemini-1.5-flash"
+): Promise<AIResponse> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: "image/jpeg",
+                  data: base64,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: { 
+          temperature: 0.4,
+          responseMimeType: "application/json"
+        },
+      }),
+    });
+  } catch (netErr: any) {
+    throw new Error("Gagal terhubung ke Gemini Vision.");
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as any;
+    throw new Error(err?.error?.message || `Gemini Vision error ${res.status}`);
+  }
+
+  const data = await res.json() as any;
+  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  if (!text) throw new Error("Respons Gemini Vision kosong.");
+  return { content: text, usedModel: model };
+}
+
 // ─── Unified entry point ─────────────────────────────────────────
 export async function callAI(
   provider: AIProvider,

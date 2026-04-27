@@ -349,93 +349,126 @@ async function parseAnkiPackageOnce(
     );
   }
 
-  // ── Step 4: Find writable storage ───────────────────────────────────────
-  // expo-sqlite needs a file path in the standard documentDirectory/SQLite/ folder.
+  // ── Step 4 + 5: Open the SQLite database ────────────────────────────────
+  // Two strategies:
+  //   • Web/PWA: use deserializeDatabaseAsync to load from in-memory Uint8Array.
+  //     This avoids needing a writable filesystem (which web doesn't have) and
+  //     also avoids the previous "documentDirectory is undefined" crash.
+  //   • Native: write to documentDirectory/SQLite/ and open by filename. This
+  //     keeps the heavy SQLite bytes off the JS heap (better for big decks).
   onProgress?.({ stage: "loading-engine", message: "Menyiapkan database..." });
 
-  let docDir: string | undefined =
-    (FileSystem as any).documentDirectory ||
-    (FileSystem as any).Paths?.document?.uri ||
-    undefined;
-
-  if (!docDir) {
-    docDir =
-      (FileSystem as any).cacheDirectory ||
-      (FileSystem as any).Paths?.cache?.uri ||
-      undefined;
-    if (docDir) {
-      console.warn("[AnkiParser] Using fallback cacheDirectory:", docDir);
-    }
-  }
-
-  if (typeof docDir !== "string" || docDir.length === 0) {
-    throw new AnkiImportError(
-      "ENGINE_FAILED",
-      "Tidak menemukan direktori penyimpanan aplikasi (documentDirectory/cacheDirectory). " +
-        "Coba tutup paksa lalu buka ulang aplikasi, atau berikan izin penyimpanan jika diminta.",
-      true,
-    );
-  }
-
-  console.log("[AnkiParser] Final docDir:", docDir);
-
-  // Use the standard SQLite/ directory. expo-sqlite v16+ expects files here.
-  // Defensive join in case docDir is missing the trailing slash.
-  const sqliteDir = docDir.charAt(docDir.length - 1) === "/"
-    ? `${docDir}SQLite/`
-    : `${docDir}/SQLite/`;
-  console.log("[AnkiParser] Target SQLite directory:", sqliteDir);
-
-  try {
-    const dirInfo = await FileSystem.getInfoAsync(sqliteDir);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
-    }
-  } catch (e) {
-    console.error("[AnkiParser] Failed to ensure SQLite dir:", e);
-  }
-
-  const tmpName = `anki_tmp_${Date.now()}.db`;
-  const tmpPath = `${sqliteDir}${tmpName}`;
-
-  try {
-    const b64 = uint8ArrayToBase64(sqliteBytes);
-    sqliteBytes = null as any; // allow GC
-    if (!b64) throw new Error("Gagal mengonversi database ke Base64.");
-    await FileSystem.writeAsStringAsync(tmpPath, b64, {
-      encoding: "base64",
-    });
-  } catch (e) {
-    throw new AnkiImportError(
-      "ENGINE_FAILED",
-      `Gagal menulis database sementara: ${e instanceof Error ? e.message : String(e)}`,
-      true,
-    );
-  }
-
-  // ── Step 5: Open with expo-sqlite (native) ──────────────────────────────
-  onProgress?.({ stage: "parsing-sqlite", message: "Memproses database..." });
-
   let db: SQLite.SQLiteDatabase | null = null;
-  try {
-    // expo-sqlite v16 API: openDatabaseAsync(name, options)
-    // When the file is in the SQLite/ directory, we can open it by filename.
-    db = await SQLite.openDatabaseAsync(tmpName, { useNewConnection: true });
-  } catch (e) {
-    // Clean up temp file on failure
-    try { await FileSystem.deleteAsync(tmpPath, { idempotent: true }); } catch { /* ignore */ }
+  let docDir: string | undefined;
+  let tmpName: string | null = null;
+  let tmpPath: string | null = null;
+
+  if (Platform.OS === "web") {
+    onProgress?.({ stage: "parsing-sqlite", message: "Memproses database..." });
+    try {
+      // expo-sqlite web uses wa-sqlite (WASM) and supports deserialize
+      // straight from a Uint8Array — no filesystem needed.
+      db = await (SQLite as any).deserializeDatabaseAsync(sqliteBytes);
+      sqliteBytes = null as any; // allow GC
+    } catch (e) {
+      throw new AnkiImportError(
+        "DB_CORRUPT",
+        `Database Anki tidak bisa dibuka di browser: ${e instanceof Error ? e.message : String(e)}`,
+        false,
+      );
+    }
+  } else {
+    docDir =
+      (FileSystem as any).documentDirectory ||
+      (FileSystem as any).Paths?.document?.uri ||
+      undefined;
+
+    if (!docDir) {
+      docDir =
+        (FileSystem as any).cacheDirectory ||
+        (FileSystem as any).Paths?.cache?.uri ||
+        undefined;
+      if (docDir) {
+        console.warn("[AnkiParser] Using fallback cacheDirectory:", docDir);
+      }
+    }
+
+    if (typeof docDir !== "string" || docDir.length === 0) {
+      throw new AnkiImportError(
+        "ENGINE_FAILED",
+        "Tidak menemukan direktori penyimpanan aplikasi (documentDirectory/cacheDirectory). " +
+          "Coba tutup paksa lalu buka ulang aplikasi, atau berikan izin penyimpanan jika diminta.",
+        true,
+      );
+    }
+
+    console.log("[AnkiParser] Final docDir:", docDir);
+
+    // Use the standard SQLite/ directory. expo-sqlite v16+ expects files here.
+    // Defensive join in case docDir is missing the trailing slash.
+    const sqliteDir = docDir.charAt(docDir.length - 1) === "/"
+      ? `${docDir}SQLite/`
+      : `${docDir}/SQLite/`;
+    console.log("[AnkiParser] Target SQLite directory:", sqliteDir);
+
+    try {
+      const dirInfo = await FileSystem.getInfoAsync(sqliteDir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
+      }
+    } catch (e) {
+      console.error("[AnkiParser] Failed to ensure SQLite dir:", e);
+    }
+
+    tmpName = `anki_tmp_${Date.now()}.db`;
+    tmpPath = `${sqliteDir}${tmpName}`;
+
+    try {
+      const b64 = uint8ArrayToBase64(sqliteBytes);
+      sqliteBytes = null as any; // allow GC
+      if (!b64) throw new Error("Gagal mengonversi database ke Base64.");
+      await FileSystem.writeAsStringAsync(tmpPath, b64, {
+        encoding: "base64",
+      });
+    } catch (e) {
+      throw new AnkiImportError(
+        "ENGINE_FAILED",
+        `Gagal menulis database sementara: ${e instanceof Error ? e.message : String(e)}`,
+        true,
+      );
+    }
+
+    onProgress?.({ stage: "parsing-sqlite", message: "Memproses database..." });
+
+    try {
+      // expo-sqlite v16 API: openDatabaseAsync(name, options)
+      // When the file is in the SQLite/ directory, we can open it by filename.
+      db = await SQLite.openDatabaseAsync(tmpName, { useNewConnection: true });
+    } catch (e) {
+      // Clean up temp file on failure
+      try { await FileSystem.deleteAsync(tmpPath, { idempotent: true }); } catch { /* ignore */ }
+      throw new AnkiImportError(
+        "DB_CORRUPT",
+        `Database Anki tidak bisa dibuka: ${e instanceof Error ? e.message : String(e)}`,
+        false,
+      );
+    }
+  }
+
+  if (!db) {
     throw new AnkiImportError(
-      "DB_CORRUPT",
-      `Database Anki tidak bisa dibuka: ${e instanceof Error ? e.message : String(e)}`,
-      false,
+      "ENGINE_FAILED",
+      "Database SQLite tidak terbuka.",
+      true,
     );
   }
+  const dbRef: SQLite.SQLiteDatabase = db;
 
   try {
     // ── Step 6: Read deck names ────────────────────────────────────────────
     const deckMap: Record<string, string> = {};
     try {
-      const colRows = await db.getAllAsync<{ decks: string }>(
+      const colRows = await dbRef.getAllAsync<{ decks: string }>(
         "SELECT decks FROM col LIMIT 1",
       );
       if (colRows[0]?.decks) {
@@ -451,7 +484,7 @@ async function parseAnkiPackageOnce(
     // ── Step 7: Read notes + cards ─────────────────────────────────────────
     onProgress?.({ stage: "building-decks", message: "Menyusun kartu..." });
 
-    const rows = await db.getAllAsync<{ did: number | string; flds: string; tags: string }>(
+    const rows = await dbRef.getAllAsync<{ did: number | string; flds: string; tags: string }>(
       `SELECT c.did, n.flds, n.tags
        FROM cards c
        JOIN notes n ON n.id = c.nid
@@ -614,8 +647,10 @@ async function parseAnkiPackageOnce(
     };
 
   } finally {
-    // Always close the DB connection and delete the temp file
+    // Always close the DB connection and delete the temp file (native only)
     try { await db?.closeAsync(); } catch { /* ignore */ }
-    try { await FileSystem.deleteAsync(tmpPath, { idempotent: true }); } catch { /* ignore */ }
+    if (tmpPath) {
+      try { await FileSystem.deleteAsync(tmpPath, { idempotent: true }); } catch { /* ignore */ }
+    }
   }
 }

@@ -28,6 +28,7 @@ import { toast } from "@/components/Toast";
 import { getNotes, getLessons, type Note } from "@/utils/storage";
 import { resolveAssetUri } from "@/utils/path-resolver";
 import { type ColorScheme } from "@/constants/colors";
+import { RichTextRenderer } from "@/components/RichTextRenderer";
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, {
@@ -218,9 +219,12 @@ export default function NoteFullView() {
         </View>
 
         {current.content ? (
-          <Text style={styles.bodyText} selectable>
-            {current.content}
-          </Text>
+          <RichTextRenderer 
+            content={current.content} 
+            onNoteLinkPress={(noteId) => {
+              router.push({ pathname: "/notes/view/[noteId]", params: { noteId } });
+            }}
+          />
         ) : (
           <Text style={styles.bodyEmpty}>(catatan kosong)</Text>
         )}

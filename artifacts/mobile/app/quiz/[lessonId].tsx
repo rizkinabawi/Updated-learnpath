@@ -33,8 +33,11 @@ import {
   saveSessionLog,
   toggleBookmark,
   isBookmarked,
+  addXP,
+  getNotes,
   type Quiz,
   type Lesson,
+  type Note,
 } from "@/utils/storage";
 import { tokenizeJapanese, lookupWord, type DictEntry } from "@/utils/dictionary";
 import { WordPopup } from "@/components/WordPopup";
@@ -79,6 +82,7 @@ export default function QuizScreen() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
   const [showAIModal, setShowAIModal] = useState(false);
+  const [userNotes, setUserNotes] = useState<Note[]>([]);
   const startTime = useRef(Date.now());
   const xpAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -107,6 +111,11 @@ export default function QuizScreen() {
           setNextLesson(lessons[idx + 1]);
         }
       }
+
+      // Fetch notes globally for auto-linking
+      getNotes().then(notes => {
+        setUserNotes(notes);
+      });
     })();
   }, [lessonId]);
 
@@ -267,9 +276,11 @@ export default function QuizScreen() {
 
     const stats = await getStats();
     await updateStats({
-      totalAnswers: stats.totalAnswers + 1,
-      correctAnswers: stats.correctAnswers + (correct ? 1 : 0),
+      totalAnswers: (stats.totalAnswers || 0) + 1,
+      correctAnswers: (stats.correctAnswers || 0) + (correct ? 1 : 0),
     });
+
+    await addXP(correct ? 10 : 2);
   };
 
   const handleNext = async () => {
@@ -430,12 +441,22 @@ export default function QuizScreen() {
             <View style={styles.questionContainer}>
               <View style={styles.tokenRow}>
                 {tokenizeJapanese(currentQuiz.question).map((token, i) => {
-                  const entry = lookupWord(token);
+                  let entry = lookupWord(token);
+                  // Also search in user notes
+                  if (!entry) {
+                    const note = userNotes.find(n => n.title.toLowerCase() === token.trim().toLowerCase());
+                    if (note) {
+                      entry = { word: note.title, reading: "Catatan Pribadi", meaning: note.content, level: "NOTE" };
+                    }
+                  }
                   return (
                     <Text
                       key={i}
-                      style={[styles.questionText, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
-                      onPress={entry ? () => handleWordTap(token) : undefined}
+                      style={[
+                        styles.questionText, 
+                        entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
+                      ]}
+                      onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
                     >
                       {token}
                     </Text>

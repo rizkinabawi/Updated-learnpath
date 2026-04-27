@@ -90,6 +90,9 @@ export default function ImportManagerPage() {
       } else if (fileName.endsWith(".lzip")) {
         // ZIP bundle support placeholder - will require unzipping logic
         Alert.alert("ZIP Bundle", "Fitur unzip bundle sedang disiapkan.");
+      } else if (fileName.endsWith(".apkg") || fileName.endsWith(".colpkg") || fileName.endsWith(".txt") || fileName.endsWith(".csv") || fileName.endsWith(".tsv")) {
+        toast.info("Mengalihkan ke alat Import Anki...");
+        router.push("/anki-import");
       } else {
         toast.error("Format file tidak didukung.");
       }
@@ -203,7 +206,11 @@ export default function ImportManagerPage() {
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={handlePaste}>
                <Copy size={20} color={colors.purple} />
-               <Text style={[styles.actionText, { color: colors.purple }]}>Tempel dari Clipboard</Text>
+               <Text style={[styles.actionText, { color: colors.purple }]}>Tempel Teks JSON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { borderColor: colors.teal, backgroundColor: colors.teal + "10" }]} onPress={() => router.push("/anki-import")}>
+               <Layers size={20} color={colors.teal} />
+               <Text style={[styles.actionText, { color: colors.teal }]}>Import Anki (.apkg / .txt)</Text>
             </TouchableOpacity>
          </View>
 

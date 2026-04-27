@@ -97,8 +97,8 @@ export const lookupWord = (text: string): DictEntry | null => {
  * This is a simple regex-based splitter that groups Kanji and Kana blocks.
  */
 export const tokenizeJapanese = (text: string): string[] => {
-  // Regex to split by Kanji blocks, Katakana blocks, or Hiragana blocks
-  // Note: This is a simplified offline version.
-  const regex = /([\u4E00-\u9FAF]+|[\u3040-\u309F]+|[\u30A0-\u30FF]+|[0-9]+|[a-zA-Z]+|[^\u4E00-\u9FAF\u3040-\u309F\u30A0-\u30FF0-9a-zA-Z\s]+)/g;
+  // Regex to split by Kanji blocks, Katakana blocks, Hiragana blocks, words, or whitespace/punctuation
+  // We include \s+ to capture spaces so they are preserved in the output tokens.
+  const regex = /([\u4E00-\u9FAF]+|[\u3040-\u309F]+|[\u30A0-\u30FF]+|[0-9]+|[a-zA-Z]+|[\s]+|[^\u4E00-\u9FAF\u3040-\u309F\u30A0-\u30FF0-9a-zA-Z\s]+)/g;
   return text.match(regex) || [text];
 };

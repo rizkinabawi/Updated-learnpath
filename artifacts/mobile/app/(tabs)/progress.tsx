@@ -40,7 +40,7 @@ import { isCancellationError } from "@/utils/safe-share";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { exportProgressReport } from "@/utils/flashcard-export";
 
-type Tab = "stats" | "classify" | "prompts";
+type Tab = "stats" | "classify";
 
 interface PathStat {
   path: LearningPath;
@@ -92,7 +92,7 @@ export default function ProgressTab() {
   // Switch tab when navigated with ?tab= param
   useEffect(() => {
     const t = params.tab;
-    if (t === "stats" || t === "classify" || t === "prompts") {
+    if (t === "stats" || t === "classify") {
       setTab(t);
     }
   }, [params.tab]);

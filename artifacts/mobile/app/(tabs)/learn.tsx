@@ -24,7 +24,7 @@ import {
   getLearningPaths, getModules, getLessons,
   getFlashcards, getQuizzes,
   saveLearningPath, deleteLearningPath, exportCourse,
-  getCompletedLessons, mergeCourses,
+  getCompletedLessons, mergeCourses, getDueCardsCount, getStats,
   generateId, type LearningPath,
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
@@ -90,6 +90,10 @@ export default function LearnPage() {
   const [showMergeNameModal, setShowMergeNameModal] = useState(false);
   const [mergeName, setMergeName] = useState("");
   const [merging, setMerging] = useState(false);
+  
+  const [dueCount, setDueCount] = useState(0);
+  const [userXP, setUserXP] = useState(0);
+  const [userStreak, setUserStreak] = useState(0);
 
   const toggleMergeMode = () => {
     setMergeMode((prev) => {
@@ -161,6 +165,11 @@ export default function LearnPage() {
       sMap[p.id] = { modules: mods.length, lessons, flashcards, quizzes, percentage: lessons > 0 ? Math.round((doneLessons / lessons) * 100) : 0 };
     }
     setStats(sMap);
+
+    const [due, userStats] = await Promise.all([getDueCardsCount(), getStats()]);
+    setDueCount(due);
+    setUserXP(userStats.xp || 0);
+    setUserStreak(userStats.streak || 0);
   };
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
@@ -396,6 +405,16 @@ export default function LearnPage() {
                    <Text style={styles.aiBadgeText}>AI</Text>
                 </View>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => { setShowTools(false); router.push("/storage-manager"); }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#FFFBEB" }]}>
+                  <Feather name="database" size={18} color="#D97706" />
+                </View>
+                <Text style={styles.menuText}>Manajemen Penyimpanan</Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity 
@@ -513,6 +532,49 @@ export default function LearnPage() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Welcome & Stats */}
+        <View style={styles.welcomeBox}>
+           <View style={{ flex: 1 }}>
+              <Text style={styles.welcomeTitle}>Halo Pelajar! 👋</Text>
+              <View style={styles.statsSummaryRow}>
+                 <View style={styles.miniStatPill}>
+                    <Feather name="zap" size={10} color={colors.primary} />
+                    <Text style={styles.miniStatPillText}>{userXP} XP</Text>
+                 </View>
+                 <View style={styles.miniStatPill}>
+                    <Feather name="flame" size={10} color={colors.danger} />
+                    <Text style={styles.miniStatPillText}>{userStreak} Hari</Text>
+                 </View>
+              </View>
+           </View>
+        </View>
+
+        {/* SRS Widget */}
+        {dueCount > 0 && (
+          <TouchableOpacity 
+            style={styles.srsWidget} 
+            onPress={() => router.push("/review")}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.purple]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.srsGradient}
+            >
+              <View style={styles.srsIcon}>
+                 <Feather name="refresh-cw" size={24} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                 <Text style={styles.srsTitle}>Review Harian</Text>
+                 <Text style={styles.srsSub}>{dueCount} kartu perlu diulas hari ini</Text>
+              </View>
+              <View style={styles.srsBadge}>
+                 <Text style={styles.srsBadgeText}>STUDY NOW</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
         {paths.length === 0 ? (
           /* Empty state */
           <View style={{ gap: 12 }}>
@@ -922,6 +984,25 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 60, gap: 14 },
+  
+  welcomeBox: { marginBottom: 4, paddingHorizontal: 4 },
+  welcomeTitle: { fontSize: 22, fontWeight: "900", color: c.dark },
+  statsSummaryRow: { flexDirection: "row", gap: 8, marginTop: 6 },
+  miniStatPill: { 
+    flexDirection: "row", alignItems: "center", gap: 4, 
+    backgroundColor: c.card, paddingHorizontal: 10, paddingVertical: 4, 
+    borderRadius: 8, borderWidth: 1, borderColor: c.border 
+  },
+  miniStatPillText: { fontSize: 11, fontWeight: "800", color: c.textSecondary },
+
+  srsWidget: { borderRadius: 22, overflow: "hidden", marginBottom: 6 },
+  srsGradient: { flexDirection: "row", alignItems: "center", padding: 16, gap: 16 },
+  srsIcon: { width: 50, height: 50, borderRadius: 15, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  srsTitle: { fontSize: 18, fontWeight: "900", color: "#fff" },
+  srsSub: { fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: "600" },
+  srsBadge: { backgroundColor: "#fff", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  srsBadgeText: { fontSize: 10, fontWeight: "900", color: c.primary },
+
   gridWrap: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
 
   emptyCard: {

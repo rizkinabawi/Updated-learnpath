@@ -407,12 +407,11 @@ export default function Dashboard() {
             {[
               { icon: "credit-card" as const, label: t.home.quick_flash, sub: t.home.quick_flash_sub, color: colors.primary, bg: colors.primaryLight, route: "/(tabs)/practice" },
               { icon: "help-circle" as const, label: t.home.quick_quiz, sub: t.home.quick_quiz_sub, color: colors.amber, bg: colors.amberLight, route: "/(tabs)/practice" },
-              { icon: "cpu" as const, label: t.home.quick_ai, sub: t.home.quick_ai_sub, color: colors.purple, bg: colors.purpleLight, route: "/(tabs)/progress?tab=prompts" },
               { icon: "bar-chart-2" as const, label: t.home.quick_progress, sub: t.home.quick_progress_sub, color: colors.teal, bg: colors.tealLight, route: "/(tabs)/progress" },
               { icon: "star" as const, label: "Tantangan Harian", sub: "Soal baru tiap hari", color: colors.warning, bg: colors.warningLight, route: "/daily-challenge" },
               { icon: "clock" as const, label: "Timer Pomodoro", sub: "Fokus 25 menit", color: colors.danger, bg: colors.dangerLight, route: "/pomodoro" },
               { icon: "bookmark" as const, label: "Bookmark Soal", sub: "Review soal tersimpan", color: colors.purple, bg: colors.purpleLight, route: "/bookmarks" },
-              { icon: "download" as const, label: "Import Anki", sub: "Baca .apkg / .txt", color: colors.teal, bg: colors.tealLight, route: "/anki-import" },
+              { icon: "download" as const, label: "Import Pintar", sub: "Impor .lpack / .apkg", color: colors.teal, bg: colors.tealLight, route: "/import-manager" },
             ].map((q, i) => (
               <TouchableOpacity key={i} onPress={() => router.push(q.route as any)} style={[styles.quickItem, shadowSm]} activeOpacity={0.8}>
                 <View style={[styles.quickIcon, { backgroundColor: q.bg }]}>

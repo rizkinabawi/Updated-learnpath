@@ -40,9 +40,12 @@ import {
   isBookmarked,
   updateSpacedRep,
   getSpacedRepData,
+  addXP,
+  getNotes,
   type Flashcard,
   type Lesson,
   type SpacedRepData,
+  type Note,
 } from "@/utils/storage";
 import { tokenizeJapanese, lookupWord, type DictEntry } from "@/utils/dictionary";
 import { WordPopup } from "@/components/WordPopup";
@@ -176,6 +179,7 @@ export default function FlashcardScreen() {
   const [aiResponse, setAiResponse] = useState("");
   const [showAIModal, setShowAIModal] = useState(false);
   const [showToolMenu, setShowToolMenu] = useState(false);
+  const [userNotes, setUserNotes] = useState<Note[]>([]);
   const card = cards[currentIndex];
 
   // ── Imperative audio player (BUG FIX) ───────────────────────────────────
@@ -229,6 +233,9 @@ export default function FlashcardScreen() {
             setNextLesson(lessons[idx + 1]);
           }
         }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
       } catch (e) {
         // Surface the real reason — usually JSON.parse OOM or storage IO error
         // — to the user. Without this catch the whole React tree would crash.
@@ -242,6 +249,12 @@ export default function FlashcardScreen() {
         if (!cancelled) setLoading(false);
       }
     });
+
+    // Fetch notes globally for auto-linking
+    getNotes().then(notes => {
+      if (!cancelled) setUserNotes(notes);
+    });
+
     return () => {
       cancelled = true;
       handle?.cancel?.();
@@ -354,11 +367,12 @@ export default function FlashcardScreen() {
 
     const stats = await getStats();
     await updateStats({
-      totalAnswers: stats.totalAnswers + 1,
-      correctAnswers: stats.correctAnswers + (correct ? 1 : 0),
+      totalAnswers: (stats.totalAnswers || 0) + 1,
+      correctAnswers: (stats.correctAnswers || 0) + (correct ? 1 : 0),
     });
 
     await updateSpacedRep(card.id, correct ? 5 : 1);
+    await addXP(correct ? 10 : 2);
 
     if (currentIndex < cards.length - 1) {
       setFlipped(false);
@@ -1064,12 +1078,23 @@ function FlashcardCardView({
               ) : (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
                   {tokenizeJapanese(questionText).map((token, i) => {
-                    const entry = lookupWord(token);
+                    let entry = lookupWord(token);
+                    // Also search in user notes
+                    if (!entry) {
+                      const note = userNotes.find(n => n.title.toLowerCase() === token.trim().toLowerCase());
+                      if (note) {
+                        entry = { word: note.title, reading: "Catatan Pribadi", meaning: note.content, level: "NOTE" };
+                      }
+                    }
                     return (
                       <Text 
                         key={i} 
-                        style={[styles.cardText, { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
-                        onPress={entry ? () => onWordTap(token) : undefined}
+                        style={[
+                          styles.cardText, 
+                          { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }, 
+                          entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
+                        ]}
+                        onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
                       >
                         {token}
                       </Text>
@@ -1106,12 +1131,23 @@ function FlashcardCardView({
               <Text style={styles.cardHint}>Jawaban</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
                 {tokenizeJapanese(answerText).map((token, i) => {
-                  const entry = lookupWord(token);
+                  let entry = lookupWord(token);
+                  // Also search in user notes
+                  if (!entry) {
+                    const note = userNotes.find(n => n.title.toLowerCase() === token.trim().toLowerCase());
+                    if (note) {
+                      entry = { word: note.title, reading: "Catatan Pribadi", meaning: note.content, level: "NOTE" };
+                    }
+                  }
                   return (
                     <Text 
                       key={i} 
-                      style={[styles.cardText, { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }, entry && { color: colors.primary, textDecorationLine: 'underline', textDecorationColor: colors.primary + '40' }]}
-                      onPress={entry ? () => onWordTap(token) : undefined}
+                      style={[
+                        styles.cardText, 
+                        { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }, 
+                        entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
+                      ]}
+                      onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
                     >
                       {token}
                     </Text>
@@ -1235,7 +1271,6 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     borderRadius: 28,
     padding: 24,
     alignItems: "center",
-    justifyContent: "center",
     gap: 12,
     backfaceVisibility: "hidden",
     overflow: "hidden",

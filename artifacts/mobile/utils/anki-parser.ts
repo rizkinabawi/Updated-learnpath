@@ -108,13 +108,8 @@ function stripHtmlAndMedia(input: string): { text: string; media: string[] } {
     media.push(String(src));
     return "";
   });
-  // Capture <source src="...">
-  s = s.replace(/<source[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi, (_, src) => {
-    media.push(String(src));
-    return "";
-  });
-  // Capture <audio src="...">
-  s = s.replace(/<audio[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi, (_, src) => {
+  // Capture <source src="..."> and <audio src="...">
+  s = s.replace(/<(?:source|audio)[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi, (_, src) => {
     media.push(String(src));
     return "";
   });
@@ -123,26 +118,56 @@ function stripHtmlAndMedia(input: string): { text: string; media: string[] } {
     media.push(String(name));
     return "";
   });
+  
   // Strip Anki Cloze markers: {{c1::answer}} → answer
   s = s.replace(/\{\{c\d+::([^:}]+)(?:::[^}]+)?\}\}/gi, (_, answer) => answer);
-  // Remove style/script content
-  s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
-  s = s.replace(/<script[\s\S]*?<\/script>/gi, "");
-  // Line breaks for block tags
-  s = s.replace(/<\s*br\s*\/?>/gi, "\n");
-  s = s.replace(/<\s*\/(p|div|li|tr|h[1-6])\s*>/gi, "\n");
-  // Strip remaining tags
+  
+  // Remove style/script content completely
+  s = s.replace(/<(style|script)[\s\S]*?<\/\1>/gi, "");
+  
+  // Convert structural tags to newlines/spaces BEFORE stripping to avoid glued words
+  // Br, Hr, and closing block tags should cause a break
+  s = s.replace(/<\s*br[^>]*>/gi, "\n");
+  s = s.replace(/<\s*hr[^>]*>/gi, "\n---\n");
+  
+  // Opening block tags -> newline
+  s = s.replace(/<(p|div|li|tr|h[1-6]|ul|ol|blockquote|section|article|header|footer)[^>]*>/gi, "\n");
+  // Closing block tags -> newline
+  s = s.replace(/<\/(p|div|li|tr|h[1-6]|ul|ol|blockquote|section|article|header|footer)>/gi, "\n");
+  
+  // Table cells -> space
+  s = s.replace(/<\s*\/?(td|th)[^>]*>/gi, " ");
+  
+  // Strip all remaining HTML tags (like <b>, <i>, <span>, etc.)
+  // We don't add a space here to avoid breaking words like <b>W</b>ord
   s = s.replace(/<[^>]+>/g, "");
+  
   // Decode common entities
-  s = s
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'");
-  s = s.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  return { text: s, media };
+  const entityMap: Record<string, string> = {
+    "&nbsp;": " ",
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&apos;": "'",
+    "&mdash;": "—",
+    "&ndash;": "–",
+    "&hellip;": "...",
+    "&copy;": "©",
+    "&reg;": "®",
+  };
+  s = s.replace(/&[a-z0-9#]+;/gi, (match) => entityMap[match.toLowerCase()] || match);
+    
+  // Clean up excessive whitespace safely
+  // Remove spaces before/after newlines
+  s = s.replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n");
+  // Collapse 3 or more newlines into 2 (max 1 empty line between paragraphs)
+  s = s.replace(/\n{3,}/g, "\n\n");
+  // Collapse excessive spaces
+  s = s.replace(/ {2,}/g, " ");
+  
+  return { text: s.trim(), media };
 }
 
 function splitFields(flds: string): string[] {
@@ -152,50 +177,39 @@ function splitFields(flds: string): string[] {
 
 // ─── File helpers ────────────────────────────────────────────────────────────
 
-async function readFileAsBase64(uri: string): Promise<string> {
-  return FileSystem.readAsStringAsync(uri, {
-    encoding: "base64",
-  });
-}
-
 async function readFileAsUint8Array(uri: string): Promise<Uint8Array> {
-  // Efficient path: Use fetch to get an ArrayBuffer directly. 
-  // Works on Web and modern Expo Native (SDK 49+).
-  try {
+  if (Platform.OS === "web") {
     const resp = await fetch(uri);
     const buf = await resp.arrayBuffer();
     return new Uint8Array(buf);
-  } catch (e) {
-    // Fallback for older environments or specific URI types
-    if (Platform.OS === "web") throw e;
-    const b64 = await readFileAsBase64(uri);
-    if (!b64) throw new Error("File empty or unreadable as Base64.");
-    return base64ToUint8Array(b64);
   }
-}
 
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  let out = "";
-  let i = 0;
-  for (; i + 2 < bytes.length; i += 3) {
-    const a = bytes[i]!, b = bytes[i + 1]!, c = bytes[i + 2]!;
-    out +=
-      chars[a >> 2]! +
-      chars[((a & 3) << 4) | (b >> 4)]! +
-      chars[((b & 15) << 2) | (c >> 6)]! +
-      chars[c & 63]!;
+  // Native: ALWAYS use chunked FileSystem reading!
+  // Do NOT use fetch() for local files! React Native's network bridge converts binary
+  // payload to base64 strings under the hood. For large files (>200MB), this causes
+  // a fatal "RangeError: String length exceeds limit" inside the Hermes engine before
+  // the JS code even receives it.
+  const info = await FileSystem.getInfoAsync(uri);
+  if (!info.exists) throw new Error("File tidak ditemukan.");
+  
+  // @ts-ignore - size exists on FileInfo when exists is true
+  const size = info.size as number;
+  const out = new Uint8Array(size);
+  const chunkSize = 1024 * 1024; // 1MB chunks to prevent string overflow
+  
+  let position = 0;
+  while (position < size) {
+    const length = Math.min(chunkSize, size - position);
+    const b64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: "base64",
+      position,
+      length,
+    });
+    const chunkBytes = base64ToUint8Array(b64);
+    out.set(chunkBytes, position);
+    position += length;
   }
-  if (i < bytes.length) {
-    const a = bytes[i]!;
-    const b = i + 1 < bytes.length ? bytes[i + 1]! : 0;
-    out += chars[a >> 2]! + chars[((a & 3) << 4) | (b >> 4)]!;
-    if (i + 1 < bytes.length) {
-      out += chars[(b & 15) << 2]! + "=";
-    } else {
-      out += "==";
-    }
-  }
+  
   return out;
 }
 
@@ -203,21 +217,45 @@ function base64ToUint8Array(b64: string): Uint8Array {
   const lookup = new Uint8Array(256);
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   for (let i = 0; i < chars.length; i++) lookup[chars.charCodeAt(i)] = i;
-  const clean = b64.replace(/[^A-Za-z0-9+/=]/g, "");
-  const len = clean.length;
-  const placeHolders = clean.endsWith("==") ? 2 : clean.endsWith("=") ? 1 : 0;
-  const arrLen = ((len * 3) >> 2) - placeHolders;
+
+  // Instead of using b64.replace() which creates a copy of a massive string and throws 
+  // "String length exceeds limit" in Hermes, we calculate lengths directly.
+  // Expo's readAsStringAsync(base64) returns clean base64 without newlines anyway.
+  let validLen = 0;
+  let placeHolders = 0;
+  const len = b64.length;
+  for (let i = 0; i < len; i++) {
+    const code = b64.charCodeAt(i);
+    if (code === 61) { // '='
+      placeHolders++;
+      validLen++;
+    } else if (code < 256 && lookup[code] !== undefined) {
+      validLen++;
+    }
+  }
+
+  const arrLen = ((validLen * 3) >> 2) - placeHolders;
   const out = new Uint8Array(arrLen);
+
   let p = 0;
-  for (let i = 0; i < len; i += 4) {
-    const t =
-      (lookup[clean.charCodeAt(i)]! << 18) |
-      (lookup[clean.charCodeAt(i + 1)]! << 12) |
-      (lookup[clean.charCodeAt(i + 2)]! << 6) |
-      lookup[clean.charCodeAt(i + 3)]!;
-    if (p < arrLen) out[p++] = (t >> 16) & 0xff;
-    if (p < arrLen) out[p++] = (t >> 8) & 0xff;
-    if (p < arrLen) out[p++] = t & 0xff;
+  let i = 0;
+  while (i < len && p < arrLen) {
+    let t = 0;
+    let charsRead = 0;
+    while (charsRead < 4 && i < len) {
+      const code = b64.charCodeAt(i++);
+      if (code === 61) {
+        charsRead++;
+      } else if (code < 256 && lookup[code] !== undefined) {
+        t = (t << 6) | lookup[code]!;
+        charsRead++;
+      }
+    }
+    if (charsRead === 4) {
+      if (p < arrLen) out[p++] = (t >> 16) & 0xff;
+      if (p < arrLen) out[p++] = (t >> 8) & 0xff;
+      if (p < arrLen) out[p++] = t & 0xff;
+    }
   }
   return out;
 }
@@ -313,6 +351,7 @@ async function parseAnkiPackageOnce(
   // ── Step 3: Find the SQLite database inside the ZIP ────────────────────
   const candidates = ["collection.anki21b", "collection.anki21", "collection.anki2"];
   let sqliteBytes: Uint8Array | null = null;
+  let sqliteEntry: JSZip.JSZipObject | null = null;
   let foundAnki21b = false;
 
   for (const name of candidates) {
@@ -325,6 +364,7 @@ async function parseAnkiPackageOnce(
     }
     if (isSqliteSignature(bytes)) {
       sqliteBytes = bytes;
+      sqliteEntry = entry;
       break;
     }
   }
@@ -424,7 +464,8 @@ async function parseAnkiPackageOnce(
     tmpPath = `${sqliteDir}${tmpName}`;
 
     try {
-      const b64 = uint8ArrayToBase64(sqliteBytes);
+      if (!sqliteEntry) throw new Error("No sqlite entry found.");
+      const b64 = await sqliteEntry.async("base64");
       sqliteBytes = null as any; // allow GC
       if (!b64) throw new Error("Gagal mengonversi database ke Base64.");
       await FileSystem.writeAsStringAsync(tmpPath, b64, {
@@ -542,8 +583,7 @@ async function parseAnkiPackageOnce(
         } catch {
           // fall through to re-extract
         }
-        const bytes = await entry.async("uint8array");
-        const b64 = uint8ArrayToBase64(bytes);
+        const b64 = await entry.async("base64");
         if (!b64) throw new Error(`Gagal mengonversi media ${filename} ke Base64.`);
         await FileSystem.writeAsStringAsync(targetUri, b64, {
           encoding: "base64",

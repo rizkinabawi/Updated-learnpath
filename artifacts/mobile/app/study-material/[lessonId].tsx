@@ -414,6 +414,11 @@ export default function StudyMaterialScreen() {
   };
 
   const handleContentChange = (text: string) => {
+    if (text.endsWith("#/")) {
+      setMatContent(text.slice(0, -2));
+      addAttachmentImage();
+      return;
+    }
     setMatContent(text);
     const cursor = contentSelection.end || text.length;
     const m = detectMention(text, cursor);
@@ -999,7 +1004,7 @@ export default function StudyMaterialScreen() {
                     {t.material.content_ph_text}
                   </Text>
                   <Text style={styles.mentionHint}>
-                    Tip: ketik <Text style={{ fontWeight: "800" }}>@</Text> untuk menyisipkan tautan ke catatan.
+                    Tip: ketik <Text style={{ fontWeight: "800" }}>@</Text> untuk tautan, atau ketik <Text style={{ fontWeight: "800" }}>#/</Text> untuk gambar.
                   </Text>
                   <View>
                     <TextInput

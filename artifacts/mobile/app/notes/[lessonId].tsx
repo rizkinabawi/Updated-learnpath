@@ -32,6 +32,7 @@ import {
   Download,
   Camera,
   Sparkles,
+  Info,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { printHtml } from "@/utils/print-compat";
@@ -81,6 +82,7 @@ export default function NotesScreen() {
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -460,6 +462,12 @@ export default function NotesScreen() {
                  <Camera size={18} color={colors.primary} />
                  <Text style={styles.scanBtnText}>Smart Scan</Text>
                </TouchableOpacity>
+               <TouchableOpacity 
+                 onPress={() => setShowHelp(true)}
+                 style={[styles.scanBtn, { backgroundColor: colors.amber + '15', marginLeft: 8 }]}
+               >
+                 <Info size={18} color={colors.amber} />
+               </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -480,13 +488,23 @@ export default function NotesScreen() {
             <Text style={[styles.fieldLabel, { marginTop: 12 }]}>{t.common.notes}</Text>
             <TextInput
               value={content}
-              onChangeText={setContent}
+              onChangeText={(text) => {
+                if (text.endsWith("#/")) {
+                  setContent(text.slice(0, -2));
+                  addImage();
+                  return;
+                }
+                setContent(text);
+              }}
               placeholder={t.notes.content_ph}
               style={[styles.input, styles.textArea]}
               placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
             />
+            <Text style={{ fontSize: 11, color: colors.primary, marginTop: 4, fontWeight: "600", paddingHorizontal: 4 }}>
+              Tip: Ketik "#/" untuk menyisipkan gambar dengan cepat.
+            </Text>
 
             <View style={{ marginTop: 12, gap: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -558,6 +576,54 @@ export default function NotesScreen() {
           </View>
         </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Formatting Help Modal */}
+      <Modal visible={showHelp} transparent animationType="fade">
+        <View style={styles.helpOverlay}>
+          <View style={styles.helpBox}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Panduan Format</Text>
+              <TouchableOpacity onPress={() => setShowHelp(false)}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <View style={styles.helpItem}>
+                <Text style={styles.helpTag}>H1: Judul</Text>
+                <Text style={styles.helpDesc}>Membuat judul besar (Heading 1)</Text>
+              </View>
+              <View style={styles.helpItem}>
+                <Text style={styles.helpTag}>H2: Sub-judul</Text>
+                <Text style={styles.helpDesc}>Membuat judul menengah (Heading 2)</Text>
+              </View>
+              <View style={styles.helpItem}>
+                <Text style={styles.helpTag}>* Item Daftar</Text>
+                <Text style={styles.helpDesc}>Membuat daftar list dengan poin bulat</Text>
+              </View>
+              <View style={styles.helpItem}>
+                <Text style={styles.helpTag}>B:teks:</Text>
+                <Text style={styles.helpDesc}>Membuat teks <Text style={{ fontWeight: 'bold' }}>Tebal</Text></Text>
+              </View>
+              <View style={styles.helpItem}>
+                <Text style={styles.helpTag}>I:teks:</Text>
+                <Text style={styles.helpDesc}>Membuat teks <Text style={{ fontStyle: 'italic' }}>Miring</Text></Text>
+              </View>
+              <View style={styles.helpItem}>
+                <Text style={styles.helpTag}>#/</Text>
+                <Text style={styles.helpDesc}>Shortcut cepat untuk menyisipkan gambar</Text>
+              </View>
+              <View style={{ marginTop: 10, padding: 10, backgroundColor: colors.primary + '10', borderRadius: 8 }}>
+                <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '700' }}>
+                  Catatan: Tag (H1:, H2:, *) harus berada di awal baris. Tag B: dan I: bisa digunakan di tengah kalimat.
+                </Text>
+              </View>
+            </ScrollView>
+            <TouchableOpacity style={styles.saveBtn} onPress={() => setShowHelp(false)}>
+              <Text style={styles.saveBtnText}>Paham</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -741,4 +807,9 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     paddingHorizontal: 6, paddingVertical: 3, marginRight: 2,
   },
   attachBadgeText: { fontSize: 10, fontWeight: "800", color: c.success },
+  helpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  helpBox: { backgroundColor: c.surface, borderRadius: 24, padding: 24, width: '100%', gap: 16 },
+  helpItem: { marginBottom: 12, borderBottomWidth: 1, borderBottomColor: c.border, paddingBottom: 8 },
+  helpTag: { fontSize: 14, fontWeight: '900', color: c.primary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  helpDesc: { fontSize: 13, color: c.textSecondary, marginTop: 2 },
 });

@@ -1311,19 +1311,109 @@ export const updateSpacedRep = async (cardId: string, quality: number) => {
   return updated;
 };
 
-export const sortBySpacedRep = async (cards: Flashcard[]): Promise<Flashcard[]> => {
-  const now = Date.now();
-  const all = await getSpacedRepData(); // now cached — no extra I/O on repeated calls
-  const dataMap = new Map(all.map((d) => [d.cardId, d]));
-  return [...cards].sort((a, b) => {
-    const da = dataMap.get(a.id);
-    const db = dataMap.get(b.id);
-    const dueA = da ? new Date(da.nextReview).getTime() : 0;
-    const dueB = db ? new Date(db.nextReview).getTime() : 0;
-    const overdueA = dueA <= now ? 0 : dueA;
-    const overdueB = dueB <= now ? 0 : dueB;
-    return overdueA - overdueB;
-  });
+export const getDueCardsCount = async (): Promise<number> => {
+  const all = await getSpacedRepData();
+  const now = new Date().toISOString();
+  return all.filter((d) => d.nextReview <= now).length;
+};
+
+export const getDueCards = async (): Promise<(Flashcard & { srs?: SpacedRepData })[]> => {
+  const allSrs = await getSpacedRepData();
+  const now = new Date().toISOString();
+  const due = allSrs.filter((d) => d.nextReview <= now);
+  if (due.length === 0) return [];
+
+  const flashcards = await getFlashcards();
+  const dueMap = new Map(due.map(d => [d.cardId, d]));
+  
+  return flashcards
+    .filter(c => dueMap.has(c.id))
+    .map(c => ({ ...c, srs: dueMap.get(c.id) }));
+};
+
+// ─── Gamification & XP ─────────────────────────────────────────
+export const addXP = async (amount: number): Promise<{ levelUp: boolean; newXP: number }> => {
+  const stats = await getStats();
+  const oldXP = stats.xp || 0;
+  const newXP = oldXP + amount;
+  const oldLevel = Math.floor(Math.sqrt(oldXP / 100)) + 1;
+  const newLevel = Math.floor(Math.sqrt(newXP / 100)) + 1;
+  
+  await updateStats({ xp: newXP, level: newLevel });
+  return { levelUp: newLevel > oldLevel, newXP };
+};
+
+export const getLevelInfo = (xp: number) => {
+  const level = Math.floor(Math.sqrt(xp / 100)) + 1;
+  const currentLevelXP = Math.pow(level - 1, 2) * 100;
+  const nextLevelXP = Math.pow(level, 2) * 100;
+  const progress = (xp - currentLevelXP) / (nextLevelXP - currentLevelXP);
+  return { level, progress, nextLevelXP };
+};
+
+// ─── Storage Management ────────────────────────────────────────
+export interface StorageStats {
+  sqliteSize: number;
+  ankiMediaSize: number;
+  assetsSize: number;
+  total: number;
+}
+
+export const getStorageStats = async (): Promise<StorageStats> => {
+  if (Platform.OS === "web") return { sqliteSize: 0, ankiMediaSize: 0, assetsSize: 0, total: 0 };
+  
+  const getDirSize = async (dirUri: string): Promise<number> => {
+    try {
+      const info = await getInfoAsync(dirUri);
+      if (!info.exists || !info.isDirectory) return 0;
+      const files = await readDirectoryAsync(dirUri);
+      let total = 0;
+      for (const f of files) {
+        const fInfo = await getInfoAsync(`${dirUri}${f}`);
+        if (fInfo.exists) total += fInfo.size || 0;
+      }
+      return total;
+    } catch { return 0; }
+  };
+
+  const sqliteDir = `${documentDirectory}SQLite/`;
+  const ankiDir = `${documentDirectory}anki-media/`;
+  const assetsDir = `${documentDirectory}assets/`;
+
+  const sqliteSize = await getDirSize(sqliteDir);
+  const ankiMediaSize = await getDirSize(ankiDir);
+  const assetsSize = await getDirSize(assetsDir);
+
+  return {
+    sqliteSize,
+    ankiMediaSize,
+    assetsSize,
+    total: sqliteSize + ankiMediaSize + assetsSize
+  };
+};
+
+export const clearAppCache = async (type: "temp" | "media" | "all"): Promise<void> => {
+  if (Platform.OS === "web") return;
+
+  if (type === "temp" || type === "all") {
+    const sqliteDir = `${documentDirectory}SQLite/`;
+    try {
+      const files = await readDirectoryAsync(sqliteDir);
+      for (const f of files) {
+        if (f.startsWith("anki_tmp_")) {
+          await deleteAsync(`${sqliteDir}${f}`);
+        }
+      }
+    } catch {}
+  }
+
+  if (type === "media" || type === "all") {
+    const ankiDir = `${documentDirectory}anki-media/`;
+    try {
+      await deleteAsync(ankiDir);
+      await makeDirectoryAsync(ankiDir, { intermediates: true });
+    } catch {}
+  }
 };
 
 // ─── Notes ─────────────────────────────────────────────────────

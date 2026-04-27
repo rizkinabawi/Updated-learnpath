@@ -353,19 +353,37 @@ async function parseAnkiPackageOnce(
   // expo-sqlite needs a file path in the standard documentDirectory/SQLite/ folder.
   onProgress?.({ stage: "loading-engine", message: "Menyiapkan database..." });
 
-  let docDir = FileSystem.documentDirectory || (FileSystem as any).Paths?.document?.uri;
-  
+  let docDir: string | undefined =
+    (FileSystem as any).documentDirectory ||
+    (FileSystem as any).Paths?.document?.uri ||
+    undefined;
+
   if (!docDir) {
-    docDir = FileSystem.cacheDirectory || (FileSystem as any).Paths?.cache?.uri;
+    docDir =
+      (FileSystem as any).cacheDirectory ||
+      (FileSystem as any).Paths?.cache?.uri ||
+      undefined;
     if (docDir) {
       console.warn("[AnkiParser] Using fallback cacheDirectory:", docDir);
     }
   }
 
+  if (typeof docDir !== "string" || docDir.length === 0) {
+    throw new AnkiImportError(
+      "ENGINE_FAILED",
+      "Tidak menemukan direktori penyimpanan aplikasi (documentDirectory/cacheDirectory). " +
+        "Coba tutup paksa lalu buka ulang aplikasi, atau berikan izin penyimpanan jika diminta.",
+      true,
+    );
+  }
+
   console.log("[AnkiParser] Final docDir:", docDir);
 
   // Use the standard SQLite/ directory. expo-sqlite v16+ expects files here.
-  const sqliteDir = docDir.endsWith("/") ? `${docDir}SQLite/` : `${docDir}/SQLite/`;
+  // Defensive join in case docDir is missing the trailing slash.
+  const sqliteDir = docDir.charAt(docDir.length - 1) === "/"
+    ? `${docDir}SQLite/`
+    : `${docDir}/SQLite/`;
   console.log("[AnkiParser] Target SQLite directory:", sqliteDir);
 
   try {

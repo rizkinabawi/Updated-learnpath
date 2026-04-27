@@ -210,3 +210,32 @@ The following web-only fixes were applied so PWA and mobile share behavior corre
   gap after `cancel()`, safety-timeout the `onDone` Promise (so chunked
   playback never hangs), and split long text into ~180-char pieces to dodge
   Chrome's ~15-second utterance cutoff.
+
+## New Features (April 2026)
+
+### F4 — Pindah Modul + Gabung Kursus
+- `utils/storage.ts`: added `moveModuleToCourse(moduleId, newPathId)`,
+  `mergeCourses(sourceIds[], newName, opts?)`, `getNoteById(id)`, plus a
+  private `recomputeCourseTotals()` helper. Merge preserves all child data
+  because lessons/notes/materials are linked by `moduleId`/`lessonId`, not
+  `pathId`.
+- `app/course/[pathId].tsx`: each module row now has an `ArrowRightLeft`
+  icon → opens a "Pindah Modul" modal listing other courses; tapping moves
+  the module and recomputes totals on both sides.
+- `app/(tabs)/learn.tsx`: header `git-merge` button (visible when ≥2
+  courses) toggles merge-select mode; selected cards show a check overlay;
+  bottom footer "Gabung" CTA opens a name modal and calls `mergeCourses`,
+  then navigates to the new course. Both large and compact card variants
+  participate in selection.
+
+### F5 — @-Mention Notes in Material Editor
+- `app/study-material/[lessonId].tsx`: text-tab `TextInput` now tracks the
+  caret via `onSelectionChange` and detects an unfinished `@query` to the
+  left of the cursor. A floating popover lists matching notes (notes for
+  the current lesson first, then most recent). Selecting a note splices
+  `[[note:NOTE_ID|Title]]` into the content at the `@` position.
+- `app/study-material/view/[matId].tsx`: a shared
+  `renderTextWithNoteLinks()` helper splits text on the marker regex and
+  renders each link as an inline tappable `<Text>` (underlined, primary
+  color) that routes to `/notes/view/[noteId]`. Used in both the paged
+  book-mode renderer and the standard text renderer.

@@ -47,8 +47,10 @@ import {
   saveStudyMaterial,
   deleteStudyMaterial,
   getLessons,
+  getNotes,
   generateId,
   type StudyMaterial,
+  type Note,
 } from "@/utils/storage";
 import { type ColorScheme } from "@/constants/colors";
 import { toast } from "@/components/Toast";
@@ -364,6 +366,12 @@ export default function StudyMaterialScreen() {
   const [extraImages, setExtraImages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // @-mention notes state
+  const [allNotes, setAllNotes] = useState<Note[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStart, setMentionStart] = useState(0);
+  const [contentSelection, setContentSelection] = useState({ start: 0, end: 0 });
+
   const safeLesson = Array.isArray(lessonId) ? lessonId[0] : (lessonId ?? "");
 
   useEffect(() => {
@@ -378,7 +386,77 @@ export default function StudyMaterialScreen() {
     const lessons = await getLessons();
     const lesson = lessons.find((l) => l.id === safeLesson);
     if (lesson) setLessonName(lesson.name);
+    // Notes available for @-mentions: prefer notes for this lesson, then all others
+    const notes = await getNotes();
+    notes.sort((a, b) => {
+      const ai = a.lessonId === safeLesson ? 0 : 1;
+      const bi = b.lessonId === safeLesson ? 0 : 1;
+      if (ai !== bi) return ai - bi;
+      return new Date(b.updatedAt || b.createdAt).getTime()
+        - new Date(a.updatedAt || a.createdAt).getTime();
+    });
+    setAllNotes(notes);
   };
+
+  /**
+   * Detects an unfinished `@query` immediately preceding the cursor.
+   * Returns the position of the `@` and the partial query, or null.
+   */
+  const detectMention = (text: string, cursor: number) => {
+    const start = Math.max(0, cursor - 40);
+    const sub = text.slice(start, cursor);
+    const m = sub.match(/(?:^|[\s(\[{])@([^\s@\]]{0,30})$/);
+    if (!m) return null;
+    const at = start + sub.lastIndexOf("@" + m[1]);
+    return { query: m[1], at };
+  };
+
+  const handleContentChange = (text: string) => {
+    setMatContent(text);
+    const cursor = contentSelection.end || text.length;
+    const m = detectMention(text, cursor);
+    if (m) {
+      setMentionQuery(m.query);
+      setMentionStart(m.at);
+    } else {
+      setMentionQuery(null);
+    }
+  };
+
+  const handleSelectionChange = (e: { nativeEvent: { selection: { start: number; end: number } } }) => {
+    const sel = e.nativeEvent.selection;
+    setContentSelection(sel);
+    const m = detectMention(matContent, sel.end);
+    if (m) {
+      setMentionQuery(m.query);
+      setMentionStart(m.at);
+    } else if (mentionQuery !== null) {
+      setMentionQuery(null);
+    }
+  };
+
+  const insertNoteMention = (note: Note) => {
+    const before = matContent.slice(0, mentionStart);
+    const afterStart = mentionStart + 1 + (mentionQuery?.length ?? 0);
+    const after = matContent.slice(afterStart);
+    const cleanTitle = note.title.replace(/[\[\]|]/g, " ").trim() || "Catatan";
+    const link = `[[note:${note.id}|${cleanTitle}]]`;
+    setMatContent(before + link + " " + after);
+    setMentionQuery(null);
+  };
+
+  const filteredMentionNotes = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    const matches = q
+      ? allNotes.filter(
+          (n) =>
+            n.title.toLowerCase().includes(q) ||
+            n.content.toLowerCase().includes(q)
+        )
+      : allNotes;
+    return matches.slice(0, 6);
+  }, [mentionQuery, allNotes]);
 
   const openAdd = () => {
     setEditMat(null);
@@ -905,15 +983,55 @@ export default function StudyMaterialScreen() {
                   <Text style={[styles.fieldLabel, { marginTop: 6 }]}>
                     {t.material.content_ph_text}
                   </Text>
-                  <TextInput
-                    value={matContent}
-                    onChangeText={setMatContent}
-                    placeholder={t.material.content_ph_text}
-                    style={[styles.input, styles.textArea]}
-                    placeholderTextColor={colors.textMuted}
-                    multiline
-                    textAlignVertical="top"
-                  />
+                  <Text style={styles.mentionHint}>
+                    Tip: ketik <Text style={{ fontWeight: "800" }}>@</Text> untuk menyisipkan tautan ke catatan.
+                  </Text>
+                  <View>
+                    <TextInput
+                      value={matContent}
+                      onChangeText={handleContentChange}
+                      onSelectionChange={handleSelectionChange}
+                      placeholder={t.material.content_ph_text}
+                      style={[styles.input, styles.textArea]}
+                      placeholderTextColor={colors.textMuted}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                    {mentionQuery !== null && (
+                      <View style={styles.mentionPopover}>
+                        <Text style={styles.mentionPopoverHeader}>
+                          {filteredMentionNotes.length === 0
+                            ? "Tidak ada catatan cocok"
+                            : `Catatan${mentionQuery ? ` cocok "${mentionQuery}"` : ""}`}
+                        </Text>
+                        {filteredMentionNotes.map((n) => (
+                          <TouchableOpacity
+                            key={n.id}
+                            onPress={() => insertNoteMention(n)}
+                            style={styles.mentionItem}
+                          >
+                            <FileText size={14} color={colors.primary} />
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <Text style={styles.mentionItemTitle} numberOfLines={1}>
+                                {n.title || "Tanpa Judul"}
+                              </Text>
+                              {!!n.content && (
+                                <Text style={styles.mentionItemSnippet} numberOfLines={1}>
+                                  {n.content.replace(/\s+/g, " ").slice(0, 60)}
+                                </Text>
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity
+                          onPress={() => setMentionQuery(null)}
+                          style={styles.mentionCloseRow}
+                        >
+                          <Text style={styles.mentionCloseText}>Tutup</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
                   <ExtraImagesEditor
                     images={extraImages}
                     onAdd={addAttachmentImage}
@@ -1186,6 +1304,32 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     borderWidth: 1.5, borderColor: c.border, marginTop: 6,
   },
   textArea: { height: 160, textAlignVertical: "top" },
+  mentionHint: { fontSize: 11, color: c.textMuted, fontStyle: "italic", marginTop: 4 },
+  mentionPopover: {
+    marginTop: 4,
+    backgroundColor: c.surface,
+    borderRadius: 12,
+    borderWidth: 1, borderColor: c.border,
+    overflow: "hidden",
+    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  mentionPopoverHeader: {
+    fontSize: 11, fontWeight: "700", color: c.textMuted,
+    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: c.background,
+    borderBottomWidth: 1, borderBottomColor: c.border,
+    textTransform: "uppercase", letterSpacing: 0.5,
+  },
+  mentionItem: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: c.border,
+  },
+  mentionItemTitle: { fontSize: 13, fontWeight: "700", color: c.text },
+  mentionItemSnippet: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  mentionCloseRow: { paddingHorizontal: 12, paddingVertical: 8, alignItems: "flex-end" },
+  mentionCloseText: { fontSize: 11, fontWeight: "700", color: c.primary },
   codeInput: {
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     fontSize: 12, backgroundColor: "#1E1E2E", color: "#A9B1D6",

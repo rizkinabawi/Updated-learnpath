@@ -52,6 +52,47 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PLAYER_WIDTH = Math.min(SCREEN_WIDTH - 32, 720);
 const PLAYER_HEIGHT = Math.round((PLAYER_WIDTH * 9) / 16);
 
+const NOTE_LINK_RE = /\[\[note:([^|\]]+)\|([^\]]+)\]\]/g;
+
+/**
+ * Splits text into renderable segments: plain strings and tap-to-open
+ * note links. Used inside <Text selectable> wrappers.
+ */
+const renderTextWithNoteLinks = (
+  text: string,
+  router: ReturnType<typeof useRouter>,
+  linkColor: string
+): React.ReactNode[] => {
+  if (!text) return [];
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  NOTE_LINK_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = NOTE_LINK_RE.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const noteId = m[1];
+    const title = m[2];
+    parts.push(
+      <Text
+        key={`nl-${m.index}-${noteId}`}
+        onPress={() =>
+          router.push({ pathname: "/notes/view/[noteId]", params: { noteId } })
+        }
+        style={{
+          color: linkColor,
+          fontWeight: "700",
+          textDecorationLine: "underline",
+        }}
+      >
+        @{title}
+      </Text>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+};
+
 const extractYoutubeId = (url: string): string | null => {
   try {
     const u = url.trim();
@@ -420,7 +461,9 @@ export default function MaterialFullView() {
               ).map((pageContent, pidx) => (
                 <View key={pidx} style={{ width: SCREEN_WIDTH - 32, paddingRight: 16 }}>
                   {current.type === "text" ? (
-                    <Text style={[styles.bodyText, { fontSize: 18 }]} selectable>{pageContent}</Text>
+                    <Text style={[styles.bodyText, { fontSize: 18 }]} selectable>
+                      {renderTextWithNoteLinks(pageContent, router, colors.primary)}
+                    </Text>
                   ) : (
                     <WebView
                       originWhitelist={["*"]}
@@ -452,7 +495,7 @@ export default function MaterialFullView() {
           <>
             {current.type === "text" && (
               <Text style={styles.bodyText} selectable>
-                {current.content}
+                {renderTextWithNoteLinks(current.content, router, colors.primary)}
               </Text>
             )}
 

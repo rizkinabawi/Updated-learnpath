@@ -23,7 +23,7 @@ import {
   getLearningPaths, getModules, getLessons,
   getFlashcards, getQuizzes,
   saveLearningPath, deleteLearningPath, exportCourse,
-  getCompletedLessons,
+  getCompletedLessons, mergeCourses,
   generateId, type LearningPath,
 } from "@/utils/storage";
 import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
@@ -79,6 +79,62 @@ export default function LearnPage() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"large" | "compact">("large");
   const [completions, setCompletions] = useState<string[]>([]);
+  // Merge mode state
+  const [mergeMode, setMergeMode] = useState(false);
+  const [mergeSelected, setMergeSelected] = useState<Set<string>>(new Set());
+  const [showMergeNameModal, setShowMergeNameModal] = useState(false);
+  const [mergeName, setMergeName] = useState("");
+  const [merging, setMerging] = useState(false);
+
+  const toggleMergeMode = () => {
+    setMergeMode((prev) => {
+      if (prev) {
+        setMergeSelected(new Set());
+      }
+      return !prev;
+    });
+  };
+
+  const toggleMergeSelect = (id: string) => {
+    setMergeSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const openMergeNameModal = () => {
+    if (mergeSelected.size < 2) {
+      toast.error("Pilih minimal 2 kursus");
+      return;
+    }
+    const names = paths
+      .filter((p) => mergeSelected.has(p.id))
+      .map((p) => p.name);
+    setMergeName(names.join(" + "));
+    setShowMergeNameModal(true);
+  };
+
+  const confirmMergeCourses = async () => {
+    if (mergeSelected.size < 2) return;
+    setMerging(true);
+    try {
+      const ids = Array.from(mergeSelected);
+      const newId = await mergeCourses(ids, mergeName);
+      toast.success(`Berhasil menggabungkan ${ids.length} kursus`);
+      setShowMergeNameModal(false);
+      setMergeMode(false);
+      setMergeSelected(new Set());
+      setMergeName("");
+      await loadData();
+      router.push(`/course/${newId}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Gagal menggabungkan kursus");
+    } finally {
+      setMerging(false);
+    }
+  };
 
   const loadData = async () => {
     const [data, completedIds] = await Promise.all([getLearningPaths(), getCompletedLessons()]);
@@ -258,6 +314,25 @@ export default function LearnPage() {
                 <Feather name={viewMode === "large" ? "list" : "grid"} size={19} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
+            {paths.length >= 2 && (
+              <TouchableOpacity
+                onPress={toggleMergeMode}
+                style={styles.addBtn}
+                activeOpacity={0.8}
+                accessibilityLabel="Gabung kursus"
+              >
+                <LinearGradient
+                  colors={
+                    mergeMode
+                      ? ["rgba(255,255,255,0.6)", "rgba(255,255,255,0.4)"]
+                      : ["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]
+                  }
+                  style={styles.addGrad}
+                >
+                  <Feather name="git-merge" size={19} color={mergeMode ? colors.purple : "#fff"} />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => router.push("/import-roadmap")}
               style={styles.addBtn}
@@ -384,20 +459,29 @@ export default function LearnPage() {
                 const s = stats[p.id] ?? { modules: 0, lessons: 0, flashcards: 0, quizzes: 0 };
 
                 if (viewMode === "large") {
+                  const selected = mergeSelected.has(p.id);
                   return (
                     <TouchableOpacity
                       key={p.id}
-                      onPress={() => router.push(`/course/${p.id}`)}
+                      onPress={() =>
+                        mergeMode ? toggleMergeSelect(p.id) : router.push(`/course/${p.id}`)
+                      }
                       onLongPress={() =>
-                        Alert.alert(p.name, undefined, [
-                          { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
-                          { text: "Bagikan Bundle", onPress: () => handleShare(p) },
-                          { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
-                          { text: t.common.cancel, style: "cancel" },
-                        ])
+                        mergeMode
+                          ? toggleMergeSelect(p.id)
+                          : Alert.alert(p.name, undefined, [
+                              { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
+                              { text: "Bagikan Bundle", onPress: () => handleShare(p) },
+                              { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
+                              { text: t.common.cancel, style: "cancel" },
+                            ])
                       }
                       activeOpacity={0.92}
-                      style={[styles.largeCard, isTablet && styles.courseCardTablet]}
+                      style={[
+                        styles.largeCard,
+                        isTablet && styles.courseCardTablet,
+                        mergeMode && selected && styles.cardSelected,
+                      ]}
                     >
                       <LinearGradient
                         colors={grad}
@@ -415,7 +499,15 @@ export default function LearnPage() {
                              <Feather name={p.icon as any || "book"} size={22} color="#fff" />
                           </View>
                           <View style={styles.arrowWrap}>
-                            <Feather name="arrow-right" size={18} color="rgba(255,255,255,0.8)" />
+                            {mergeMode ? (
+                              <Feather
+                                name={selected ? "check-circle" : "circle"}
+                                size={20}
+                                color={selected ? "#fff" : "rgba(255,255,255,0.7)"}
+                              />
+                            ) : (
+                              <Feather name="arrow-right" size={18} color="rgba(255,255,255,0.8)" />
+                            )}
                           </View>
                         </View>
 
@@ -436,7 +528,11 @@ export default function LearnPage() {
                         {/* Share button */}
                         <View style={styles.shareDivider} />
                         <TouchableOpacity
-                          onPress={(e) => { e.stopPropagation?.(); handleShare(p); }}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            if (mergeMode) toggleMergeSelect(p.id);
+                            else handleShare(p);
+                          }}
                           style={styles.shareBtn}
                           activeOpacity={0.75}
                           disabled={!!sharingId}
@@ -458,20 +554,29 @@ export default function LearnPage() {
                   );
                 }
 
+                  const selectedC = mergeSelected.has(p.id);
                   return (
                     <TouchableOpacity
                       key={p.id}
-                      onPress={() => router.push(`/course/${p.id}`)}
+                      onPress={() =>
+                        mergeMode ? toggleMergeSelect(p.id) : router.push(`/course/${p.id}`)
+                      }
                       onLongPress={() =>
-                        Alert.alert(p.name, undefined, [
-                          { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
-                          { text: "Bagikan Bundle", onPress: () => handleShare(p) },
-                          { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
-                          { text: t.common.cancel, style: "cancel" },
-                        ])
+                        mergeMode
+                          ? toggleMergeSelect(p.id)
+                          : Alert.alert(p.name, undefined, [
+                              { text: "Ganti Ikon", onPress: () => handleChangeIcon(p) },
+                              { text: "Bagikan Bundle", onPress: () => handleShare(p) },
+                              { text: t.common.delete, style: "destructive", onPress: () => handleDelete(p) },
+                              { text: t.common.cancel, style: "cancel" },
+                            ])
                       }
                       activeOpacity={0.9}
-                      style={[styles.courseCard, isTablet && styles.courseCardTablet]}
+                      style={[
+                        styles.courseCard,
+                        isTablet && styles.courseCardTablet,
+                        mergeMode && selectedC && styles.cardSelected,
+                      ]}
                     >
                       <LinearGradient
                         colors={grad}
@@ -507,7 +612,11 @@ export default function LearnPage() {
 
                       <View style={styles.courseCardArrow}>
                         <LinearGradient colors={grad} style={styles.courseArrowCircle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                          <Feather name="chevron-right" size={14} color="#fff" />
+                          <Feather
+                            name={mergeMode ? (selectedC ? "check" : "circle") : "chevron-right"}
+                            size={14}
+                            color="#fff"
+                          />
                         </LinearGradient>
                       </View>
                     </TouchableOpacity>
@@ -515,17 +624,99 @@ export default function LearnPage() {
               })}
 
             {/* Add another course card */}
-            <TouchableOpacity
-              onPress={() => setShowNewPath(true)}
-              activeOpacity={0.8}
-              style={[styles.addMoreCard, isTablet && styles.courseCardTablet]}
-            >
-              <Feather name="plus-circle" size={22} color={colors.primary} />
-              <Text style={styles.addMoreText}>{t.learn.add_more}</Text>
-            </TouchableOpacity>
+            {!mergeMode && (
+              <TouchableOpacity
+                onPress={() => setShowNewPath(true)}
+                activeOpacity={0.8}
+                style={[styles.addMoreCard, isTablet && styles.courseCardTablet]}
+              >
+                <Feather name="plus-circle" size={22} color={colors.primary} />
+                <Text style={styles.addMoreText}>{t.learn.add_more}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>
+
+      {/* Merge mode footer bar */}
+      {mergeMode && (
+        <View style={[styles.mergeFooter, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.mergeFooterTitle}>
+              {mergeSelected.size === 0
+                ? "Pilih kursus untuk digabung"
+                : `${mergeSelected.size} kursus dipilih`}
+            </Text>
+            <Text style={styles.mergeFooterSub}>Pilih minimal 2 kursus, lalu lanjut.</Text>
+          </View>
+          <TouchableOpacity onPress={toggleMergeMode} style={styles.mergeFooterCancel}>
+            <Text style={styles.mergeFooterCancelText}>Batal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={openMergeNameModal}
+            disabled={mergeSelected.size < 2}
+            style={[styles.mergeFooterNext, mergeSelected.size < 2 && { opacity: 0.4 }]}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.purple]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={styles.mergeFooterNextGrad}
+            >
+              <Feather name="git-merge" size={14} color="#fff" />
+              <Text style={styles.mergeFooterNextText}>Gabung</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Merge name modal */}
+      <Modal visible={showMergeNameModal} transparent animationType="slide" onRequestClose={() => setShowMergeNameModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={styles.mOverlay}>
+            <View style={styles.mBox}>
+              <Text style={styles.mTitle}>Nama Kursus Gabungan</Text>
+              <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: "600" }}>
+                Akan menggabungkan {mergeSelected.size} kursus menjadi satu.
+                Modul, pelajaran, dan catatan akan tetap utuh.
+              </Text>
+              <TextInput
+                placeholder="Nama kursus baru"
+                value={mergeName}
+                onChangeText={setMergeName}
+                style={styles.mInput}
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+              />
+              <View style={styles.mBtns}>
+                <TouchableOpacity
+                  onPress={() => setShowMergeNameModal(false)}
+                  style={styles.mBtnCancel}
+                  disabled={merging}
+                >
+                  <Text style={styles.mBtnCancelText}>{t.common.cancel}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={confirmMergeCourses}
+                  style={styles.mBtnOk}
+                  disabled={merging || !mergeName.trim()}
+                >
+                  <LinearGradient
+                    colors={[colors.primary, colors.purple]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={styles.mBtnOkGrad}
+                  >
+                    {merging ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.mBtnOkText}>Gabungkan</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* MODAL: New Course */}
       <Modal visible={showNewPath} transparent animationType="slide">
@@ -675,6 +866,33 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
     marginBottom: 4,
   },
   addMoreText: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+
+  cardSelected: {
+    borderWidth: 3, borderColor: c.purple,
+    shadowColor: c.purple, shadowOpacity: 0.4, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  mergeFooter: {
+    position: "absolute", left: 0, right: 0, bottom: 0,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 16, paddingTop: 14,
+    backgroundColor: c.background, borderTopWidth: 1, borderTopColor: c.border,
+    shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: -2 },
+    elevation: 8,
+  },
+  mergeFooterTitle: { fontSize: 14, fontWeight: "800", color: c.dark },
+  mergeFooterSub: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  mergeFooterCancel: {
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 999, borderWidth: 1, borderColor: c.border,
+  },
+  mergeFooterCancelText: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+  mergeFooterNext: { borderRadius: 999, overflow: "hidden" },
+  mergeFooterNextGrad: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 16, paddingVertical: 10,
+  },
+  mergeFooterNextText: { fontSize: 13, fontWeight: "900", color: "#fff" },
 
   largeCard: { borderRadius: 22, overflow: "hidden", marginBottom: 2, width: "100%" },
   courseGrad: { 

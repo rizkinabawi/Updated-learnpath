@@ -21,9 +21,11 @@ import {
   getLearningPaths, getModules, getLessons,
   getFlashcards, getQuizzes, getNotes, getStudyMaterials,
   saveModule, saveLesson, deleteModule, deleteLesson,
+  moveModuleToCourse,
   generateId, getCompletedLessons, setLessonCompleted,
   type LearningPath, type Module, type Lesson,
 } from "@/utils/storage";
+import { toast } from "@/components/Toast";
 import * as LucideIcons from "lucide-react-native";
 import { type ColorScheme } from "@/constants/colors";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -92,6 +94,10 @@ export default function CourseDetailPage() {
   const [showEditTarget, setShowEditTarget] = useState(false);
   const [targetDateInput, setTargetDateInput] = useState("");
   const [targetDailyMin, setTargetDailyMin] = useState("30");
+  // Move-module modal state
+  const [showMoveModule, setShowMoveModule] = useState(false);
+  const [moveMod, setMoveMod] = useState<Module | null>(null);
+  const [otherPaths, setOtherPaths] = useState<LearningPath[]>([]);
 
   const loadData = async () => {
     if (!pathId) return;
@@ -142,6 +148,35 @@ export default function CourseDetailPage() {
     setModName(mod.name);
     setModIcon(mod.icon || "Bookmark");
     setShowNewModule(true);
+  };
+
+  const handleMoveModule = async (mod: Module) => {
+    const all = await getLearningPaths();
+    const others = all.filter((p) => p.id !== pathId);
+    if (others.length === 0) {
+      Alert.alert(
+        "Tidak Ada Kursus Tujuan",
+        "Anda perlu memiliki minimal satu kursus lain untuk memindahkan modul."
+      );
+      return;
+    }
+    setMoveMod(mod);
+    setOtherPaths(others);
+    setShowMoveModule(true);
+  };
+
+  const doMoveModule = async (newPathId: string) => {
+    if (!moveMod) return;
+    try {
+      await moveModuleToCourse(moveMod.id, newPathId);
+      const target = otherPaths.find((p) => p.id === newPathId);
+      toast.success(`Modul dipindahkan ke "${target?.name ?? "kursus lain"}"`);
+      setShowMoveModule(false);
+      setMoveMod(null);
+      loadData();
+    } catch (e: any) {
+      toast.error(e?.message || "Gagal memindahkan modul");
+    }
   };
 
   const handleEditTarget = () => {
@@ -544,6 +579,14 @@ export default function CourseDetailPage() {
 
                   <View style={styles.moduleActionRow}>
                     <TouchableOpacity
+                      onPress={() => handleMoveModule(mod)}
+                      style={[styles.moduleActionBtn, { backgroundColor: colors.purpleLight }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Pindah modul ke kursus lain"
+                    >
+                      <LucideIcons.ArrowRightLeft size={13} color={colors.purple} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={() => handleEditModule(mod)}
                       style={[styles.moduleActionBtn, { backgroundColor: colors.primaryLight }]}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -774,6 +817,45 @@ export default function CourseDetailPage() {
           </KeyboardAvoidingView>
         </Modal>
       ))}
+
+      {/* Move-Module Modal */}
+      <Modal visible={showMoveModule} transparent animationType="slide" onRequestClose={() => setShowMoveModule(false)}>
+        <View style={styles.mOverlay}>
+          <View style={styles.mBox}>
+            <Text style={styles.mTitle}>Pindah Modul</Text>
+            {moveMod && (
+              <Text style={[styles.mLabel, { marginBottom: 8 }]} numberOfLines={2}>
+                Pindahkan "{moveMod.name}" ke kursus mana?
+              </Text>
+            )}
+            <ScrollView style={{ maxHeight: 320 }}>
+              {otherPaths.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => doMoveModule(p.id)}
+                  style={styles.movePathRow}
+                >
+                  <View style={[styles.movePathIcon, { backgroundColor: colors.primaryLight }]}>
+                    <DynamicIcon name={p.icon || "Book"} size={16} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.movePathName} numberOfLines={1}>{p.name}</Text>
+                    {!!p.description && (
+                      <Text style={styles.movePathDesc} numberOfLines={1}>{p.description}</Text>
+                    )}
+                  </View>
+                  <LucideIcons.ChevronRight size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <View style={styles.mBtns}>
+              <TouchableOpacity onPress={() => setShowMoveModule(false)} style={styles.mBtnCancel}>
+                <Text style={styles.mBtnCancelText}>{t.common.cancel}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -948,6 +1030,19 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   mBtnOk: { flex: 1, borderRadius: 999, overflow: "hidden" },
   mBtnOkGrad: { paddingVertical: 14, alignItems: "center" },
   mBtnOkText: { fontSize: 14, fontWeight: "900", color: "#fff" },
+
+  movePathRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingVertical: 12, paddingHorizontal: 12,
+    borderRadius: 12, borderWidth: 1, borderColor: c.border,
+    marginBottom: 8, backgroundColor: c.background,
+  },
+  movePathIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
+  },
+  movePathName: { fontSize: 14, fontWeight: "700", color: c.dark },
+  movePathDesc: { fontSize: 11, color: c.textMuted, marginTop: 2 },
 
   mLabel: { fontSize: 12, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", marginTop: 12, marginBottom: 8 },
   iconGrid: { flexDirection: "row", gap: 10, paddingBottom: 10 },

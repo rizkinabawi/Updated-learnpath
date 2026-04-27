@@ -447,6 +447,109 @@ export const deleteLesson = async (id: string) => {
   await saveToStorage(STORAGE_KEYS.LESSONS, lessons.filter((l) => l.id !== id));
 };
 
+// ─── Module move / Course merge ────────────────────────────────
+/**
+ * Recompute totalLessons / completedLessons of a path based on
+ * its modules and the lessons under those modules.
+ * Note: completedLessons is preserved as-is if it's already tracked
+ * by other means; we only refresh totalLessons.
+ */
+const recomputeCourseTotals = async (pathId: string) => {
+  const paths = await getLearningPaths();
+  const idx = paths.findIndex((p) => p.id === pathId);
+  if (idx < 0) return;
+  const mods = await getModules(pathId);
+  const allLessons = await getLessons();
+  const total = allLessons.filter((l) =>
+    mods.some((m) => m.id === l.moduleId)
+  ).length;
+  paths[idx].totalLessons = total;
+  await saveToStorage(STORAGE_KEYS.LEARNING_PATHS, paths);
+};
+
+/**
+ * Move a single module (with all its lessons via the moduleId link)
+ * to a different course. Lessons are NOT touched — they keep their
+ * moduleId, so all materials/notes/flashcards stay attached.
+ */
+export const moveModuleToCourse = async (
+  moduleId: string,
+  newPathId: string
+): Promise<void> => {
+  const modules = await getModules();
+  const idx = modules.findIndex((m) => m.id === moduleId);
+  if (idx < 0) throw new Error("Module not found");
+  const oldPathId = modules[idx].pathId;
+  if (oldPathId === newPathId) return;
+  // Place at the end of target path
+  const targetMods = modules.filter((m) => m.pathId === newPathId);
+  const maxOrder = targetMods.reduce((mx, m) => Math.max(mx, m.order ?? 0), 0);
+  modules[idx] = { ...modules[idx], pathId: newPathId, order: maxOrder + 1 };
+  await saveToStorage(STORAGE_KEYS.MODULES, modules);
+  await recomputeCourseTotals(oldPathId);
+  await recomputeCourseTotals(newPathId);
+};
+
+/**
+ * Merge 2+ source courses into a brand-new course. All modules from
+ * the sources are reassigned to the new course (lesson/material/note
+ * links remain intact since they reference moduleId/lessonId).
+ * Source courses are deleted afterwards.
+ * Returns the new course id.
+ */
+export const mergeCourses = async (
+  sourceIds: string[],
+  newName: string,
+  opts?: { description?: string; userId?: string; icon?: string }
+): Promise<string> => {
+  if (sourceIds.length < 2) throw new Error("Need at least 2 courses to merge");
+  const paths = await getLearningPaths();
+  const sources = paths.filter((p) => sourceIds.includes(p.id));
+  if (sources.length < 2) throw new Error("Source courses not found");
+
+  const userId = opts?.userId ?? sources[0].userId;
+  const newPath: LearningPath = {
+    id: generateId(),
+    name: newName.trim() || sources.map((s) => s.name).join(" + "),
+    description:
+      opts?.description ??
+      `Gabungan dari: ${sources.map((s) => s.name).join(", ")}`,
+    userId,
+    icon: opts?.icon ?? sources[0].icon,
+    completedLessons: sources.reduce(
+      (sum, s) => sum + (s.completedLessons ?? 0),
+      0
+    ),
+    totalLessons: sources.reduce(
+      (sum, s) => sum + (s.totalLessons ?? 0),
+      0
+    ),
+    createdAt: new Date().toISOString(),
+  };
+  await saveLearningPath(newPath);
+
+  // Reassign all modules from source paths to the new path,
+  // preserving their relative order across sources.
+  const allModules = await getModules();
+  let nextOrder = 1;
+  const updated = allModules.map((m) => {
+    if (sourceIds.includes(m.pathId)) {
+      return { ...m, pathId: newPath.id, order: nextOrder++ };
+    }
+    return m;
+  });
+  await saveToStorage(STORAGE_KEYS.MODULES, updated);
+
+  // Delete source courses (modules already moved away).
+  const remaining = (await getLearningPaths()).filter(
+    (p) => !sourceIds.includes(p.id)
+  );
+  await saveToStorage(STORAGE_KEYS.LEARNING_PATHS, remaining);
+
+  await recomputeCourseTotals(newPath.id);
+  return newPath.id;
+};
+
 // ─── Flashcard Packs ───────────────────────────────────────────
 export const getFlashcardPacks = async (lessonId?: string): Promise<FlashcardPack[]> => {
   const packs = await getFromStorage<FlashcardPack>(STORAGE_KEYS.FLASHCARD_PACKS);
@@ -1226,6 +1329,11 @@ export const sortBySpacedRep = async (cards: Flashcard[]): Promise<Flashcard[]> 
 export const getNotes = async (lessonId?: string): Promise<Note[]> => {
   const notes = await getFromStorage<Note>(STORAGE_KEYS.NOTES);
   return lessonId ? notes.filter((n) => n.lessonId === lessonId) : notes;
+};
+
+export const getNoteById = async (noteId: string): Promise<Note | null> => {
+  const notes = await getFromStorage<Note>(STORAGE_KEYS.NOTES);
+  return notes.find((n) => n.id === noteId) ?? null;
 };
 
 export const saveNote = async (note: Note) => {

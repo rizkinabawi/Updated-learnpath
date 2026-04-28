@@ -233,9 +233,6 @@ export default function FlashcardScreen() {
             setNextLesson(lessons[idx + 1]);
           }
         }
-        } finally {
-          if (!cancelled) setLoading(false);
-        }
       } catch (e) {
         // Surface the real reason — usually JSON.parse OOM or storage IO error
         // — to the user. Without this catch the whole React tree would crash.

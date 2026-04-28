@@ -405,6 +405,7 @@ export default function Dashboard() {
           <Text style={styles.sectionTitle}>{t.home.section_quick}</Text>
           <View style={styles.quickGrid}>
             {[
+              { icon: "book-open" as const, label: "JLPT Learning", sub: "N1 - N5 Materi & Soal", color: colors.primary, bg: colors.primaryLight, route: "/course/jlpt" },
               { icon: "credit-card" as const, label: t.home.quick_flash, sub: t.home.quick_flash_sub, color: colors.primary, bg: colors.primaryLight, route: "/(tabs)/practice" },
               { icon: "help-circle" as const, label: t.home.quick_quiz, sub: t.home.quick_quiz_sub, color: colors.amber, bg: colors.amberLight, route: "/(tabs)/practice" },
               { icon: "bar-chart-2" as const, label: t.home.quick_progress, sub: t.home.quick_progress_sub, color: colors.teal, bg: colors.tealLight, route: "/(tabs)/progress" },

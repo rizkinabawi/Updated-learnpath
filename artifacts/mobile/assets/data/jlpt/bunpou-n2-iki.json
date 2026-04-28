@@ -1,0 +1,2111 @@
+{"data":[[
+{
+"id": "n2-001",
+"level": "N2",
+"bunpou": "あまりに",
+"grammar_target": "あまりに",
+"arti_umum": "terlalu / begitu",
+"penggunaan": "Digunakan untuk menunjukkan tingkat yang berlebihan hingga menimbulkan hasil tertentu.",
+"pola": "[あまりに] + Adj / Verb",
+"contoh": [
+{"kalimat_jepang": "あまりに[あまりに]暑くて外に出られない。","arti_indonesia": "Terlalu panas sampai tidak bisa keluar."},
+{"kalimat_jepang": "あまりに[あまりに]驚いて言葉が出なかった。","arti_indonesia": "Terlalu kaget sampai tidak bisa bicara."},
+{"kalimat_jepang": "あまりに[あまりに]高いので買えない。","arti_indonesia": "Terlalu mahal jadi tidak bisa beli."}
+],
+"catatan": ""
+},
+{
+"id": "n2-002",
+"level": "N2",
+"bunpou": "あまりの",
+"grammar_target": "あまりの",
+"arti_umum": "terlalu (noun)",
+"penggunaan": "Digunakan sebelum noun untuk menunjukkan tingkat berlebihan.",
+"pola": "[あまりの] + Noun",
+"contoh": [
+{"kalimat_jepang": "あまりの[あまりの]暑さで倒れた。","arti_indonesia": "Pingsan karena terlalu panas."},
+{"kalimat_jepang": "あまりの[あまりの]忙しさに疲れた。","arti_indonesia": "Capek karena terlalu sibuk."},
+{"kalimat_jepang": "あまりの[あまりの]美しさに驚いた。","arti_indonesia": "Kaget karena terlalu indah."}
+],
+"catatan": ""
+},
+{
+"id": "n2-003",
+"level": "N2",
+"bunpou": "一方だ",
+"grammar_target": "一方だ",
+"arti_umum": "terus saja",
+"penggunaan": "Digunakan untuk perubahan satu arah (biasanya negatif).",
+"pola": "Verb kamus + [一方だ]",
+"contoh": [
+{"kalimat_jepang": "物価は上がる一方だ[一方だ]。","arti_indonesia": "Harga terus naik."},
+{"kalimat_jepang": "人口は減る一方だ[一方だ]。","arti_indonesia": "Penduduk terus berkurang."},
+{"kalimat_jepang": "問題は増える一方だ[一方だ]。","arti_indonesia": "Masalah terus bertambah."}
+],
+"catatan": ""
+},
+{
+"id": "n2-004",
+"level": "N2",
+"bunpou": "一方で",
+"grammar_target": "一方で",
+"arti_umum": "di sisi lain",
+"penggunaan": "Digunakan untuk membandingkan dua hal yang kontras.",
+"pola": "Kalimat + [一方で]",
+"contoh": [
+{"kalimat_jepang": "便利な一方で[一方で]危険もある。","arti_indonesia": "Di satu sisi praktis, tapi berbahaya juga."},
+{"kalimat_jepang": "増えている一方で[一方で]減っている。","arti_indonesia": "Di satu sisi meningkat, di sisi lain menurun."},
+{"kalimat_jepang": "成功した一方で[一方で]失敗もあった。","arti_indonesia": "Di satu sisi sukses, ada juga kegagalan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-005",
+"level": "N2",
+"bunpou": "上に",
+"grammar_target": "上に",
+"arti_umum": "selain itu",
+"penggunaan": "Digunakan untuk menambahkan alasan atau kondisi.",
+"pola": "Kalimat + [上に]",
+"contoh": [
+{"kalimat_jepang": "雨が降った上に[上に]風も強い。","arti_indonesia": "Selain hujan, angin juga kuat."},
+{"kalimat_jepang": "彼は頭がいい上に[上に]優しい。","arti_indonesia": "Dia pintar dan juga baik."},
+{"kalimat_jepang": "忙しい上に[上に]疲れている。","arti_indonesia": "Selain sibuk, juga capek."}
+],
+"catatan": ""
+},
+{
+"id": "n2-006",
+"level": "N2",
+"bunpou": "上で",
+"grammar_target": "上で",
+"arti_umum": "setelah / dalam hal",
+"penggunaan": "Digunakan untuk syarat atau dasar sebelum melakukan sesuatu.",
+"pola": "Verb ta / Noun + の + [上で]",
+"contoh": [
+{"kalimat_jepang": "考えた上で[上で]決める。","arti_indonesia": "Memutuskan setelah berpikir."},
+{"kalimat_jepang": "確認した上で[上で]行う。","arti_indonesia": "Melakukan setelah konfirmasi."},
+{"kalimat_jepang": "計画の上で[上で]重要だ。","arti_indonesia": "Penting dalam perencanaan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-007",
+"level": "N2",
+"bunpou": "上は",
+"grammar_target": "上は",
+"arti_umum": "karena sudah",
+"penggunaan": "Digunakan untuk tanggung jawab setelah keputusan diambil.",
+"pola": "Verb ta + [上は]",
+"contoh": [
+{"kalimat_jepang": "決めた上は[上は]最後までやる。","arti_indonesia": "Karena sudah memutuskan, akan lakukan sampai akhir."},
+{"kalimat_jepang": "引き受けた上は[上は]責任を持つ。","arti_indonesia": "Karena sudah menerima, bertanggung jawab."},
+{"kalimat_jepang": "始めた上は[上は]やめない。","arti_indonesia": "Karena sudah mulai, tidak berhenti."}
+],
+"catatan": ""
+},
+{
+"id": "n2-008",
+"level": "N2",
+"bunpou": "うちに",
+"grammar_target": "うちに",
+"arti_umum": "selagi / selama",
+"penggunaan": "Digunakan untuk melakukan sesuatu sebelum kondisi berubah.",
+"pola": "Verb / Adj + [うちに]",
+"contoh": [
+{"kalimat_jepang": "元気なうちに[うちに]旅行する。","arti_indonesia": "Pergi jalan selagi masih sehat."},
+{"kalimat_jepang": "忘れないうちに[うちに]メモする。","arti_indonesia": "Catat sebelum lupa."},
+{"kalimat_jepang": "若いうちに[うちに]挑戦する。","arti_indonesia": "Coba selagi masih muda."}
+],
+"catatan": ""
+},
+{
+"id": "n2-009",
+"level": "N2",
+"bunpou": "うちに",
+"grammar_target": "うちに",
+"arti_umum": "tanpa sadar menjadi",
+"penggunaan": "Digunakan untuk perubahan alami tanpa disadari.",
+"pola": "Verb + [うちに]",
+"contoh": [
+{"kalimat_jepang": "話しているうちに[うちに]仲良くなった。","arti_indonesia": "Lama-lama jadi akrab."},
+{"kalimat_jepang": "見ているうちに[うちに]欲しくなった。","arti_indonesia": "Lihat-lama jadi ingin."},
+{"kalimat_jepang": "使っているうちに[うちに]慣れた。","arti_indonesia": "Dipakai lama jadi terbiasa."}
+],
+"catatan": "Makna berbeda"
+},
+{
+"id": "n2-010",
+"level": "N2",
+"bunpou": "得る",
+"grammar_target": "得る",
+"arti_umum": "mungkin terjadi",
+"penggunaan": "Digunakan untuk kemungkinan.",
+"pola": "Verb stem + [得る]",
+"contoh": [
+{"kalimat_jepang": "あり得る[得る]話だ。","arti_indonesia": "Itu mungkin terjadi."},
+{"kalimat_jepang": "起こり得る[得る]問題。","arti_indonesia": "Masalah yang mungkin terjadi."},
+{"kalimat_jepang": "考え得る[得る]結果。","arti_indonesia": "Hasil yang bisa dipikirkan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-011",
+"level": "N2",
+"bunpou": "得ない",
+"grammar_target": "得ない",
+"arti_umum": "tidak mungkin",
+"penggunaan": "Kebalikan dari 得る.",
+"pola": "Verb stem + [得ない]",
+"contoh": [
+{"kalimat_jepang": "あり得ない[得ない]。","arti_indonesia": "Tidak mungkin."},
+{"kalimat_jepang": "起こり得ない[得ない]。","arti_indonesia": "Tidak mungkin terjadi."},
+{"kalimat_jepang": "考え得ない[得ない]。","arti_indonesia": "Tidak terpikirkan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-012",
+"level": "N2",
+"bunpou": "おそれがある",
+"grammar_target": "おそれがある",
+"arti_umum": "ada kemungkinan buruk",
+"penggunaan": "Digunakan untuk kemungkinan negatif.",
+"pola": "Kalimat + [おそれがある]",
+"contoh": [
+{"kalimat_jepang": "事故になるおそれがある[おそれがある]。","arti_indonesia": "Ada kemungkinan jadi kecelakaan."},
+{"kalimat_jepang": "雨が降るおそれがある[おそれがある]。","arti_indonesia": "Ada kemungkinan hujan."},
+{"kalimat_jepang": "失敗するおそれがある[おそれがある]。","arti_indonesia": "Ada kemungkinan gagal."}
+],
+"catatan": ""
+},
+{
+"id": "n2-013",
+"level": "N2",
+"bunpou": "限り",
+"grammar_target": "限り",
+"arti_umum": "selama / sejauh",
+"penggunaan": "Digunakan untuk batas kondisi.",
+"pola": "Verb / Noun + の + [限り]",
+"contoh": [
+{"kalimat_jepang": "生きている限り[限り]頑張る。","arti_indonesia": "Selama hidup, akan berusaha."},
+{"kalimat_jepang": "知っている限り[限り]話す。","arti_indonesia": "Sejauh yang saya tahu."},
+{"kalimat_jepang": "私の記憶の限り[限り]正しい。","arti_indonesia": "Seingat saya benar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-014",
+"level": "N2",
+"bunpou": "限りでは",
+"grammar_target": "限りでは",
+"arti_umum": "sejauh",
+"penggunaan": "Digunakan untuk opini berdasarkan informasi terbatas.",
+"pola": "Verb + [限りでは]",
+"contoh": [
+{"kalimat_jepang": "聞いた限りでは[限りでは]問題ない。","arti_indonesia": "Sejauh yang saya dengar tidak masalah."},
+{"kalimat_jepang": "見た限りでは[限りでは]簡単だ。","arti_indonesia": "Sejauh yang saya lihat mudah."},
+{"kalimat_jepang": "調べた限りでは[限りでは]正しい。","arti_indonesia": "Sejauh yang saya cek benar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-015",
+"level": "N2",
+"bunpou": "限りだ",
+"grammar_target": "限りだ",
+"arti_umum": "sangat",
+"penggunaan": "Digunakan untuk ekspresi emosi kuat.",
+"pola": "Adj + [限りだ]",
+"contoh": [
+{"kalimat_jepang": "残念な限りだ[限りだ]。","arti_indonesia": "Sangat disayangkan."},
+{"kalimat_jepang": "うれしい限りだ[限りだ]。","arti_indonesia": "Sangat senang."},
+{"kalimat_jepang": "悲しい限りだ[限りだ]。","arti_indonesia": "Sangat sedih."}
+],
+"catatan": ""
+},
+{
+"id": "n2-016",
+"level": "N2",
+"bunpou": "かねる",
+"grammar_target": "かねる",
+"arti_umum": "tidak bisa (sopan)",
+"penggunaan": "Digunakan untuk menolak dengan halus.",
+"pola": "Verb stem + [かねる]",
+"contoh": [
+{"kalimat_jepang": "お答えしかねる[かねる]。","arti_indonesia": "Tidak bisa menjawab."},
+{"kalimat_jepang": "判断しかねる[かねる]。","arti_indonesia": "Tidak bisa memutuskan."},
+{"kalimat_jepang": "説明しかねる[かねる]。","arti_indonesia": "Tidak bisa menjelaskan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-017",
+"level": "N2",
+"bunpou": "かねない",
+"grammar_target": "かねない",
+"arti_umum": "bisa saja (negatif)",
+"penggunaan": "Digunakan untuk kemungkinan buruk.",
+"pola": "Verb stem + [かねない]",
+"contoh": [
+{"kalimat_jepang": "事故になりかねない[かねない]。","arti_indonesia": "Bisa saja jadi kecelakaan."},
+{"kalimat_jepang": "誤解されかねない[かねない]。","arti_indonesia": "Bisa disalahpahami."},
+{"kalimat_jepang": "失敗しかねない[かねない]。","arti_indonesia": "Bisa saja gagal."}
+],
+"catatan": ""
+},
+{
+"id": "n2-018",
+"level": "N2",
+"bunpou": "かのようだ",
+"grammar_target": "かのようだ",
+"arti_umum": "seolah-olah",
+"penggunaan": "Digunakan untuk perbandingan tidak nyata.",
+"pola": "Kalimat + [かのようだ]",
+"contoh": [
+{"kalimat_jepang": "夢のようかのようだ[かのようだ]。","arti_indonesia": "Seperti mimpi."},
+{"kalimat_jepang": "何もなかったかのようだ[かのようだ]。","arti_indonesia": "Seolah tidak terjadi apa-apa."},
+{"kalimat_jepang": "知っているかのようだ[かのようだ]。","arti_indonesia": "Seolah dia tahu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-019",
+"level": "N2",
+"bunpou": "からいうと",
+"grammar_target": "からいうと",
+"arti_umum": "dari segi",
+"penggunaan": "Digunakan untuk sudut pandang.",
+"pola": "Noun + [からいうと]",
+"contoh": [
+{"kalimat_jepang": "結果からいうと[からいうと]成功だ。","arti_indonesia": "Dari hasil, sukses."},
+{"kalimat_jepang": "経験からいうと[からいうと]難しい。","arti_indonesia": "Dari pengalaman, sulit."},
+{"kalimat_jepang": "見た目からいうと[からいうと]高そうだ。","arti_indonesia": "Dari tampilan, terlihat mahal."}
+],
+"catatan": ""
+},
+{
+"id": "n2-020",
+"level": "N2",
+"bunpou": "からすると",
+"grammar_target": "からすると",
+"arti_umum": "dari sudut pandang",
+"penggunaan": "Digunakan untuk opini subjektif.",
+"pola": "Noun + [からすると]",
+"contoh": [
+{"kalimat_jepang": "私からすると[からすると]簡単だ。","arti_indonesia": "Menurut saya, mudah."},
+{"kalimat_jepang": "彼からすると[からすると]当然だ。","arti_indonesia": "Menurut dia, wajar."},
+{"kalimat_jepang": "初心者からすると[からすると]難しい。","arti_indonesia": "Bagi pemula, sulit."}
+],
+"catatan": ""
+}
+]
+,[
+{
+"id": "n2-021",
+"level": "N2",
+"bunpou": "からして",
+"grammar_target": "からして",
+"arti_umum": "dilihat dari",
+"penggunaan": "Digunakan untuk menilai sesuatu dari contoh awal.",
+"pola": "Noun + [からして]",
+"contoh": [
+{"kalimat_jepang": "名前からして[からして]日本人だ。","arti_indonesia": "Dilihat dari namanya, orang Jepang."},
+{"kalimat_jepang": "見た目からして[からして]高そうだ。","arti_indonesia": "Dari tampilannya, kelihatan mahal."},
+{"kalimat_jepang": "態度からして[からして]怪しい。","arti_indonesia": "Dari sikapnya, mencurigakan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-022",
+"level": "N2",
+"bunpou": "からには",
+"grammar_target": "からには",
+"arti_umum": "karena sudah",
+"penggunaan": "Digunakan untuk tanggung jawab setelah keputusan.",
+"pola": "Kalimat + [からには]",
+"contoh": [
+{"kalimat_jepang": "やるからには[からには]最後まで頑張る。","arti_indonesia": "Karena sudah mulai, harus sampai akhir."},
+{"kalimat_jepang": "行くからには[からには]楽しむ。","arti_indonesia": "Karena sudah pergi, dinikmati."},
+{"kalimat_jepang": "引き受けたからには[からには]責任を持つ。","arti_indonesia": "Karena sudah menerima, bertanggung jawab."}
+],
+"catatan": ""
+},
+{
+"id": "n2-023",
+"level": "N2",
+"bunpou": "かわりに",
+"grammar_target": "かわりに",
+"arti_umum": "sebagai gantinya",
+"penggunaan": "Digunakan untuk pertukaran atau kompensasi.",
+"pola": "Kalimat + [かわりに]",
+"contoh": [
+{"kalimat_jepang": "行けないかわりに[かわりに]手伝う。","arti_indonesia": "Tidak bisa pergi, jadi bantu."},
+{"kalimat_jepang": "お金のかわりに[かわりに]物をあげる。","arti_indonesia": "Memberi barang sebagai ganti uang."},
+{"kalimat_jepang": "働くかわりに[かわりに]勉強する。","arti_indonesia": "Belajar sebagai ganti kerja."}
+],
+"catatan": ""
+},
+{
+"id": "n2-024",
+"level": "N2",
+"bunpou": "気味だ",
+"grammar_target": "気味だ",
+"arti_umum": "agak cenderung",
+"penggunaan": "Digunakan untuk kondisi ringan (sering negatif).",
+"pola": "Noun + [気味だ]",
+"contoh": [
+{"kalimat_jepang": "疲れ気味だ[気味だ]。","arti_indonesia": "Agak capek."},
+{"kalimat_jepang": "風邪気味だ[気味だ]。","arti_indonesia": "Agak flu."},
+{"kalimat_jepang": "遅れ気味だ[気味だ]。","arti_indonesia": "Agak terlambat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-025",
+"level": "N2",
+"bunpou": "きり",
+"grammar_target": "きり",
+"arti_umum": "hanya / sejak itu",
+"penggunaan": "Digunakan untuk menunjukkan hanya itu saja atau sejak saat itu.",
+"pola": "Noun / Verb ta + [きり]",
+"contoh": [
+{"kalimat_jepang": "一度きり[きり]だ。","arti_indonesia": "Hanya sekali."},
+{"kalimat_jepang": "会ったきり[きり]連絡がない。","arti_indonesia": "Sejak ketemu itu, tidak ada kabar."},
+{"kalimat_jepang": "これきり[きり]にする。","arti_indonesia": "Hanya sampai sini."}
+],
+"catatan": ""
+},
+{
+"id": "n2-026",
+"level": "N2",
+"bunpou": "くせに",
+"grammar_target": "くせに",
+"arti_umum": "padahal",
+"penggunaan": "Digunakan untuk menyatakan ketidaksesuaian dengan nada kesal.",
+"pola": "Kalimat + [くせに]",
+"contoh": [
+{"kalimat_jepang": "知っているくせに[くせに]言わない。","arti_indonesia": "Padahal tahu, tapi tidak bilang."},
+{"kalimat_jepang": "子供のくせに[くせに]生意気だ。","arti_indonesia": "Padahal anak-anak, tapi sok."},
+{"kalimat_jepang": "お金があるくせに[くせに]ケチだ。","arti_indonesia": "Padahal punya uang, tapi pelit."}
+],
+"catatan": ""
+},
+{
+"id": "n2-027",
+"level": "N2",
+"bunpou": "くらい",
+"grammar_target": "くらい",
+"arti_umum": "sampai / kira-kira",
+"penggunaan": "Digunakan untuk tingkat atau perkiraan.",
+"pola": "Kalimat + [くらい]",
+"contoh": [
+{"kalimat_jepang": "泣きたいくらい[くらい]悲しい。","arti_indonesia": "Sedih sampai ingin menangis."},
+{"kalimat_jepang": "死ぬくらい[くらい]疲れた。","arti_indonesia": "Capek banget."},
+{"kalimat_jepang": "これくらい[くらい]できる。","arti_indonesia": "Segini saja bisa."}
+],
+"catatan": ""
+},
+{
+"id": "n2-028",
+"level": "N2",
+"bunpou": "くらいなら",
+"grammar_target": "くらいなら",
+"arti_umum": "daripada",
+"penggunaan": "Digunakan untuk memilih opsi lebih baik.",
+"pola": "Verb + [くらいなら]",
+"contoh": [
+{"kalimat_jepang": "行くくらいなら[くらいなら]家にいる。","arti_indonesia": "Daripada pergi, lebih baik di rumah."},
+{"kalimat_jepang": "待つくらいなら[くらいなら]帰る。","arti_indonesia": "Daripada menunggu, pulang saja."},
+{"kalimat_jepang": "やるくらいなら[くらいなら]やめる。","arti_indonesia": "Daripada lakukan, mending tidak."}
+],
+"catatan": ""
+},
+{
+"id": "n2-029",
+"level": "N2",
+"bunpou": "ことか",
+"grammar_target": "ことか",
+"arti_umum": "betapa",
+"penggunaan": "Digunakan untuk ekspresi emosi kuat.",
+"pola": "Kalimat + [ことか]",
+"contoh": [
+{"kalimat_jepang": "どんなに嬉しいことか[ことか]。","arti_indonesia": "Betapa senangnya."},
+{"kalimat_jepang": "どれほど大変なことか[ことか]。","arti_indonesia": "Betapa beratnya."},
+{"kalimat_jepang": "どんなに苦しいことか[ことか]。","arti_indonesia": "Betapa menyakitkannya."}
+],
+"catatan": ""
+},
+{
+"id": "n2-030",
+"level": "N2",
+"bunpou": "ことから",
+"grammar_target": "ことから",
+"arti_umum": "karena / dari fakta",
+"penggunaan": "Digunakan untuk alasan berdasarkan fakta.",
+"pola": "Kalimat + [ことから]",
+"contoh": [
+{"kalimat_jepang": "寒いことから[ことから]雪が降った。","arti_indonesia": "Karena dingin, turun salju."},
+{"kalimat_jepang": "努力したことから[ことから]成功した。","arti_indonesia": "Karena usaha, berhasil."},
+{"kalimat_jepang": "人気があることから[ことから]売れている。","arti_indonesia": "Karena populer, laku."}
+],
+"catatan": ""
+},
+{
+"id": "n2-031",
+"level": "N2",
+"bunpou": "ことだから",
+"grammar_target": "ことだから",
+"arti_umum": "karena sifatnya",
+"penggunaan": "Digunakan berdasarkan karakter seseorang.",
+"pola": "Noun + の + [ことだから]",
+"contoh": [
+{"kalimat_jepang": "彼のことだから[ことだから]大丈夫だ。","arti_indonesia": "Karena dia, pasti aman."},
+{"kalimat_jepang": "あの人のことだから[ことだから]遅れる。","arti_indonesia": "Karena dia, pasti telat."},
+{"kalimat_jepang": "先生のことだから[ことだから]知っている。","arti_indonesia": "Karena guru, pasti tahu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-032",
+"level": "N2",
+"bunpou": "ことなく",
+"grammar_target": "ことなく",
+"arti_umum": "tanpa",
+"penggunaan": "Digunakan tanpa melakukan sesuatu.",
+"pola": "Verb kamus + [ことなく]",
+"contoh": [
+{"kalimat_jepang": "休むことなく[ことなく]働く。","arti_indonesia": "Bekerja tanpa istirahat."},
+{"kalimat_jepang": "諦めることなく[ことなく]続ける。","arti_indonesia": "Lanjut tanpa menyerah."},
+{"kalimat_jepang": "止まることなく[ことなく]進む。","arti_indonesia": "Maju tanpa berhenti."}
+],
+"catatan": ""
+},
+{
+"id": "n2-033",
+"level": "N2",
+"bunpou": "ことに",
+"grammar_target": "ことに",
+"arti_umum": "ternyata / (perasaan)",
+"penggunaan": "Digunakan untuk mengekspresikan perasaan pembicara.",
+"pola": "Adj + [ことに]",
+"contoh": [
+{"kalimat_jepang": "驚いたことに[ことに]彼は来なかった。","arti_indonesia": "Ternyata dia tidak datang."},
+{"kalimat_jepang": "残念なことに[ことに]失敗した。","arti_indonesia": "Sayangnya gagal."},
+{"kalimat_jepang": "嬉しいことに[ことに]合格した。","arti_indonesia": "Untungnya lulus."}
+],
+"catatan": ""
+},
+{
+"id": "n2-034",
+"level": "N2",
+"bunpou": "ことになる",
+"grammar_target": "ことになる",
+"arti_umum": "menjadi (diputuskan)",
+"penggunaan": "Digunakan untuk hasil keputusan.",
+"pola": "Verb kamus + [ことになる]",
+"contoh": [
+{"kalimat_jepang": "行くことになる[ことになる]。","arti_indonesia": "Jadi akan pergi."},
+{"kalimat_jepang": "働くことになる[ことになる]。","arti_indonesia": "Jadi bekerja."},
+{"kalimat_jepang": "参加することになる[ことになる]。","arti_indonesia": "Jadi ikut."}
+],
+"catatan": ""
+},
+{
+"id": "n2-035",
+"level": "N2",
+"bunpou": "こととなる",
+"grammar_target": "こととなる",
+"arti_umum": "menjadi (formal)",
+"penggunaan": "Versi formal dari ことになる.",
+"pola": "Verb kamus + [こととなる]",
+"contoh": [
+{"kalimat_jepang": "開始することとなる[こととなる]。","arti_indonesia": "Akan dimulai (formal)."},
+{"kalimat_jepang": "実施することとなる[こととなる]。","arti_indonesia": "Akan dilaksanakan."},
+{"kalimat_jepang": "中止することとなる[こととなる]。","arti_indonesia": "Akan dibatalkan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-036",
+"level": "N2",
+"bunpou": "ことはない",
+"grammar_target": "ことはない",
+"arti_umum": "tidak perlu",
+"penggunaan": "Digunakan untuk menyatakan tidak perlu melakukan sesuatu.",
+"pola": "Verb kamus + [ことはない]",
+"contoh": [
+{"kalimat_jepang": "心配することはない[ことはない]。","arti_indonesia": "Tidak perlu khawatir."},
+{"kalimat_jepang": "急ぐことはない[ことはない]。","arti_indonesia": "Tidak perlu buru-buru."},
+{"kalimat_jepang": "謝ることはない[ことはない]。","arti_indonesia": "Tidak perlu minta maaf."}
+],
+"catatan": ""
+},
+{
+"id": "n2-037",
+"level": "N2",
+"bunpou": "ことはできない",
+"grammar_target": "ことはできない",
+"arti_umum": "tidak bisa",
+"penggunaan": "Digunakan untuk penegasan ketidakmampuan.",
+"pola": "Verb kamus + [ことはできない]",
+"contoh": [
+{"kalimat_jepang": "無視することはできない[ことはできない]。","arti_indonesia": "Tidak bisa diabaikan."},
+{"kalimat_jepang": "否定することはできない[ことはできない]。","arti_indonesia": "Tidak bisa disangkal."},
+{"kalimat_jepang": "説明することはできない[ことはできない]。","arti_indonesia": "Tidak bisa dijelaskan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-038",
+"level": "N2",
+"bunpou": "ことはなく",
+"grammar_target": "ことはなく",
+"arti_umum": "tanpa (negatif)",
+"penggunaan": "Digunakan untuk menyatakan sesuatu tidak terjadi.",
+"pola": "Verb nai + [ことはなく]",
+"contoh": [
+{"kalimat_jepang": "失敗することはなく[ことはなく]成功した。","arti_indonesia": "Berhasil tanpa gagal."},
+{"kalimat_jepang": "迷うことはなく[ことはなく]決めた。","arti_indonesia": "Memutuskan tanpa ragu."},
+{"kalimat_jepang": "休むことはなく[ことはなく]働いた。","arti_indonesia": "Bekerja tanpa istirahat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-039",
+"level": "N2",
+"bunpou": "こともある",
+"grammar_target": "こともある",
+"arti_umum": "kadang",
+"penggunaan": "Digunakan untuk kemungkinan atau kebiasaan.",
+"pola": "Verb + [こともある]",
+"contoh": [
+{"kalimat_jepang": "失敗することもある[こともある]。","arti_indonesia": "Kadang gagal."},
+{"kalimat_jepang": "遅れることもある[こともある]。","arti_indonesia": "Kadang terlambat."},
+{"kalimat_jepang": "忘れることもある[こともある]。","arti_indonesia": "Kadang lupa."}
+],
+"catatan": ""
+},
+{
+"id": "n2-040",
+"level": "N2",
+"bunpou": "こともなく",
+"grammar_target": "こともなく",
+"arti_umum": "tanpa bahkan",
+"penggunaan": "Digunakan untuk menekankan tidak terjadi sama sekali.",
+"pola": "Verb kamus + [こともなく]",
+"contoh": [
+{"kalimat_jepang": "休むこともなく[こともなく]働いた。","arti_indonesia": "Bekerja tanpa istirahat sama sekali."},
+{"kalimat_jepang": "迷うこともなく[こともなく]決めた。","arti_indonesia": "Memutuskan tanpa ragu sedikit pun."},
+{"kalimat_jepang": "諦めることもなく[こともなく]続けた。","arti_indonesia": "Lanjut tanpa menyerah sama sekali."}
+],
+"catatan": ""
+}
+]
+,[
+{
+"id": "n2-041",
+"level": "N2",
+"bunpou": "際",
+"grammar_target": "際",
+"arti_umum": "saat / ketika",
+"penggunaan": "Digunakan dalam situasi formal untuk menunjukkan waktu terjadinya sesuatu.",
+"pola": "Verb kamus / Noun + の + [際]",
+"contoh": [
+{"kalimat_jepang": "来日する際[際]に連絡してください。","arti_indonesia": "Tolong hubungi saat datang ke Jepang."},
+{"kalimat_jepang": "申請の際[際]に必要です。","arti_indonesia": "Diperlukan saat pengajuan."},
+{"kalimat_jepang": "利用する際[際]は注意してください。","arti_indonesia": "Harap hati-hati saat menggunakan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-042",
+"level": "N2",
+"bunpou": "最中に",
+"grammar_target": "最中に",
+"arti_umum": "di tengah-tengah",
+"penggunaan": "Digunakan untuk kejadian yang terjadi saat proses berlangsung.",
+"pola": "Verb / Noun + の + [最中に]",
+"contoh": [
+{"kalimat_jepang": "会議の最中に[最中に]電話が鳴った。","arti_indonesia": "Telepon berbunyi saat rapat."},
+{"kalimat_jepang": "食事の最中に[最中に]話しかけないで。","arti_indonesia": "Jangan bicara saat makan."},
+{"kalimat_jepang": "作業中の最中に[最中に]問題が起きた。","arti_indonesia": "Masalah terjadi di tengah pekerjaan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-043",
+"level": "N2",
+"bunpou": "さえ",
+"grammar_target": "さえ",
+"arti_umum": "bahkan",
+"penggunaan": "Digunakan untuk menekankan sesuatu yang ekstrem.",
+"pola": "Noun + [さえ]",
+"contoh": [
+{"kalimat_jepang": "水さえ[さえ]ない。","arti_indonesia": "Bahkan air pun tidak ada."},
+{"kalimat_jepang": "名前さえ[さえ]知らない。","arti_indonesia": "Bahkan nama pun tidak tahu."},
+{"kalimat_jepang": "彼さえ[さえ]できる。","arti_indonesia": "Bahkan dia bisa."}
+],
+"catatan": ""
+},
+{
+"id": "n2-044",
+"level": "N2",
+"bunpou": "さえ〜ば",
+"grammar_target": "さえ〜ば",
+"arti_umum": "asal saja",
+"penggunaan": "Digunakan untuk syarat minimal.",
+"pola": "Verb ば + [さえ〜ば]",
+"contoh": [
+{"kalimat_jepang": "あればさえ〜ば[さえ〜ば]いい。","arti_indonesia": "Asal ada saja cukup."},
+{"kalimat_jepang": "時間さえ〜ば[さえ〜ば]行ける。","arti_indonesia": "Asal ada waktu bisa pergi."},
+{"kalimat_jepang": "お金さえ〜ば[さえ〜ば]解決できる。","arti_indonesia": "Asal ada uang bisa selesai."}
+],
+"catatan": "Struktur khusus"
+},
+{
+"id": "n2-045",
+"level": "N2",
+"bunpou": "ざるを得ない",
+"grammar_target": "ざるを得ない",
+"arti_umum": "terpaksa",
+"penggunaan": "Digunakan saat tidak ada pilihan lain.",
+"pola": "Verb nai stem + [ざるを得ない]",
+"contoh": [
+{"kalimat_jepang": "行かざるを得ない[ざるを得ない]。","arti_indonesia": "Terpaksa harus pergi."},
+{"kalimat_jepang": "やめざるを得ない[ざるを得ない]。","arti_indonesia": "Terpaksa berhenti."},
+{"kalimat_jepang": "認めざるを得ない[ざるを得ない]。","arti_indonesia": "Terpaksa mengakui."}
+],
+"catatan": ""
+},
+{
+"id": "n2-046",
+"level": "N2",
+"bunpou": "しかない",
+"grammar_target": "しかない",
+"arti_umum": "tidak ada pilihan selain",
+"penggunaan": "Digunakan saat hanya ada satu pilihan.",
+"pola": "Verb kamus + [しかない]",
+"contoh": [
+{"kalimat_jepang": "やるしかない[しかない]。","arti_indonesia": "Tidak ada pilihan selain lakukan."},
+{"kalimat_jepang": "待つしかない[しかない]。","arti_indonesia": "Hanya bisa menunggu."},
+{"kalimat_jepang": "諦めるしかない[しかない]。","arti_indonesia": "Tidak ada pilihan selain menyerah."}
+],
+"catatan": ""
+},
+{
+"id": "n2-047",
+"level": "N2",
+"bunpou": "次第",
+"grammar_target": "次第",
+"arti_umum": "tergantung",
+"penggunaan": "Digunakan untuk hasil tergantung kondisi.",
+"pola": "Noun + [次第]",
+"contoh": [
+{"kalimat_jepang": "結果次第[次第]で変わる。","arti_indonesia": "Tergantung hasil."},
+{"kalimat_jepang": "努力次第[次第]で成功する。","arti_indonesia": "Tergantung usaha."},
+{"kalimat_jepang": "天気次第[次第]で中止する。","arti_indonesia": "Tergantung cuaca, dibatalkan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-048",
+"level": "N2",
+"bunpou": "次第だ",
+"grammar_target": "次第だ",
+"arti_umum": "itulah sebabnya",
+"penggunaan": "Digunakan untuk menjelaskan alasan secara formal.",
+"pola": "Kalimat + [次第だ]",
+"contoh": [
+{"kalimat_jepang": "以上の理由で決めた次第だ[次第だ]。","arti_indonesia": "Karena alasan tersebut, diputuskan."},
+{"kalimat_jepang": "検討した結果こうなった次第だ[次第だ]。","arti_indonesia": "Hasil pertimbangan jadi seperti ini."},
+{"kalimat_jepang": "事情により変更した次第だ[次第だ]。","arti_indonesia": "Karena situasi, diubah."}
+],
+"catatan": ""
+},
+{
+"id": "n2-049",
+"level": "N2",
+"bunpou": "次第で",
+"grammar_target": "次第で",
+"arti_umum": "tergantung pada",
+"penggunaan": "Digunakan untuk hasil bergantung kondisi.",
+"pola": "Noun + [次第で]",
+"contoh": [
+{"kalimat_jepang": "やり方次第で[次第で]変わる。","arti_indonesia": "Tergantung cara, bisa berubah."},
+{"kalimat_jepang": "努力次第で[次第で]成功する。","arti_indonesia": "Tergantung usaha, bisa berhasil."},
+{"kalimat_jepang": "条件次第で[次第で]可能だ。","arti_indonesia": "Tergantung kondisi, mungkin."}
+],
+"catatan": ""
+},
+{
+"id": "n2-050",
+"level": "N2",
+"bunpou": "次第では",
+"grammar_target": "次第では",
+"arti_umum": "tergantung (bisa jadi)",
+"penggunaan": "Digunakan untuk kemungkinan hasil tergantung kondisi.",
+"pola": "Noun + [次第では]",
+"contoh": [
+{"kalimat_jepang": "場合次第では[次第では]中止する。","arti_indonesia": "Tergantung situasi, bisa dibatalkan."},
+{"kalimat_jepang": "結果次第では[次第では]変える。","arti_indonesia": "Tergantung hasil, akan diubah."},
+{"kalimat_jepang": "状況次第では[次第では]延期する。","arti_indonesia": "Tergantung situasi, ditunda."}
+],
+"catatan": ""
+},
+{
+"id": "n2-051",
+"level": "N2",
+"bunpou": "次第に",
+"grammar_target": "次第に",
+"arti_umum": "perlahan-lahan",
+"penggunaan": "Digunakan untuk perubahan bertahap.",
+"pola": "[次第に] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "次第に[次第に]寒くなる。","arti_indonesia": "Perlahan jadi dingin."},
+{"kalimat_jepang": "次第に[次第に]慣れてきた。","arti_indonesia": "Lama-lama jadi terbiasa."},
+{"kalimat_jepang": "次第に[次第に]明るくなる。","arti_indonesia": "Perlahan jadi terang."}
+],
+"catatan": ""
+},
+{
+"id": "n2-052",
+"level": "N2",
+"bunpou": "すでに",
+"grammar_target": "すでに",
+"arti_umum": "sudah",
+"penggunaan": "Digunakan untuk menyatakan sesuatu sudah terjadi.",
+"pola": "[すでに] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "すでに[すでに]終わった。","arti_indonesia": "Sudah selesai."},
+{"kalimat_jepang": "すでに[すでに]知っている。","arti_indonesia": "Sudah tahu."},
+{"kalimat_jepang": "すでに[すでに]出発した。","arti_indonesia": "Sudah berangkat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-053",
+"level": "N2",
+"bunpou": "せいだ",
+"grammar_target": "せいだ",
+"arti_umum": "gara-gara",
+"penggunaan": "Digunakan untuk sebab negatif.",
+"pola": "Kalimat + [せいだ]",
+"contoh": [
+{"kalimat_jepang": "雨のせいだ[せいだ]。","arti_indonesia": "Gara-gara hujan."},
+{"kalimat_jepang": "彼のせいだ[せいだ]。","arti_indonesia": "Gara-gara dia."},
+{"kalimat_jepang": "疲れたせいだ[せいだ]。","arti_indonesia": "Gara-gara capek."}
+],
+"catatan": ""
+},
+{
+"id": "n2-054",
+"level": "N2",
+"bunpou": "せいで",
+"grammar_target": "せいで",
+"arti_umum": "gara-gara",
+"penggunaan": "Digunakan untuk sebab negatif dalam kalimat.",
+"pola": "Kalimat + [せいで]",
+"contoh": [
+{"kalimat_jepang": "雨のせいで[せいで]遅れた。","arti_indonesia": "Terlambat gara-gara hujan."},
+{"kalimat_jepang": "病気のせいで[せいで]休んだ。","arti_indonesia": "Libur karena sakit."},
+{"kalimat_jepang": "彼のせいで[せいで]失敗した。","arti_indonesia": "Gagal gara-gara dia."}
+],
+"catatan": ""
+},
+{
+"id": "n2-055",
+"level": "N2",
+"bunpou": "せいか",
+"grammar_target": "せいか",
+"arti_umum": "mungkin karena",
+"penggunaan": "Digunakan untuk dugaan penyebab.",
+"pola": "Kalimat + [せいか]",
+"contoh": [
+{"kalimat_jepang": "疲れたせいか[せいか]眠い。","arti_indonesia": "Mungkin karena capek, jadi ngantuk."},
+{"kalimat_jepang": "雨のせいか[せいか]寒い。","arti_indonesia": "Mungkin karena hujan, jadi dingin."},
+{"kalimat_jepang": "寝不足のせいか[せいか]集中できない。","arti_indonesia": "Mungkin karena kurang tidur, tidak fokus."}
+],
+"catatan": ""
+},
+{
+"id": "n2-056",
+"level": "N2",
+"bunpou": "せめて",
+"grammar_target": "せめて",
+"arti_umum": "setidaknya",
+"penggunaan": "Digunakan untuk harapan minimal.",
+"pola": "[せめて] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "せめて[せめて]一度会いたい。","arti_indonesia": "Setidaknya ingin ketemu sekali."},
+{"kalimat_jepang": "せめて[せめて]電話してほしい。","arti_indonesia": "Setidaknya telepon."},
+{"kalimat_jepang": "せめて[せめて]説明してほしい。","arti_indonesia": "Setidaknya jelaskan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-057",
+"level": "N2",
+"bunpou": "そうにない",
+"grammar_target": "そうにない",
+"arti_umum": "sepertinya tidak",
+"penggunaan": "Digunakan untuk prediksi negatif.",
+"pola": "Verb stem + [そうにない]",
+"contoh": [
+{"kalimat_jepang": "雨は止みそうにない[そうにない]。","arti_indonesia": "Sepertinya hujan tidak berhenti."},
+{"kalimat_jepang": "終わりそうにない[そうにない]。","arti_indonesia": "Sepertinya tidak selesai."},
+{"kalimat_jepang": "来そうにない[そうにない]。","arti_indonesia": "Sepertinya tidak datang."}
+],
+"catatan": ""
+},
+{
+"id": "n2-058",
+"level": "N2",
+"bunpou": "そうもない",
+"grammar_target": "そうもない",
+"arti_umum": "tidak mungkin",
+"penggunaan": "Digunakan untuk menyangkal kemungkinan.",
+"pola": "Verb stem + [そうもない]",
+"contoh": [
+{"kalimat_jepang": "できそうもない[そうもない]。","arti_indonesia": "Sepertinya tidak mungkin bisa."},
+{"kalimat_jepang": "間に合いそうもない[そうもない]。","arti_indonesia": "Sepertinya tidak akan sempat."},
+{"kalimat_jepang": "終わりそうもない[そうもない]。","arti_indonesia": "Sepertinya tidak akan selesai."}
+],
+"catatan": ""
+},
+{
+"id": "n2-059",
+"level": "N2",
+"bunpou": "だけに",
+"grammar_target": "だけに",
+"arti_umum": "justru karena",
+"penggunaan": "Digunakan untuk hubungan sebab-akibat yang kuat.",
+"pola": "Kalimat + [だけに]",
+"contoh": [
+{"kalimat_jepang": "頑張っただけに[だけに]悔しい。","arti_indonesia": "Justru karena sudah berusaha, jadi menyesal."},
+{"kalimat_jepang": "高いだけに[だけに]いい品質だ。","arti_indonesia": "Karena mahal, kualitasnya bagus."},
+{"kalimat_jepang": "好きなだけに[だけに]つらい。","arti_indonesia": "Justru karena suka, jadi berat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-060",
+"level": "N2",
+"bunpou": "だけあって",
+"grammar_target": "だけあって",
+"arti_umum": "memang sesuai",
+"penggunaan": "Digunakan untuk hasil yang sesuai harapan.",
+"pola": "Kalimat + [だけあって]",
+"contoh": [
+{"kalimat_jepang": "プロだけあって[だけあって]上手だ。","arti_indonesia": "Memang karena pro, jadi jago."},
+{"kalimat_jepang": "経験者だけあって[だけあって]早い。","arti_indonesia": "Memang karena berpengalaman, cepat."},
+{"kalimat_jepang": "人気店だけあって[だけあって]混んでいる。","arti_indonesia": "Memang karena populer, ramai."}
+],
+"catatan": ""
+}
+]
+,[
+{
+"id": "n2-061",
+"level": "N2",
+"bunpou": "だけましだ",
+"grammar_target": "だけましだ",
+"arti_umum": "masih mending",
+"penggunaan": "Digunakan untuk membandingkan kondisi yang lebih baik sedikit.",
+"pola": "Kalimat + [だけましだ]",
+"contoh": [
+{"kalimat_jepang": "何もないよりはあるだけましだ[だけましだ]。","arti_indonesia": "Masih mending ada daripada tidak sama sekali."},
+{"kalimat_jepang": "歩けるだけましだ[だけましだ]。","arti_indonesia": "Masih mending bisa jalan."},
+{"kalimat_jepang": "少ないけどあるだけましだ[だけましだ]。","arti_indonesia": "Sedikit tapi masih mending ada."}
+],
+"catatan": ""
+},
+{
+"id": "n2-062",
+"level": "N2",
+"bunpou": "だらけ",
+"grammar_target": "だらけ",
+"arti_umum": "penuh dengan",
+"penggunaan": "Digunakan untuk sesuatu yang dipenuhi (biasanya negatif).",
+"pola": "Noun + [だらけ]",
+"contoh": [
+{"kalimat_jepang": "ミスだらけ[だらけ]のレポート。","arti_indonesia": "Laporan penuh kesalahan."},
+{"kalimat_jepang": "ほこりだらけ[だらけ]の部屋。","arti_indonesia": "Kamar penuh debu."},
+{"kalimat_jepang": "傷だらけ[だらけ]の手。","arti_indonesia": "Tangan penuh luka."}
+],
+"catatan": ""
+},
+{
+"id": "n2-063",
+"level": "N2",
+"bunpou": "ついでに",
+"grammar_target": "ついでに",
+"arti_umum": "sekalian",
+"penggunaan": "Digunakan untuk melakukan sesuatu tambahan.",
+"pola": "Kalimat + [ついでに]",
+"contoh": [
+{"kalimat_jepang": "買い物のついでに[ついでに]銀行に行く。","arti_indonesia": "Sekalian ke bank saat belanja."},
+{"kalimat_jepang": "散歩のついでに[ついでに]写真を撮る。","arti_indonesia": "Sekalian foto saat jalan."},
+{"kalimat_jepang": "行くついでに[ついでに]届ける。","arti_indonesia": "Sekalian antar saat pergi."}
+],
+"catatan": ""
+},
+{
+"id": "n2-064",
+"level": "N2",
+"bunpou": "っけ",
+"grammar_target": "っけ",
+"arti_umum": "ya? (ingat kembali)",
+"penggunaan": "Digunakan saat mengingat sesuatu secara informal.",
+"pola": "Kalimat + [っけ]",
+"contoh": [
+{"kalimat_jepang": "何時だっけ[っけ]？","arti_indonesia": "Jam berapa ya?"},{"kalimat_jepang": "名前は何だっけ[っけ]？","arti_indonesia": "Namanya siapa ya?"},{"kalimat_jepang": "昨日何をしたっけ[っけ]？","arti_indonesia": "Kemarin ngapain ya?"}
+],
+"catatan": "Informal"
+},
+{
+"id": "n2-065",
+"level": "N2",
+"bunpou": "っぽい",
+"grammar_target": "っぽい",
+"arti_umum": "terkesan / seperti",
+"penggunaan": "Digunakan untuk menunjukkan sifat mirip.",
+"pola": "Noun / Verb stem + [っぽい]",
+"contoh": [
+{"kalimat_jepang": "子供っぽい[っぽい]。","arti_indonesia": "Seperti anak-anak."},
+{"kalimat_jepang": "忘れっぽい[っぽい]。","arti_indonesia": "Mudah lupa."},
+{"kalimat_jepang": "水っぽい[っぽい]味。","arti_indonesia": "Rasa seperti air."}
+],
+"catatan": ""
+},
+{
+"id": "n2-066",
+"level": "N2",
+"bunpou": "てからでないと",
+"grammar_target": "てからでないと",
+"arti_umum": "kalau belum maka tidak",
+"penggunaan": "Digunakan untuk syarat wajib sebelum sesuatu terjadi.",
+"pola": "Verb て + [てからでないと]",
+"contoh": [
+{"kalimat_jepang": "食べてからでないと[てからでないと]行けない。","arti_indonesia": "Kalau belum makan tidak bisa pergi."},
+{"kalimat_jepang": "確認してからでないと[てからでないと]使えない。","arti_indonesia": "Kalau belum cek tidak bisa pakai."},
+{"kalimat_jepang": "終わってからでないと[てからでないと]帰れない。","arti_indonesia": "Kalau belum selesai tidak bisa pulang."}
+],
+"catatan": ""
+},
+{
+"id": "n2-067",
+"level": "N2",
+"bunpou": "てしょうがない",
+"grammar_target": "てしょうがない",
+"arti_umum": "sangat sampai tidak tahan",
+"penggunaan": "Digunakan untuk perasaan kuat.",
+"pola": "Adj / Verb て + [てしょうがない]",
+"contoh": [
+{"kalimat_jepang": "眠くてしょうがない[てしょうがない]。","arti_indonesia": "Ngantuk banget."},
+{"kalimat_jepang": "会いたくてしょうがない[てしょうがない]。","arti_indonesia": "Sangat ingin ketemu."},
+{"kalimat_jepang": "心配でてしょうがない[てしょうがない]。","arti_indonesia": "Sangat khawatir."}
+],
+"catatan": ""
+},
+{
+"id": "n2-068",
+"level": "N2",
+"bunpou": "てたまらない",
+"grammar_target": "てたまらない",
+"arti_umum": "sangat sekali",
+"penggunaan": "Mirip てしょうがない, lebih emosional.",
+"pola": "Adj / Verb て + [てたまらない]",
+"contoh": [
+{"kalimat_jepang": "嬉しくてたまらない[てたまらない]。","arti_indonesia": "Senang banget."},
+{"kalimat_jepang": "悔しくてたまらない[てたまらない]。","arti_indonesia": "Kesal banget."},
+{"kalimat_jepang": "寂しくてたまらない[てたまらない]。","arti_indonesia": "Sangat kesepian."}
+],
+"catatan": ""
+},
+{
+"id": "n2-069",
+"level": "N2",
+"bunpou": "てならない",
+"grammar_target": "てならない",
+"arti_umum": "tidak bisa menahan perasaan",
+"penggunaan": "Digunakan untuk perasaan yang muncul tanpa kontrol.",
+"pola": "Adj / Verb て + [てならない]",
+"contoh": [
+{"kalimat_jepang": "心配でてならない[てならない]。","arti_indonesia": "Tidak bisa berhenti khawatir."},
+{"kalimat_jepang": "残念でてならない[てならない]。","arti_indonesia": "Sangat menyesal."},
+{"kalimat_jepang": "気になってならない[てならない]。","arti_indonesia": "Tidak bisa berhenti kepikiran."}
+],
+"catatan": ""
+},
+{
+"id": "n2-070",
+"level": "N2",
+"bunpou": "てはならない",
+"grammar_target": "てはならない",
+"arti_umum": "tidak boleh",
+"penggunaan": "Digunakan untuk larangan formal.",
+"pola": "Verb て + [てはならない]",
+"contoh": [
+{"kalimat_jepang": "嘘をついてはならない[てはならない]。","arti_indonesia": "Tidak boleh berbohong."},
+{"kalimat_jepang": "忘れてはならない[てはならない]。","arti_indonesia": "Tidak boleh lupa."},
+{"kalimat_jepang": "違反してはならない[てはならない]。","arti_indonesia": "Tidak boleh melanggar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-071",
+"level": "N2",
+"bunpou": "てみせる",
+"grammar_target": "てみせる",
+"arti_umum": "akan menunjukkan",
+"penggunaan": "Digunakan untuk tekad kuat.",
+"pola": "Verb て + [てみせる]",
+"contoh": [
+{"kalimat_jepang": "成功してみせる[てみせる]。","arti_indonesia": "Akan berhasil."},
+{"kalimat_jepang": "勝ってみせる[てみせる]。","arti_indonesia": "Akan menang."},
+{"kalimat_jepang": "やってみせる[てみせる]。","arti_indonesia": "Akan lakukan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-072",
+"level": "N2",
+"bunpou": "ということだ",
+"grammar_target": "ということだ",
+"arti_umum": "artinya / katanya",
+"penggunaan": "Digunakan untuk menyampaikan informasi.",
+"pola": "Kalimat + [ということだ]",
+"contoh": [
+{"kalimat_jepang": "明日は休みだということだ[ということだ]。","arti_indonesia": "Katanya besok libur."},
+{"kalimat_jepang": "彼は来ないということだ[ということだ]。","arti_indonesia": "Katanya dia tidak datang."},
+{"kalimat_jepang": "成功したということだ[ということだ]。","arti_indonesia": "Artinya berhasil."}
+],
+"catatan": ""
+},
+{
+"id": "n2-073",
+"level": "N2",
+"bunpou": "というと",
+"grammar_target": "というと",
+"arti_umum": "kalau bicara tentang",
+"penggunaan": "Digunakan untuk topik tertentu.",
+"pola": "Noun + [というと]",
+"contoh": [
+{"kalimat_jepang": "日本というと[というと]寿司だ。","arti_indonesia": "Kalau Jepang, ya sushi."},
+{"kalimat_jepang": "夏というと[というと]海だ。","arti_indonesia": "Kalau musim panas, laut."},
+{"kalimat_jepang": "勉強というと[というと]難しい。","arti_indonesia": "Kalau bicara belajar, sulit."}
+],
+"catatan": ""
+},
+{
+"id": "n2-074",
+"level": "N2",
+"bunpou": "というより",
+"grammar_target": "というより",
+"arti_umum": "lebih tepatnya",
+"penggunaan": "Digunakan untuk koreksi ekspresi.",
+"pola": "Kalimat + [というより]",
+"contoh": [
+{"kalimat_jepang": "好きというより[というより]慣れている。","arti_indonesia": "Lebih tepatnya terbiasa."},
+{"kalimat_jepang": "簡単というより[というより]単純だ。","arti_indonesia": "Lebih tepatnya sederhana."},
+{"kalimat_jepang": "静かというより[というより]寂しい。","arti_indonesia": "Lebih ke sepi."}
+],
+"catatan": ""
+},
+{
+"id": "n2-075",
+"level": "N2",
+"bunpou": "といった",
+"grammar_target": "といった",
+"arti_umum": "seperti",
+"penggunaan": "Digunakan untuk memberi contoh.",
+"pola": "Noun + [といった]",
+"contoh": [
+{"kalimat_jepang": "寿司やラーメンといった[といった]料理。","arti_indonesia": "Makanan seperti sushi dan ramen."},
+{"kalimat_jepang": "雨や風といった[といった]天気。","arti_indonesia": "Cuaca seperti hujan dan angin."},
+{"kalimat_jepang": "犬や猫といった[といった]動物。","arti_indonesia": "Hewan seperti anjing dan kucing."}
+],
+"catatan": ""
+},
+{
+"id": "n2-076",
+"level": "N2",
+"bunpou": "といったらない",
+"grammar_target": "といったらない",
+"arti_umum": "sangat sekali",
+"penggunaan": "Digunakan untuk menekankan perasaan kuat.",
+"pola": "Adj + [といったらない]",
+"contoh": [
+{"kalimat_jepang": "嬉しいといったらない[といったらない]。","arti_indonesia": "Senang banget."},
+{"kalimat_jepang": "悲しいといったらない[といったらない]。","arti_indonesia": "Sedih banget."},
+{"kalimat_jepang": "寂しいといったらない[といったらない]。","arti_indonesia": "Sepi banget."}
+],
+"catatan": ""
+},
+{
+"id": "n2-077",
+"level": "N2",
+"bunpou": "といっても",
+"grammar_target": "といっても",
+"arti_umum": "meskipun begitu",
+"penggunaan": "Digunakan untuk membatasi pernyataan sebelumnya.",
+"pola": "Kalimat + [といっても]",
+"contoh": [
+{"kalimat_jepang": "高いといっても[といっても]買える。","arti_indonesia": "Walau mahal, masih bisa beli."},
+{"kalimat_jepang": "難しいといっても[といっても]簡単だ。","arti_indonesia": "Walau sulit, sebenarnya mudah."},
+{"kalimat_jepang": "忙しいといっても[といっても]時間はある。","arti_indonesia": "Walau sibuk, masih ada waktu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-078",
+"level": "N2",
+"bunpou": "とおりだ",
+"grammar_target": "とおりだ",
+"arti_umum": "sesuai",
+"penggunaan": "Digunakan untuk sesuatu yang sesuai dengan referensi.",
+"pola": "Verb / Noun + の + [とおりだ]",
+"contoh": [
+{"kalimat_jepang": "説明のとおりだ[とおりだ]。","arti_indonesia": "Sesuai penjelasan."},
+{"kalimat_jepang": "思ったとおりだ[とおりだ]。","arti_indonesia": "Sesuai yang dipikirkan."},
+{"kalimat_jepang": "予定のとおりだ[とおりだ]。","arti_indonesia": "Sesuai rencana."}
+],
+"catatan": ""
+},
+{
+"id": "n2-079",
+"level": "N2",
+"bunpou": "としたら",
+"grammar_target": "としたら",
+"arti_umum": "kalau seandainya",
+"penggunaan": "Digunakan untuk asumsi.",
+"pola": "Kalimat + [としたら]",
+"contoh": [
+{"kalimat_jepang": "行くとしたら[としたら]明日だ。","arti_indonesia": "Kalau pergi, besok."},
+{"kalimat_jepang": "本当だとしたら[としたら]問題だ。","arti_indonesia": "Kalau benar, itu masalah."},
+{"kalimat_jepang": "彼が来るとしたら[としたら]遅い。","arti_indonesia": "Kalau dia datang, pasti telat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-080",
+"level": "N2",
+"bunpou": "としても",
+"grammar_target": "としても",
+"arti_umum": "meskipun",
+"penggunaan": "Digunakan untuk kondisi hipotesis.",
+"pola": "Kalimat + [としても]",
+"contoh": [
+{"kalimat_jepang": "行くとしても[としても]遅れる。","arti_indonesia": "Meski pergi, akan telat."},
+{"kalimat_jepang": "本当だとしても[としても]信じない。","arti_indonesia": "Meski benar, tidak percaya."},
+{"kalimat_jepang": "できるとしても[としても]難しい。","arti_indonesia": "Meski bisa, tetap sulit."}
+],
+"catatan": ""
+}
+]
+,[
+{
+"id": "n2-061",
+"level": "N2",
+"bunpou": "だけましだ",
+"grammar_target": "だけましだ",
+"arti_umum": "masih mending",
+"penggunaan": "Digunakan untuk membandingkan kondisi yang lebih baik sedikit.",
+"pola": "Kalimat + [だけましだ]",
+"contoh": [
+{"kalimat_jepang": "何もないよりはあるだけましだ[だけましだ]。","arti_indonesia": "Masih mending ada daripada tidak sama sekali."},
+{"kalimat_jepang": "歩けるだけましだ[だけましだ]。","arti_indonesia": "Masih mending bisa jalan."},
+{"kalimat_jepang": "少ないけどあるだけましだ[だけましだ]。","arti_indonesia": "Sedikit tapi masih mending ada."}
+],
+"catatan": ""
+},
+{
+"id": "n2-062",
+"level": "N2",
+"bunpou": "だらけ",
+"grammar_target": "だらけ",
+"arti_umum": "penuh dengan",
+"penggunaan": "Digunakan untuk sesuatu yang dipenuhi (biasanya negatif).",
+"pola": "Noun + [だらけ]",
+"contoh": [
+{"kalimat_jepang": "ミスだらけ[だらけ]のレポート。","arti_indonesia": "Laporan penuh kesalahan."},
+{"kalimat_jepang": "ほこりだらけ[だらけ]の部屋。","arti_indonesia": "Kamar penuh debu."},
+{"kalimat_jepang": "傷だらけ[だらけ]の手。","arti_indonesia": "Tangan penuh luka."}
+],
+"catatan": ""
+},
+{
+"id": "n2-063",
+"level": "N2",
+"bunpou": "ついでに",
+"grammar_target": "ついでに",
+"arti_umum": "sekalian",
+"penggunaan": "Digunakan untuk melakukan sesuatu tambahan.",
+"pola": "Kalimat + [ついでに]",
+"contoh": [
+{"kalimat_jepang": "買い物のついでに[ついでに]銀行に行く。","arti_indonesia": "Sekalian ke bank saat belanja."},
+{"kalimat_jepang": "散歩のついでに[ついでに]写真を撮る。","arti_indonesia": "Sekalian foto saat jalan."},
+{"kalimat_jepang": "行くついでに[ついでに]届ける。","arti_indonesia": "Sekalian antar saat pergi."}
+],
+"catatan": ""
+},
+{
+"id": "n2-064",
+"level": "N2",
+"bunpou": "っけ",
+"grammar_target": "っけ",
+"arti_umum": "ya? (ingat kembali)",
+"penggunaan": "Digunakan saat mengingat sesuatu secara informal.",
+"pola": "Kalimat + [っけ]",
+"contoh": [
+{"kalimat_jepang": "何時だっけ[っけ]？","arti_indonesia": "Jam berapa ya?"},{"kalimat_jepang": "名前は何だっけ[っけ]？","arti_indonesia": "Namanya siapa ya?"},{"kalimat_jepang": "昨日何をしたっけ[っけ]？","arti_indonesia": "Kemarin ngapain ya?"}
+],
+"catatan": "Informal"
+},
+{
+"id": "n2-065",
+"level": "N2",
+"bunpou": "っぽい",
+"grammar_target": "っぽい",
+"arti_umum": "terkesan / seperti",
+"penggunaan": "Digunakan untuk menunjukkan sifat mirip.",
+"pola": "Noun / Verb stem + [っぽい]",
+"contoh": [
+{"kalimat_jepang": "子供っぽい[っぽい]。","arti_indonesia": "Seperti anak-anak."},
+{"kalimat_jepang": "忘れっぽい[っぽい]。","arti_indonesia": "Mudah lupa."},
+{"kalimat_jepang": "水っぽい[っぽい]味。","arti_indonesia": "Rasa seperti air."}
+],
+"catatan": ""
+},
+{
+"id": "n2-066",
+"level": "N2",
+"bunpou": "てからでないと",
+"grammar_target": "てからでないと",
+"arti_umum": "kalau belum maka tidak",
+"penggunaan": "Digunakan untuk syarat wajib sebelum sesuatu terjadi.",
+"pola": "Verb て + [てからでないと]",
+"contoh": [
+{"kalimat_jepang": "食べてからでないと[てからでないと]行けない。","arti_indonesia": "Kalau belum makan tidak bisa pergi."},
+{"kalimat_jepang": "確認してからでないと[てからでないと]使えない。","arti_indonesia": "Kalau belum cek tidak bisa pakai."},
+{"kalimat_jepang": "終わってからでないと[てからでないと]帰れない。","arti_indonesia": "Kalau belum selesai tidak bisa pulang."}
+],
+"catatan": ""
+},
+{
+"id": "n2-067",
+"level": "N2",
+"bunpou": "てしょうがない",
+"grammar_target": "てしょうがない",
+"arti_umum": "sangat sampai tidak tahan",
+"penggunaan": "Digunakan untuk perasaan kuat.",
+"pola": "Adj / Verb て + [てしょうがない]",
+"contoh": [
+{"kalimat_jepang": "眠くてしょうがない[てしょうがない]。","arti_indonesia": "Ngantuk banget."},
+{"kalimat_jepang": "会いたくてしょうがない[てしょうがない]。","arti_indonesia": "Sangat ingin ketemu."},
+{"kalimat_jepang": "心配でてしょうがない[てしょうがない]。","arti_indonesia": "Sangat khawatir."}
+],
+"catatan": ""
+},
+{
+"id": "n2-068",
+"level": "N2",
+"bunpou": "てたまらない",
+"grammar_target": "てたまらない",
+"arti_umum": "sangat sekali",
+"penggunaan": "Mirip てしょうがない, lebih emosional.",
+"pola": "Adj / Verb て + [てたまらない]",
+"contoh": [
+{"kalimat_jepang": "嬉しくてたまらない[てたまらない]。","arti_indonesia": "Senang banget."},
+{"kalimat_jepang": "悔しくてたまらない[てたまらない]。","arti_indonesia": "Kesal banget."},
+{"kalimat_jepang": "寂しくてたまらない[てたまらない]。","arti_indonesia": "Sangat kesepian."}
+],
+"catatan": ""
+},
+{
+"id": "n2-069",
+"level": "N2",
+"bunpou": "てならない",
+"grammar_target": "てならない",
+"arti_umum": "tidak bisa menahan perasaan",
+"penggunaan": "Digunakan untuk perasaan yang muncul tanpa kontrol.",
+"pola": "Adj / Verb て + [てならない]",
+"contoh": [
+{"kalimat_jepang": "心配でてならない[てならない]。","arti_indonesia": "Tidak bisa berhenti khawatir."},
+{"kalimat_jepang": "残念でてならない[てならない]。","arti_indonesia": "Sangat menyesal."},
+{"kalimat_jepang": "気になってならない[てならない]。","arti_indonesia": "Tidak bisa berhenti kepikiran."}
+],
+"catatan": ""
+},
+{
+"id": "n2-070",
+"level": "N2",
+"bunpou": "てはならない",
+"grammar_target": "てはならない",
+"arti_umum": "tidak boleh",
+"penggunaan": "Digunakan untuk larangan formal.",
+"pola": "Verb て + [てはならない]",
+"contoh": [
+{"kalimat_jepang": "嘘をついてはならない[てはならない]。","arti_indonesia": "Tidak boleh berbohong."},
+{"kalimat_jepang": "忘れてはならない[てはならない]。","arti_indonesia": "Tidak boleh lupa."},
+{"kalimat_jepang": "違反してはならない[てはならない]。","arti_indonesia": "Tidak boleh melanggar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-071",
+"level": "N2",
+"bunpou": "てみせる",
+"grammar_target": "てみせる",
+"arti_umum": "akan menunjukkan",
+"penggunaan": "Digunakan untuk tekad kuat.",
+"pola": "Verb て + [てみせる]",
+"contoh": [
+{"kalimat_jepang": "成功してみせる[てみせる]。","arti_indonesia": "Akan berhasil."},
+{"kalimat_jepang": "勝ってみせる[てみせる]。","arti_indonesia": "Akan menang."},
+{"kalimat_jepang": "やってみせる[てみせる]。","arti_indonesia": "Akan lakukan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-072",
+"level": "N2",
+"bunpou": "ということだ",
+"grammar_target": "ということだ",
+"arti_umum": "artinya / katanya",
+"penggunaan": "Digunakan untuk menyampaikan informasi.",
+"pola": "Kalimat + [ということだ]",
+"contoh": [
+{"kalimat_jepang": "明日は休みだということだ[ということだ]。","arti_indonesia": "Katanya besok libur."},
+{"kalimat_jepang": "彼は来ないということだ[ということだ]。","arti_indonesia": "Katanya dia tidak datang."},
+{"kalimat_jepang": "成功したということだ[ということだ]。","arti_indonesia": "Artinya berhasil."}
+],
+"catatan": ""
+},
+{
+"id": "n2-073",
+"level": "N2",
+"bunpou": "というと",
+"grammar_target": "というと",
+"arti_umum": "kalau bicara tentang",
+"penggunaan": "Digunakan untuk topik tertentu.",
+"pola": "Noun + [というと]",
+"contoh": [
+{"kalimat_jepang": "日本というと[というと]寿司だ。","arti_indonesia": "Kalau Jepang, ya sushi."},
+{"kalimat_jepang": "夏というと[というと]海だ。","arti_indonesia": "Kalau musim panas, laut."},
+{"kalimat_jepang": "勉強というと[というと]難しい。","arti_indonesia": "Kalau bicara belajar, sulit."}
+],
+"catatan": ""
+},
+{
+"id": "n2-074",
+"level": "N2",
+"bunpou": "というより",
+"grammar_target": "というより",
+"arti_umum": "lebih tepatnya",
+"penggunaan": "Digunakan untuk koreksi ekspresi.",
+"pola": "Kalimat + [というより]",
+"contoh": [
+{"kalimat_jepang": "好きというより[というより]慣れている。","arti_indonesia": "Lebih tepatnya terbiasa."},
+{"kalimat_jepang": "簡単というより[というより]単純だ。","arti_indonesia": "Lebih tepatnya sederhana."},
+{"kalimat_jepang": "静かというより[というより]寂しい。","arti_indonesia": "Lebih ke sepi."}
+],
+"catatan": ""
+},
+{
+"id": "n2-075",
+"level": "N2",
+"bunpou": "といった",
+"grammar_target": "といった",
+"arti_umum": "seperti",
+"penggunaan": "Digunakan untuk memberi contoh.",
+"pola": "Noun + [といった]",
+"contoh": [
+{"kalimat_jepang": "寿司やラーメンといった[といった]料理。","arti_indonesia": "Makanan seperti sushi dan ramen."},
+{"kalimat_jepang": "雨や風といった[といった]天気。","arti_indonesia": "Cuaca seperti hujan dan angin."},
+{"kalimat_jepang": "犬や猫といった[といった]動物。","arti_indonesia": "Hewan seperti anjing dan kucing."}
+],
+"catatan": ""
+},
+{
+"id": "n2-076",
+"level": "N2",
+"bunpou": "といったらない",
+"grammar_target": "といったらない",
+"arti_umum": "sangat sekali",
+"penggunaan": "Digunakan untuk menekankan perasaan kuat.",
+"pola": "Adj + [といったらない]",
+"contoh": [
+{"kalimat_jepang": "嬉しいといったらない[といったらない]。","arti_indonesia": "Senang banget."},
+{"kalimat_jepang": "悲しいといったらない[といったらない]。","arti_indonesia": "Sedih banget."},
+{"kalimat_jepang": "寂しいといったらない[といったらない]。","arti_indonesia": "Sepi banget."}
+],
+"catatan": ""
+},
+{
+"id": "n2-077",
+"level": "N2",
+"bunpou": "といっても",
+"grammar_target": "といっても",
+"arti_umum": "meskipun begitu",
+"penggunaan": "Digunakan untuk membatasi pernyataan sebelumnya.",
+"pola": "Kalimat + [といっても]",
+"contoh": [
+{"kalimat_jepang": "高いといっても[といっても]買える。","arti_indonesia": "Walau mahal, masih bisa beli."},
+{"kalimat_jepang": "難しいといっても[といっても]簡単だ。","arti_indonesia": "Walau sulit, sebenarnya mudah."},
+{"kalimat_jepang": "忙しいといっても[といっても]時間はある。","arti_indonesia": "Walau sibuk, masih ada waktu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-078",
+"level": "N2",
+"bunpou": "とおりだ",
+"grammar_target": "とおりだ",
+"arti_umum": "sesuai",
+"penggunaan": "Digunakan untuk sesuatu yang sesuai dengan referensi.",
+"pola": "Verb / Noun + の + [とおりだ]",
+"contoh": [
+{"kalimat_jepang": "説明のとおりだ[とおりだ]。","arti_indonesia": "Sesuai penjelasan."},
+{"kalimat_jepang": "思ったとおりだ[とおりだ]。","arti_indonesia": "Sesuai yang dipikirkan."},
+{"kalimat_jepang": "予定のとおりだ[とおりだ]。","arti_indonesia": "Sesuai rencana."}
+],
+"catatan": ""
+},
+{
+"id": "n2-079",
+"level": "N2",
+"bunpou": "としたら",
+"grammar_target": "としたら",
+"arti_umum": "kalau seandainya",
+"penggunaan": "Digunakan untuk asumsi.",
+"pola": "Kalimat + [としたら]",
+"contoh": [
+{"kalimat_jepang": "行くとしたら[としたら]明日だ。","arti_indonesia": "Kalau pergi, besok."},
+{"kalimat_jepang": "本当だとしたら[としたら]問題だ。","arti_indonesia": "Kalau benar, itu masalah."},
+{"kalimat_jepang": "彼が来るとしたら[としたら]遅い。","arti_indonesia": "Kalau dia datang, pasti telat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-080",
+"level": "N2",
+"bunpou": "としても",
+"grammar_target": "としても",
+"arti_umum": "meskipun",
+"penggunaan": "Digunakan untuk kondisi hipotesis.",
+"pola": "Kalimat + [としても]",
+"contoh": [
+{"kalimat_jepang": "行くとしても[としても]遅れる。","arti_indonesia": "Meski pergi, akan telat."},
+{"kalimat_jepang": "本当だとしても[としても]信じない。","arti_indonesia": "Meski benar, tidak percaya."},
+{"kalimat_jepang": "できるとしても[としても]難しい。","arti_indonesia": "Meski bisa, tetap sulit."}
+],
+"catatan": ""
+}
+]
+,[
+{
+"id": "n2-081",
+"level": "N2",
+"bunpou": "とともに",
+"grammar_target": "とともに",
+"arti_umum": "bersamaan dengan",
+"penggunaan": "Digunakan untuk dua hal yang terjadi bersama atau perubahan seiring waktu.",
+"pola": "Noun / Verb kamus + [とともに]",
+"contoh": [
+{"kalimat_jepang": "年を取るとともに[とともに]体が弱くなる。","arti_indonesia": "Seiring bertambah umur, tubuh melemah."},
+{"kalimat_jepang": "彼とともに[とともに]成長した。","arti_indonesia": "Berkembang bersama dia."},
+{"kalimat_jepang": "時代とともに[とともに]変わる。","arti_indonesia": "Berubah seiring zaman."}
+],
+"catatan": ""
+},
+{
+"id": "n2-082",
+"level": "N2",
+"bunpou": "とともに",
+"grammar_target": "とともに",
+"arti_umum": "bersama dengan",
+"penggunaan": "Digunakan untuk menunjukkan kebersamaan dalam tindakan.",
+"pola": "Noun + [とともに]",
+"contoh": [
+{"kalimat_jepang": "家族とともに[とともに]旅行する。","arti_indonesia": "Pergi bersama keluarga."},
+{"kalimat_jepang": "友達とともに[とともに]勉強する。","arti_indonesia": "Belajar bersama teman."},
+{"kalimat_jepang": "先生とともに[とともに]働く。","arti_indonesia": "Bekerja bersama guru."}
+],
+"catatan": "Makna mirip, penggunaan beda nuansa"
+},
+{
+"id": "n2-083",
+"level": "N2",
+"bunpou": "と同時に",
+"grammar_target": "と同時に",
+"arti_umum": "pada saat yang sama",
+"penggunaan": "Digunakan untuk dua aksi terjadi bersamaan.",
+"pola": "Verb kamus + [と同時に]",
+"contoh": [
+{"kalimat_jepang": "ドアを開けると同時に[と同時に]犬が出た。","arti_indonesia": "Saat buka pintu, anjing keluar."},
+{"kalimat_jepang": "起きると同時に[と同時に]電話が鳴った。","arti_indonesia": "Saat bangun, telepon berbunyi."},
+{"kalimat_jepang": "スタートと同時に[と同時に]走った。","arti_indonesia": "Langsung lari saat mulai."}
+],
+"catatan": ""
+},
+{
+"id": "n2-084",
+"level": "N2",
+"bunpou": "といえども",
+"grammar_target": "といえども",
+"arti_umum": "meskipun",
+"penggunaan": "Digunakan dalam konteks formal atau tulisan.",
+"pola": "Noun + [といえども]",
+"contoh": [
+{"kalimat_jepang": "子供といえども[といえども]許されない。","arti_indonesia": "Meskipun anak-anak, tidak dimaafkan."},
+{"kalimat_jepang": "プロといえども[といえども]失敗する。","arti_indonesia": "Meskipun pro, tetap bisa gagal."},
+{"kalimat_jepang": "初心者といえども[といえども]努力が必要だ。","arti_indonesia": "Meskipun pemula, tetap perlu usaha."}
+],
+"catatan": ""
+},
+{
+"id": "n2-085",
+"level": "N2",
+"bunpou": "といえば",
+"grammar_target": "といえば",
+"arti_umum": "ngomong-ngomong soal",
+"penggunaan": "Digunakan untuk mengaitkan topik.",
+"pola": "Noun + [といえば]",
+"contoh": [
+{"kalimat_jepang": "夏といえば[といえば]海だ。","arti_indonesia": "Kalau musim panas, ya laut."},
+{"kalimat_jepang": "日本といえば[といえば]寿司だ。","arti_indonesia": "Kalau Jepang, sushi."},
+{"kalimat_jepang": "勉強といえば[といえば]大変だ。","arti_indonesia": "Kalau belajar, berat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-086",
+"level": "N2",
+"bunpou": "とはいえ",
+"grammar_target": "とはいえ",
+"arti_umum": "walaupun begitu",
+"penggunaan": "Digunakan untuk kontras dengan pernyataan sebelumnya.",
+"pola": "Kalimat + [とはいえ]",
+"contoh": [
+{"kalimat_jepang": "簡単だとはいえ[とはいえ]時間がかかる。","arti_indonesia": "Walau mudah, tetap butuh waktu."},
+{"kalimat_jepang": "学生だとはいえ[とはいえ]責任がある。","arti_indonesia": "Walau pelajar, tetap ada tanggung jawab."},
+{"kalimat_jepang": "便利だとはいえ[とはいえ]高い。","arti_indonesia": "Walau praktis, mahal."}
+],
+"catatan": ""
+},
+{
+"id": "n2-087",
+"level": "N2",
+"bunpou": "とは限らない",
+"grammar_target": "とは限らない",
+"arti_umum": "tidak selalu",
+"penggunaan": "Digunakan untuk menyangkal kepastian.",
+"pola": "Kalimat + [とは限らない]",
+"contoh": [
+{"kalimat_jepang": "高いとは限らない[とは限らない]。","arti_indonesia": "Tidak selalu mahal."},
+{"kalimat_jepang": "正しいとは限らない[とは限らない]。","arti_indonesia": "Tidak selalu benar."},
+{"kalimat_jepang": "成功するとは限らない[とは限らない]。","arti_indonesia": "Tidak selalu berhasil."}
+],
+"catatan": ""
+},
+{
+"id": "n2-088",
+"level": "N2",
+"bunpou": "とは比べものにならない",
+"grammar_target": "とは比べものにならない",
+"arti_umum": "tidak bisa dibandingkan",
+"penggunaan": "Digunakan untuk perbedaan besar.",
+"pola": "Noun + とは + [比べものにならない]",
+"contoh": [
+{"kalimat_jepang": "去年とは比べものにならない[比べものにならない]。","arti_indonesia": "Tidak bisa dibandingkan dengan tahun lalu."},
+{"kalimat_jepang": "前とは比べものにならない[比べものにならない]。","arti_indonesia": "Tidak bisa dibandingkan dengan sebelumnya."},
+{"kalimat_jepang": "昔とは比べものにならない[比べものにならない]。","arti_indonesia": "Tidak bisa dibandingkan dengan dulu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-089",
+"level": "N2",
+"bunpou": "とにかく",
+"grammar_target": "とにかく",
+"arti_umum": "pokoknya",
+"penggunaan": "Digunakan untuk menekankan hal utama.",
+"pola": "[とにかく] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "とにかく[とにかく]やってみる。","arti_indonesia": "Pokoknya coba dulu."},
+{"kalimat_jepang": "とにかく[とにかく]急いで。","arti_indonesia": "Pokoknya cepat."},
+{"kalimat_jepang": "とにかく[とにかく]休もう。","arti_indonesia": "Pokoknya istirahat dulu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-090",
+"level": "N2",
+"bunpou": "とにかくとして",
+"grammar_target": "とにかくとして",
+"arti_umum": "untuk sementara diabaikan",
+"penggunaan": "Digunakan untuk mengesampingkan sesuatu dulu.",
+"pola": "Noun + [とにかくとして]",
+"contoh": [
+{"kalimat_jepang": "結果はとにかくとして[とにかくとして]努力する。","arti_indonesia": "Hasil nanti dulu, yang penting usaha."},
+{"kalimat_jepang": "理由はとにかくとして[とにかくとして]進める。","arti_indonesia": "Alasan nanti, lanjut dulu."},
+{"kalimat_jepang": "費用はとにかくとして[とにかくとして]考える。","arti_indonesia": "Biaya nanti dulu, pikirkan dulu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-091",
+"level": "N2",
+"bunpou": "ともなると",
+"grammar_target": "ともなると",
+"arti_umum": "kalau sudah sampai",
+"penggunaan": "Digunakan untuk kondisi tertentu yang berubah.",
+"pola": "Noun + [ともなると]",
+"contoh": [
+{"kalimat_jepang": "大人ともなると[ともなると]責任がある。","arti_indonesia": "Kalau sudah dewasa, ada tanggung jawab."},
+{"kalimat_jepang": "冬ともなると[ともなると]寒い。","arti_indonesia": "Kalau sudah musim dingin, dingin."},
+{"kalimat_jepang": "試験ともなると[ともなると]緊張する。","arti_indonesia": "Kalau sudah ujian, tegang."}
+],
+"catatan": ""
+},
+{
+"id": "n2-092",
+"level": "N2",
+"bunpou": "ともなく",
+"grammar_target": "ともなく",
+"arti_umum": "tanpa sadar",
+"penggunaan": "Digunakan untuk tindakan tanpa tujuan jelas.",
+"pola": "Verb kamus + [ともなく]",
+"contoh": [
+{"kalimat_jepang": "見るともなく[ともなく]テレビを見る。","arti_indonesia": "Nonton TV tanpa niat."},
+{"kalimat_jepang": "聞くともなく[ともなく]聞いていた。","arti_indonesia": "Mendengar tanpa sadar."},
+{"kalimat_jepang": "考えるともなく[ともなく]考えた。","arti_indonesia": "Berpikir tanpa sadar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-093",
+"level": "N2",
+"bunpou": "ともなしに",
+"grammar_target": "ともなしに",
+"arti_umum": "tanpa sengaja",
+"penggunaan": "Mirip ともなく, lebih ke keadaan.",
+"pola": "Verb kamus + [ともなしに]",
+"contoh": [
+{"kalimat_jepang": "見るともなしに[ともなしに]見ていた。","arti_indonesia": "Melihat tanpa sengaja."},
+{"kalimat_jepang": "聞くともなしに[ともなしに]聞いた。","arti_indonesia": "Mendengar tanpa sadar."},
+{"kalimat_jepang": "考えるともなしに[ともなしに]考えた。","arti_indonesia": "Berpikir tanpa sadar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-094",
+"level": "N2",
+"bunpou": "なお",
+"grammar_target": "なお",
+"arti_umum": "selain itu",
+"penggunaan": "Digunakan untuk menambah informasi.",
+"pola": "[なお] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "なお[なお]詳細は後で説明する。","arti_indonesia": "Selain itu, detail dijelaskan nanti."},
+{"kalimat_jepang": "なお[なお]変更はありません。","arti_indonesia": "Selain itu, tidak ada perubahan."},
+{"kalimat_jepang": "なお[なお]注意が必要です。","arti_indonesia": "Selain itu, perlu perhatian."}
+],
+"catatan": ""
+},
+{
+"id": "n2-095",
+"level": "N2",
+"bunpou": "なおさら",
+"grammar_target": "なおさら",
+"arti_umum": "semakin",
+"penggunaan": "Digunakan untuk memperkuat kondisi.",
+"pola": "[なおさら] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "雨でなおさら[なおさら]寒い。","arti_indonesia": "Karena hujan jadi makin dingin."},
+{"kalimat_jepang": "忙しくてなおさら[なおさら]大変だ。","arti_indonesia": "Karena sibuk jadi makin berat."},
+{"kalimat_jepang": "好きでなおさら[なおさら]楽しい。","arti_indonesia": "Karena suka jadi makin seru."}
+],
+"catatan": ""
+},
+{
+"id": "n2-096",
+"level": "N2",
+"bunpou": "なくしては",
+"grammar_target": "なくしては",
+"arti_umum": "tanpa",
+"penggunaan": "Digunakan untuk syarat penting.",
+"pola": "Noun + を + [なくしては]",
+"contoh": [
+{"kalimat_jepang": "努力なくしては[なくしては]成功しない。","arti_indonesia": "Tanpa usaha tidak berhasil."},
+{"kalimat_jepang": "協力なくしては[なくしては]できない。","arti_indonesia": "Tanpa kerja sama tidak bisa."},
+{"kalimat_jepang": "信頼なくしては[なくしては]続かない。","arti_indonesia": "Tanpa kepercayaan tidak bertahan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-097",
+"level": "N2",
+"bunpou": "ながらに",
+"grammar_target": "ながらに",
+"arti_umum": "sejak lahir / tetap",
+"penggunaan": "Digunakan untuk kondisi yang tidak berubah.",
+"pola": "Noun + [ながらに]",
+"contoh": [
+{"kalimat_jepang": "昔ながらに[ながらに]残っている。","arti_indonesia": "Tetap seperti dulu."},
+{"kalimat_jepang": "生まれながらに[ながらに]才能がある。","arti_indonesia": "Punya bakat sejak lahir."},
+{"kalimat_jepang": "そのままながらに[ながらに]保存する。","arti_indonesia": "Disimpan apa adanya."}
+],
+"catatan": ""
+},
+{
+"id": "n2-098",
+"level": "N2",
+"bunpou": "ながらも",
+"grammar_target": "ながらも",
+"arti_umum": "meskipun",
+"penggunaan": "Digunakan untuk kontras ringan.",
+"pola": "Verb / Adj + [ながらも]",
+"contoh": [
+{"kalimat_jepang": "知りながらも[ながらも]言わない。","arti_indonesia": "Meski tahu, tidak bilang."},
+{"kalimat_jepang": "悪いながらも[ながらも]続ける。","arti_indonesia": "Meski buruk, tetap lanjut."},
+{"kalimat_jepang": "小さいながらも[ながらも]便利だ。","arti_indonesia": "Meski kecil, berguna."}
+],
+"catatan": ""
+},
+{
+"id": "n2-099",
+"level": "N2",
+"bunpou": "にあたって",
+"grammar_target": "にあたって",
+"arti_umum": "pada saat",
+"penggunaan": "Digunakan untuk momen penting.",
+"pola": "Verb kamus / Noun + の + [にあたって]",
+"contoh": [
+{"kalimat_jepang": "開始にあたって[にあたって]説明する。","arti_indonesia": "Menjelaskan saat mulai."},
+{"kalimat_jepang": "試験にあたって[にあたって]準備する。","arti_indonesia": "Persiapan saat ujian."},
+{"kalimat_jepang": "入学にあたって[にあたって]必要だ。","arti_indonesia": "Diperlukan saat masuk."}
+],
+"catatan": ""
+},
+{
+"id": "n2-100",
+"level": "N2",
+"bunpou": "にあたり",
+"grammar_target": "にあたり",
+"arti_umum": "pada saat",
+"penggunaan": "Versi formal dari にあたって.",
+"pola": "Noun + [にあたり]",
+"contoh": [
+{"kalimat_jepang": "実施にあたり[にあたり]確認する。","arti_indonesia": "Memastikan saat pelaksanaan."},
+{"kalimat_jepang": "契約にあたり[にあたり]注意する。","arti_indonesia": "Perhatikan saat kontrak."},
+{"kalimat_jepang": "開始にあたり[にあたり]説明する。","arti_indonesia": "Menjelaskan saat mulai."}
+],
+"catatan": ""
+}
+]
+,[
+{
+"id": "n2-081",
+"level": "N2",
+"bunpou": "とともに",
+"grammar_target": "とともに",
+"arti_umum": "bersamaan dengan",
+"penggunaan": "Digunakan untuk dua hal yang terjadi bersama atau perubahan seiring waktu.",
+"pola": "Noun / Verb kamus + [とともに]",
+"contoh": [
+{"kalimat_jepang": "年を取るとともに[とともに]体が弱くなる。","arti_indonesia": "Seiring bertambah umur, tubuh melemah."},
+{"kalimat_jepang": "彼とともに[とともに]成長した。","arti_indonesia": "Berkembang bersama dia."},
+{"kalimat_jepang": "時代とともに[とともに]変わる。","arti_indonesia": "Berubah seiring zaman."}
+],
+"catatan": ""
+},
+{
+"id": "n2-082",
+"level": "N2",
+"bunpou": "とともに",
+"grammar_target": "とともに",
+"arti_umum": "bersama dengan",
+"penggunaan": "Digunakan untuk menunjukkan kebersamaan dalam tindakan.",
+"pola": "Noun + [とともに]",
+"contoh": [
+{"kalimat_jepang": "家族とともに[とともに]旅行する。","arti_indonesia": "Pergi bersama keluarga."},
+{"kalimat_jepang": "友達とともに[とともに]勉強する。","arti_indonesia": "Belajar bersama teman."},
+{"kalimat_jepang": "先生とともに[とともに]働く。","arti_indonesia": "Bekerja bersama guru."}
+],
+"catatan": "Makna mirip, penggunaan beda nuansa"
+},
+{
+"id": "n2-083",
+"level": "N2",
+"bunpou": "と同時に",
+"grammar_target": "と同時に",
+"arti_umum": "pada saat yang sama",
+"penggunaan": "Digunakan untuk dua aksi terjadi bersamaan.",
+"pola": "Verb kamus + [と同時に]",
+"contoh": [
+{"kalimat_jepang": "ドアを開けると同時に[と同時に]犬が出た。","arti_indonesia": "Saat buka pintu, anjing keluar."},
+{"kalimat_jepang": "起きると同時に[と同時に]電話が鳴った。","arti_indonesia": "Saat bangun, telepon berbunyi."},
+{"kalimat_jepang": "スタートと同時に[と同時に]走った。","arti_indonesia": "Langsung lari saat mulai."}
+],
+"catatan": ""
+},
+{
+"id": "n2-084",
+"level": "N2",
+"bunpou": "といえども",
+"grammar_target": "といえども",
+"arti_umum": "meskipun",
+"penggunaan": "Digunakan dalam konteks formal atau tulisan.",
+"pola": "Noun + [といえども]",
+"contoh": [
+{"kalimat_jepang": "子供といえども[といえども]許されない。","arti_indonesia": "Meskipun anak-anak, tidak dimaafkan."},
+{"kalimat_jepang": "プロといえども[といえども]失敗する。","arti_indonesia": "Meskipun pro, tetap bisa gagal."},
+{"kalimat_jepang": "初心者といえども[といえども]努力が必要だ。","arti_indonesia": "Meskipun pemula, tetap perlu usaha."}
+],
+"catatan": ""
+},
+{
+"id": "n2-085",
+"level": "N2",
+"bunpou": "といえば",
+"grammar_target": "といえば",
+"arti_umum": "ngomong-ngomong soal",
+"penggunaan": "Digunakan untuk mengaitkan topik.",
+"pola": "Noun + [といえば]",
+"contoh": [
+{"kalimat_jepang": "夏といえば[といえば]海だ。","arti_indonesia": "Kalau musim panas, ya laut."},
+{"kalimat_jepang": "日本といえば[といえば]寿司だ。","arti_indonesia": "Kalau Jepang, sushi."},
+{"kalimat_jepang": "勉強といえば[といえば]大変だ。","arti_indonesia": "Kalau belajar, berat."}
+],
+"catatan": ""
+},
+{
+"id": "n2-086",
+"level": "N2",
+"bunpou": "とはいえ",
+"grammar_target": "とはいえ",
+"arti_umum": "walaupun begitu",
+"penggunaan": "Digunakan untuk kontras dengan pernyataan sebelumnya.",
+"pola": "Kalimat + [とはいえ]",
+"contoh": [
+{"kalimat_jepang": "簡単だとはいえ[とはいえ]時間がかかる。","arti_indonesia": "Walau mudah, tetap butuh waktu."},
+{"kalimat_jepang": "学生だとはいえ[とはいえ]責任がある。","arti_indonesia": "Walau pelajar, tetap ada tanggung jawab."},
+{"kalimat_jepang": "便利だとはいえ[とはいえ]高い。","arti_indonesia": "Walau praktis, mahal."}
+],
+"catatan": ""
+},
+{
+"id": "n2-087",
+"level": "N2",
+"bunpou": "とは限らない",
+"grammar_target": "とは限らない",
+"arti_umum": "tidak selalu",
+"penggunaan": "Digunakan untuk menyangkal kepastian.",
+"pola": "Kalimat + [とは限らない]",
+"contoh": [
+{"kalimat_jepang": "高いとは限らない[とは限らない]。","arti_indonesia": "Tidak selalu mahal."},
+{"kalimat_jepang": "正しいとは限らない[とは限らない]。","arti_indonesia": "Tidak selalu benar."},
+{"kalimat_jepang": "成功するとは限らない[とは限らない]。","arti_indonesia": "Tidak selalu berhasil."}
+],
+"catatan": ""
+},
+{
+"id": "n2-088",
+"level": "N2",
+"bunpou": "とは比べものにならない",
+"grammar_target": "とは比べものにならない",
+"arti_umum": "tidak bisa dibandingkan",
+"penggunaan": "Digunakan untuk perbedaan besar.",
+"pola": "Noun + とは + [比べものにならない]",
+"contoh": [
+{"kalimat_jepang": "去年とは比べものにならない[比べものにならない]。","arti_indonesia": "Tidak bisa dibandingkan dengan tahun lalu."},
+{"kalimat_jepang": "前とは比べものにならない[比べものにならない]。","arti_indonesia": "Tidak bisa dibandingkan dengan sebelumnya."},
+{"kalimat_jepang": "昔とは比べものにならない[比べものにならない]。","arti_indonesia": "Tidak bisa dibandingkan dengan dulu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-089",
+"level": "N2",
+"bunpou": "とにかく",
+"grammar_target": "とにかく",
+"arti_umum": "pokoknya",
+"penggunaan": "Digunakan untuk menekankan hal utama.",
+"pola": "[とにかく] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "とにかく[とにかく]やってみる。","arti_indonesia": "Pokoknya coba dulu."},
+{"kalimat_jepang": "とにかく[とにかく]急いで。","arti_indonesia": "Pokoknya cepat."},
+{"kalimat_jepang": "とにかく[とにかく]休もう。","arti_indonesia": "Pokoknya istirahat dulu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-090",
+"level": "N2",
+"bunpou": "とにかくとして",
+"grammar_target": "とにかくとして",
+"arti_umum": "untuk sementara diabaikan",
+"penggunaan": "Digunakan untuk mengesampingkan sesuatu dulu.",
+"pola": "Noun + [とにかくとして]",
+"contoh": [
+{"kalimat_jepang": "結果はとにかくとして[とにかくとして]努力する。","arti_indonesia": "Hasil nanti dulu, yang penting usaha."},
+{"kalimat_jepang": "理由はとにかくとして[とにかくとして]進める。","arti_indonesia": "Alasan nanti, lanjut dulu."},
+{"kalimat_jepang": "費用はとにかくとして[とにかくとして]考える。","arti_indonesia": "Biaya nanti dulu, pikirkan dulu."}
+],
+"catatan": ""
+},
+{
+"id": "n2-091",
+"level": "N2",
+"bunpou": "ともなると",
+"grammar_target": "ともなると",
+"arti_umum": "kalau sudah sampai",
+"penggunaan": "Digunakan untuk kondisi tertentu yang berubah.",
+"pola": "Noun + [ともなると]",
+"contoh": [
+{"kalimat_jepang": "大人ともなると[ともなると]責任がある。","arti_indonesia": "Kalau sudah dewasa, ada tanggung jawab."},
+{"kalimat_jepang": "冬ともなると[ともなると]寒い。","arti_indonesia": "Kalau sudah musim dingin, dingin."},
+{"kalimat_jepang": "試験ともなると[ともなると]緊張する。","arti_indonesia": "Kalau sudah ujian, tegang."}
+],
+"catatan": ""
+},
+{
+"id": "n2-092",
+"level": "N2",
+"bunpou": "ともなく",
+"grammar_target": "ともなく",
+"arti_umum": "tanpa sadar",
+"penggunaan": "Digunakan untuk tindakan tanpa tujuan jelas.",
+"pola": "Verb kamus + [ともなく]",
+"contoh": [
+{"kalimat_jepang": "見るともなく[ともなく]テレビを見る。","arti_indonesia": "Nonton TV tanpa niat."},
+{"kalimat_jepang": "聞くともなく[ともなく]聞いていた。","arti_indonesia": "Mendengar tanpa sadar."},
+{"kalimat_jepang": "考えるともなく[ともなく]考えた。","arti_indonesia": "Berpikir tanpa sadar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-093",
+"level": "N2",
+"bunpou": "ともなしに",
+"grammar_target": "ともなしに",
+"arti_umum": "tanpa sengaja",
+"penggunaan": "Mirip ともなく, lebih ke keadaan.",
+"pola": "Verb kamus + [ともなしに]",
+"contoh": [
+{"kalimat_jepang": "見るともなしに[ともなしに]見ていた。","arti_indonesia": "Melihat tanpa sengaja."},
+{"kalimat_jepang": "聞くともなしに[ともなしに]聞いた。","arti_indonesia": "Mendengar tanpa sadar."},
+{"kalimat_jepang": "考えるともなしに[ともなしに]考えた。","arti_indonesia": "Berpikir tanpa sadar."}
+],
+"catatan": ""
+},
+{
+"id": "n2-094",
+"level": "N2",
+"bunpou": "なお",
+"grammar_target": "なお",
+"arti_umum": "selain itu",
+"penggunaan": "Digunakan untuk menambah informasi.",
+"pola": "[なお] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "なお[なお]詳細は後で説明する。","arti_indonesia": "Selain itu, detail dijelaskan nanti."},
+{"kalimat_jepang": "なお[なお]変更はありません。","arti_indonesia": "Selain itu, tidak ada perubahan."},
+{"kalimat_jepang": "なお[なお]注意が必要です。","arti_indonesia": "Selain itu, perlu perhatian."}
+],
+"catatan": ""
+},
+{
+"id": "n2-095",
+"level": "N2",
+"bunpou": "なおさら",
+"grammar_target": "なおさら",
+"arti_umum": "semakin",
+"penggunaan": "Digunakan untuk memperkuat kondisi.",
+"pola": "[なおさら] + Kalimat",
+"contoh": [
+{"kalimat_jepang": "雨でなおさら[なおさら]寒い。","arti_indonesia": "Karena hujan jadi makin dingin."},
+{"kalimat_jepang": "忙しくてなおさら[なおさら]大変だ。","arti_indonesia": "Karena sibuk jadi makin berat."},
+{"kalimat_jepang": "好きでなおさら[なおさら]楽しい。","arti_indonesia": "Karena suka jadi makin seru."}
+],
+"catatan": ""
+},
+{
+"id": "n2-096",
+"level": "N2",
+"bunpou": "なくしては",
+"grammar_target": "なくしては",
+"arti_umum": "tanpa",
+"penggunaan": "Digunakan untuk syarat penting.",
+"pola": "Noun + を + [なくしては]",
+"contoh": [
+{"kalimat_jepang": "努力なくしては[なくしては]成功しない。","arti_indonesia": "Tanpa usaha tidak berhasil."},
+{"kalimat_jepang": "協力なくしては[なくしては]できない。","arti_indonesia": "Tanpa kerja sama tidak bisa."},
+{"kalimat_jepang": "信頼なくしては[なくしては]続かない。","arti_indonesia": "Tanpa kepercayaan tidak bertahan."}
+],
+"catatan": ""
+},
+{
+"id": "n2-097",
+"level": "N2",
+"bunpou": "ながらに",
+"grammar_target": "ながらに",
+"arti_umum": "sejak lahir / tetap",
+"penggunaan": "Digunakan untuk kondisi yang tidak berubah.",
+"pola": "Noun + [ながらに]",
+"contoh": [
+{"kalimat_jepang": "昔ながらに[ながらに]残っている。","arti_indonesia": "Tetap seperti dulu."},
+{"kalimat_jepang": "生まれながらに[ながらに]才能がある。","arti_indonesia": "Punya bakat sejak lahir."},
+{"kalimat_jepang": "そのままながらに[ながらに]保存する。","arti_indonesia": "Disimpan apa adanya."}
+],
+"catatan": ""
+},
+{
+"id": "n2-098",
+"level": "N2",
+"bunpou": "ながらも",
+"grammar_target": "ながらも",
+"arti_umum": "meskipun",
+"penggunaan": "Digunakan untuk kontras ringan.",
+"pola": "Verb / Adj + [ながらも]",
+"contoh": [
+{"kalimat_jepang": "知りながらも[ながらも]言わない。","arti_indonesia": "Meski tahu, tidak bilang."},
+{"kalimat_jepang": "悪いながらも[ながらも]続ける。","arti_indonesia": "Meski buruk, tetap lanjut."},
+{"kalimat_jepang": "小さいながらも[ながらも]便利だ。","arti_indonesia": "Meski kecil, berguna."}
+],
+"catatan": ""
+},
+{
+"id": "n2-099",
+"level": "N2",
+"bunpou": "にあたって",
+"grammar_target": "にあたって",
+"arti_umum": "pada saat",
+"penggunaan": "Digunakan untuk momen penting.",
+"pola": "Verb kamus / Noun + の + [にあたって]",
+"contoh": [
+{"kalimat_jepang": "開始にあたって[にあたって]説明する。","arti_indonesia": "Menjelaskan saat mulai."},
+{"kalimat_jepang": "試験にあたって[にあたって]準備する。","arti_indonesia": "Persiapan saat ujian."},
+{"kalimat_jepang": "入学にあたって[にあたって]必要だ。","arti_indonesia": "Diperlukan saat masuk."}
+],
+"catatan": ""
+},
+{
+"id": "n2-100",
+"level": "N2",
+"bunpou": "にあたり",
+"grammar_target": "にあたり",
+"arti_umum": "pada saat",
+"penggunaan": "Versi formal dari にあたって.",
+"pola": "Noun + [にあたり]",
+"contoh": [
+{"kalimat_jepang": "実施にあたり[にあたり]確認する。","arti_indonesia": "Memastikan saat pelaksanaan."},
+{"kalimat_jepang": "契約にあたり[にあたり]注意する。","arti_indonesia": "Perhatikan saat kontrak."},
+{"kalimat_jepang": "開始にあたり[にあたり]説明する。","arti_indonesia": "Menjelaskan saat mulai."}
+],
+"catatan": ""
+}
+]
+]}

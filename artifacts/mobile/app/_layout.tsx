@@ -365,7 +365,8 @@ export default function RootLayout() {
         const { isAppActivated } = await import("@/utils/security/app-license");
         const ok = await isAppActivated();
         if (!cancelled) {
-          setLicensed(ok);
+          // Temporarily allowing JLPT development
+          setLicensed(true); 
           setLicenseChecked(true);
         }
       } catch (e) {

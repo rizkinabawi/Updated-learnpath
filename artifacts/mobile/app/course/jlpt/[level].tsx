@@ -34,8 +34,20 @@ import {
   CheckCircle2,
   Trophy,
   Languages,
-  Check
+  Check,
+  PlusCircle,
+  FilePlus,
+  AlertCircle
 } from "lucide-react-native";
+import { 
+  getLearningPaths, 
+  getModules, 
+  getLessons, 
+  saveNote, 
+  generateId 
+} from "@/utils/storage";
+import { Modal } from "react-native";
+import { toast } from "@/components/Toast";
 import { type ColorScheme } from "@/constants/colors";
 
 // ─── Data Mapping ─────────────────────────────────────────────────────────────
@@ -126,6 +138,76 @@ export default function JLPTLevelDetail() {
       await AsyncStorage.setItem(key, JSON.stringify(newMastery));
     } catch (e) {
       console.error("Failed to save mastery:", e);
+    }
+  };
+
+  // Add to Course State
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [targetPaths, setTargetPaths] = useState<any[]>([]);
+  const [selectedPathId, setSelectedPathId] = useState("");
+  const [targetModules, setTargetModules] = useState<any[]>([]);
+  const [selectedModId, setSelectedModId] = useState("");
+  const [targetLessons, setTargetLessons] = useState<any[]>([]);
+  const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const openSaveModal = async (item: GrammarItem | VocabItem) => {
+    setSelectedItem(item);
+    const paths = await getLearningPaths();
+    setTargetPaths(paths);
+    setShowSaveModal(true);
+  };
+
+  useEffect(() => {
+    if (selectedPathId) {
+      getModules(selectedPathId).then(setTargetModules);
+      setSelectedModId("");
+      setTargetLessons([]);
+      setSelectedLessonId("");
+    }
+  }, [selectedPathId]);
+
+  useEffect(() => {
+    if (selectedModId) {
+      getLessons(selectedModId).then(setTargetLessons);
+      setSelectedLessonId("");
+    }
+  }, [selectedModId]);
+
+  const handleSaveToNote = async () => {
+    if (!selectedLessonId || !selectedItem) {
+      toast.error("Pilih pelajaran tujuan!");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const isGrammar = "bunpou" in selectedItem;
+      const title = `[JLPT ${level}] ${isGrammar ? (selectedItem as GrammarItem).bunpou : (selectedItem as VocabItem).word}`;
+      
+      let content = "";
+      if (isGrammar) {
+        const g = selectedItem as GrammarItem;
+        content = `Arti: ${g.arti_umum}\n\nPenggunaan: ${g.penggunaan}\n\nPola: ${g.pola}\n\nContoh:\n${g.contoh.map(c => `- ${c.kalimat_jepang}\n  (${c.arti_indonesia})`).join("\n")}`;
+      } else {
+        const v = selectedItem as VocabItem;
+        content = `Bacaan: ${v.reading}\n\nArti (ID): ${v.id_mean}\nArti (EN): ${v.en_mean}\nArti (VN): ${v.vn_mean}`;
+      }
+
+      await saveNote({
+        id: generateId(),
+        lessonId: selectedLessonId,
+        title,
+        content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      toast.success("Berhasil ditambahkan ke kursus!");
+      setShowSaveModal(false);
+    } catch (e) {
+      toast.error("Gagal menyimpan catatan.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -293,6 +375,37 @@ export default function JLPTLevelDetail() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.hubContent}>
+        {level === "N5" && !searchQuery && (
+          <View style={styles.n5Hero}>
+            <LinearGradient colors={["rgba(255,255,255,0.1)", "transparent"]} style={styles.n5HeroGrad}>
+              <View style={styles.n5HeroRow}>
+                <View style={styles.n5HeroIcon}>
+                  <Award size={32} color={colors.amber} />
+                </View>
+                <View style={styles.n5HeroText}>
+                  <Text style={styles.n5HeroTitle}>Starter Mastery (N5)</Text>
+                  <Text style={styles.n5HeroSub}>Landasan utama Bahasa Jepang kamu dimulai dari sini.</Text>
+                </View>
+              </View>
+              <View style={styles.n5HeroStats}>
+                <View style={styles.n5StatItem}>
+                  <Text style={styles.n5StatVal}>{grammarData.length + vocabData.length}</Text>
+                  <Text style={styles.n5StatLabel}>Total Materi</Text>
+                </View>
+                <View style={styles.n5StatDivider} />
+                <View style={styles.n5StatItem}>
+                  <Text style={styles.n5StatVal}>~30 Hari</Text>
+                  <Text style={styles.n5StatLabel}>Estimasi</Text>
+                </View>
+                <TouchableOpacity style={styles.n5ResumeBtn} onPress={() => { setSelectedLessonIdx(0); setMode("lesson"); }}>
+                  <Play size={14} color="#fff" />
+                  <Text style={styles.n5ResumeText}>Mulai</Text>
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
         {loading ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
         ) : searchQuery ? (
@@ -569,7 +682,81 @@ export default function JLPTLevelDetail() {
               </TouchableOpacity>
             </>
           )}
+
+          <TouchableOpacity style={styles.addToCourseBtn} onPress={() => openSaveModal(selectedItem)}>
+            <FilePlus size={20} color={colors.primary} />
+            <Text style={styles.addToCourseBtnText}>Tambahkan ke Kursus Saya</Text>
+          </TouchableOpacity>
         </ScrollView>
+
+        <Modal visible={showSaveModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Simpan ke Kursus</Text>
+                <TouchableOpacity onPress={() => setShowSaveModal(false)}>
+                  <X size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalLabel}>Pilih Kursus</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pathPicker}>
+                {targetPaths.map(p => (
+                  <TouchableOpacity 
+                    key={p.id} 
+                    style={[styles.pathChip, selectedPathId === p.id && styles.pathChipActive]}
+                    onPress={() => setSelectedPathId(p.id)}
+                  >
+                    <Text style={[styles.pathChipText, selectedPathId === p.id && styles.pathChipTextActive]}>{p.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {selectedPathId && (
+                <>
+                  <Text style={styles.modalLabel}>Pilih Modul</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pathPicker}>
+                    {targetModules.map(m => (
+                      <TouchableOpacity 
+                        key={m.id} 
+                        style={[styles.pathChip, selectedModId === m.id && styles.pathChipActive]}
+                        onPress={() => setSelectedModId(m.id)}
+                      >
+                        <Text style={[styles.pathChipText, selectedModId === m.id && styles.pathChipTextActive]}>{m.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+
+              {selectedModId && (
+                <>
+                  <Text style={styles.modalLabel}>Pilih Pelajaran (Lesson)</Text>
+                  <ScrollView style={styles.lessonPicker}>
+                    {targetLessons.map(l => (
+                      <TouchableOpacity 
+                        key={l.id} 
+                        style={[styles.lessonPickItem, selectedLessonId === l.id && styles.lessonPickItemActive]}
+                        onPress={() => setSelectedLessonId(l.id)}
+                      >
+                        <Text style={[styles.lessonPickText, selectedLessonId === l.id && styles.lessonPickTextActive]}>{l.name}</Text>
+                        {selectedLessonId === l.id && <Check size={18} color={colors.primary} />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+
+              <TouchableOpacity 
+                style={[styles.saveConfirmBtn, (!selectedLessonId || isSaving) && styles.disabledBtn]}
+                onPress={handleSaveToNote}
+                disabled={!selectedLessonId || isSaving}
+              >
+                {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveConfirmText}>SIMPAN SEBAGAI CATATAN</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   };
@@ -713,6 +900,45 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   correctBtn: { backgroundColor: c.success },
   tracingBtnText: { color: "#fff", fontSize: 14, fontWeight: "900", letterSpacing: 1 },
   
+  // N5 Custom Hero
+  n5Hero: { marginBottom: 25, borderRadius: 24, overflow: "hidden", backgroundColor: c.primary },
+  n5HeroGrad: { padding: 20 },
+  n5HeroRow: { flexDirection: "row", alignItems: "center", gap: 15, marginBottom: 20 },
+  n5HeroIcon: { width: 60, height: 60, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  n5HeroText: { flex: 1 },
+  n5HeroTitle: { fontSize: 20, fontWeight: "900", color: "#fff" },
+  n5HeroSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: "600", marginTop: 4 },
+  n5HeroStats: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(0,0,0,0.15)", borderRadius: 16, padding: 12 },
+  n5StatItem: { flex: 1, alignItems: "center" },
+  n5StatVal: { fontSize: 14, fontWeight: "900", color: "#fff" },
+  n5StatLabel: { fontSize: 9, fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginTop: 2 },
+  n5StatDivider: { width: 1, height: 20, backgroundColor: "rgba(255,255,255,0.1)" },
+  n5ResumeBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, marginLeft: 10 },
+  n5ResumeText: { fontSize: 12, fontWeight: "900", color: c.primary },
+
+  // Tool Styles
+  addToCourseBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18, borderRadius: 20, borderWidth: 2, borderColor: c.primaryLight, marginTop: 20 },
+  addToCourseBtnText: { fontSize: 15, fontWeight: "800", color: c.primary },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalContent: { backgroundColor: c.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 25, maxHeight: "80%" },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: c.text },
+  modalLabel: { fontSize: 11, fontWeight: "900", color: c.textMuted, textTransform: "uppercase", letterSpacing: 1, marginTop: 15, marginBottom: 10 },
+  pathPicker: { flexDirection: "row", marginBottom: 10 },
+  pathChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: c.background, marginRight: 10, borderWidth: 1, borderColor: c.border },
+  pathChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  pathChipText: { fontSize: 13, fontWeight: "700", color: c.textSecondary },
+  pathChipTextActive: { color: "#fff" },
+  lessonPicker: { maxHeight: 200, marginBottom: 20 },
+  lessonPickItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: c.border },
+  lessonPickItemActive: { borderBottomColor: c.primary },
+  lessonPickText: { fontSize: 14, fontWeight: "600", color: c.text },
+  lessonPickTextActive: { color: c.primary, fontWeight: "800" },
+  saveConfirmBtn: { backgroundColor: c.primary, paddingVertical: 18, borderRadius: 20, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  saveConfirmText: { color: "#fff", fontSize: 15, fontWeight: "900", letterSpacing: 1 },
+
   // Existing styles...
   // Detail Styles
   detailHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 20, backgroundColor: c.background },

@@ -10,6 +10,7 @@ export interface DictEntry {
   reading: string;
   meaning: string;
   level?: string;
+  source?: string;
 }
 
 // Expanded JLPT Vocabulary (N2 & N3)
@@ -80,16 +81,18 @@ const n2Dict: DictEntry[] = [
  * Searches for a word in the local dictionary.
  * Supports exact match and partial match for the word or reading.
  */
-export const lookupWord = (text: string): DictEntry | null => {
+export const lookupWord = (text: string, secondaryDict?: DictEntry[]): DictEntry | null => {
   const clean = text.trim();
   if (!clean) return null;
 
+  const combined = secondaryDict ? [...secondaryDict, ...n2Dict] : n2Dict;
+
   // Exact match
-  const exact = n2Dict.find(e => e.word === clean || e.reading === clean);
+  const exact = combined.find(e => e.word === clean || e.reading === clean);
   if (exact) return exact;
 
   // Fuzzy match (contains)
-  return n2Dict.find(e => clean.includes(e.word) || e.word.includes(clean)) || null;
+  return combined.find(e => clean.includes(e.word) || e.word.includes(clean)) || null;
 };
 
 /**

@@ -37,17 +37,24 @@ import {
   Check,
   PlusCircle,
   FilePlus,
-  AlertCircle
+  AlertCircle,
+  Award
 } from "lucide-react-native";
 import { 
   getLearningPaths, 
   getModules, 
   getLessons, 
   saveNote, 
-  generateId 
+  getCourseDictionary,
+  generateId,
+  type DictEntry
 } from "@/utils/storage";
+import { tokenizeJapanese, lookupWord } from "@/utils/dictionary";
+import { WordPopup } from "@/components/WordPopup";
 import { Modal } from "react-native";
 import { toast } from "@/components/Toast";
+import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 import { type ColorScheme } from "@/constants/colors";
 
 // ─── Data Mapping ─────────────────────────────────────────────────────────────
@@ -89,6 +96,12 @@ export default function JLPTLevelDetail() {
   const { level } = useLocalSearchParams<{ level: string }>();
   const colors = useColors();
   const { isDark, palette } = useTheme();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"grammar" | "vocab">("grammar");
+  const [courseDict, setCourseDict] = useState<DictEntry[]>([]);
+  const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+
   const styles = useMemo(() => makeStyles(colors, isDark, palette), [colors, isDark, palette]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -96,13 +109,10 @@ export default function JLPTLevelDetail() {
 
   // Navigation State
   const [mode, setMode] = useState<ScreenMode>("hub");
-  const [activeTab, setActiveTab] = useState<"grammar" | "vocab">("grammar");
-  
   // Data State
   const [loading, setLoading] = useState(true);
   const [grammarData, setGrammarData] = useState<GrammarItem[]>([]);
   const [vocabData, setVocabData] = useState<VocabItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   
   // Lesson State
   const [selectedLessonIdx, setSelectedLessonIdx] = useState(0);
@@ -130,6 +140,13 @@ export default function JLPTLevelDetail() {
   };
 
   const updateItemMastery = async (item: GrammarItem | VocabItem, status: "mastered" | "failed") => {
+    // Premium Haptic Feedback
+    if (status === "mastered") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.selectionAsync();
+    }
+
     const id = getItemId(item);
     const newMastery = { ...mastery, [id]: { status } };
     setMastery(newMastery);
@@ -139,6 +156,10 @@ export default function JLPTLevelDetail() {
     } catch (e) {
       console.error("Failed to save mastery:", e);
     }
+  };
+
+  const playSpeech = (text: string) => {
+    Speech.speak(text, { language: "ja-JP", rate: 0.9 });
   };
 
   // Add to Course State
@@ -303,6 +324,7 @@ export default function JLPTLevelDetail() {
   useEffect(() => {
     loadData();
     loadMastery();
+    getCourseDictionary().then(setCourseDict);
     if (level === "N1") setActiveTab("vocab");
   }, [level]);
 
@@ -437,28 +459,32 @@ export default function JLPTLevelDetail() {
                     setMode("lesson");
                   }}
                 >
-                  <View style={styles.lessonHeader}>
-                    <View style={styles.lessonIconBox}>
+                  <View style={styles.lessonTop}>
+                    <View style={styles.lessonInfoWrap}>
+                      <Text style={styles.lessonTitle}>Materi {idx + 1}</Text>
+                      <Text style={styles.lessonPreview}>{previewText}...</Text>
+                    </View>
+                    <View style={[styles.lessonBadge, progress === 100 && styles.lessonBadgeMastered]}>
                       {progress === 100 ? (
-                        <Trophy size={20} color={colors.amber} />
+                        <Trophy size={14} color="#059669" />
                       ) : (
-                        <Sparkles size={20} color={colors.primary} />
+                        <Text style={styles.lessonBadgeText}>AKTIF</Text>
                       )}
                     </View>
-                    <View style={styles.lessonInfo}>
-                      <Text style={styles.lessonTitle}>Lesson {idx + 1}</Text>
-                      <Text style={styles.lessonPreview}>{previewText}</Text>
+                  </View>
+
+                  <View style={styles.lessonBottom}>
+                    <View style={styles.lessonStatsRow}>
+                      <Text style={styles.lessonStatText}>{masteredCount}/{lessonItems.length} Selesai</Text>
+                      <Text style={styles.lessonStatPct}>{Math.round(progress)}%</Text>
                     </View>
-                    {progress === 100 && <Check size={16} color={colors.success} />}
-                  </View>
-                  
-                  <View style={styles.lessonMeta}>
-                    <Text style={styles.lessonSub}>{lessonItems.length} Materi</Text>
-                    <Text style={styles.lessonProgressText}>{Math.round(progress)}%</Text>
-                  </View>
-                  
-                  <View style={styles.lessonProgressTrack}>
-                    <View style={[styles.lessonProgressFill, { width: `${progress}%`, backgroundColor: progress === 100 ? colors.success : colors.primary }]} />
+                    <View style={styles.lessonBarTrack}>
+                      <LinearGradient 
+                        colors={progress === 100 ? ["#10B981", "#059669"] : ["#4F46E5", "#7C3AED"]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={[styles.lessonBarFill, { width: `${Math.max(5, progress)}%` }]} 
+                      />
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -482,7 +508,7 @@ export default function JLPTLevelDetail() {
         </LinearGradient>
 
         <FlatList
-          data={items}
+          data={items as any[]}
           keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.studyList}
           renderItem={({ item, index }) => (
@@ -539,12 +565,31 @@ export default function JLPTLevelDetail() {
 
               {!isFlipped ? (
                 <>
-                  <Text style={styles.premiumCardMain}>{(item as VocabItem).word}</Text>
+                  <View style={styles.tokenRow}>
+                    {tokenizeJapanese((item as VocabItem).word).map((token, i) => {
+                      const entry = lookupWord(token, courseDict);
+                      return (
+                        <Text 
+                          key={i} 
+                          style={[styles.premiumCardMain, entry && { textDecorationLine: 'underline', color: entry.level === "USER" ? colors.accent : colors.primary }]}
+                          onPress={entry ? () => { setActiveWord(entry); setShowPopup(true); } : undefined}
+                        >
+                          {token}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                  <TouchableOpacity onPress={() => playSpeech((item as VocabItem).word)} style={styles.speechBtn}>
+                    <Volume2 size={24} color={colors.primary} />
+                  </TouchableOpacity>
                   <Text style={styles.premiumCardSub}>{(item as VocabItem).reading}</Text>
                 </>
               ) : (
                 <>
                   <Text style={styles.premiumCardMeaning}>{(item as VocabItem).id_mean}</Text>
+                  <TouchableOpacity onPress={() => playSpeech((item as VocabItem).word)} style={styles.speechBtn}>
+                    <Volume2 size={24} color={colors.primary} />
+                  </TouchableOpacity>
                   <View style={styles.premiumCardSecondary}>
                     <Text style={styles.premiumCardSecondaryText}>EN: {(item as VocabItem).en_mean}</Text>
                   </View>
@@ -766,6 +811,7 @@ export default function JLPTLevelDetail() {
       {mode === "hub" && renderHub()}
       {mode === "lesson" && renderLessonFlashcard()}
       {mode === "detail" && renderDetail()}
+      <WordPopup visible={showPopup} entry={activeWord} onClose={() => setShowPopup(false)} />
     </View>
   );
 }
@@ -791,31 +837,36 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   searchInput: { flex: 1, color: "#fff", fontSize: 16, marginLeft: 12, fontWeight: "600" },
 
   hubContent: { padding: 20 },
+  searchResult: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.surface, padding: 18, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: c.border },
+  searchResultText: { fontSize: 16, fontWeight: "800", color: c.text },
   lessonGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 15 },
   lessonCard: { 
     width: '100%', 
     backgroundColor: c.surface, 
-    borderRadius: 20, 
-    padding: 16, 
+    borderRadius: 24, 
+    padding: 20, 
     borderWidth: 1, 
     borderColor: c.border, 
-    marginBottom: 12,
-    elevation: 3, 
+    marginBottom: 16,
+    elevation: 4, 
     shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.05, 
-    shadowRadius: 8 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.08, 
+    shadowRadius: 12 
   },
-  lessonHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  lessonIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center", marginRight: 12 },
-  lessonInfo: { flex: 1 },
-  lessonTitle: { fontSize: 16, fontWeight: "800", color: c.text },
-  lessonPreview: { fontSize: 13, fontWeight: "600", color: c.primary, marginTop: 1 },
-  lessonMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  lessonSub: { fontSize: 11, fontWeight: "700", color: c.textMuted },
-  lessonProgressText: { fontSize: 11, fontWeight: "800", color: c.primary },
-  lessonProgressTrack: { height: 6, backgroundColor: c.border, borderRadius: 3, overflow: "hidden" },
-  lessonProgressFill: { height: "100%", borderRadius: 3 },
+  lessonTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
+  lessonInfoWrap: { flex: 1 },
+  lessonTitle: { fontSize: 18, fontWeight: "900", color: c.text, letterSpacing: -0.5 },
+  lessonPreview: { fontSize: 13, color: c.textMuted, fontWeight: "600", marginTop: 2 },
+  lessonBadge: { backgroundColor: c.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, minWidth: 50, alignItems: "center" },
+  lessonBadgeMastered: { backgroundColor: "#D1FAE5" },
+  lessonBadgeText: { fontSize: 9, fontWeight: "900", color: c.primary, letterSpacing: 0.5 },
+  lessonBottom: { gap: 10 },
+  lessonStatsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  lessonStatText: { fontSize: 11, fontWeight: "800", color: c.textMuted },
+  lessonStatPct: { fontSize: 12, fontWeight: "900", color: c.text },
+  lessonBarTrack: { height: 10, backgroundColor: c.background, borderRadius: 5, overflow: "hidden" },
+  lessonBarFill: { height: "100%", borderRadius: 5 },
 
   miniHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
   miniHeaderTitle: { fontSize: 18, fontWeight: "900", color: "#fff" },
@@ -894,11 +945,17 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   premiumProgressBar: { height: "100%", backgroundColor: "#fff" },
 
   premiumNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 35, minHeight: 60 },
+  premiumNavBtn: { width: 56, height: 56, borderRadius: 20, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border },
+  disabledBtn: { opacity: 0.3 },
+  premiumNextBtn: { flex: 1, height: 56, borderRadius: 20, backgroundColor: c.primary, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginLeft: 12 },
+  premiumNextBtnText: { color: "#fff", fontSize: 15, fontWeight: "900", letterSpacing: 1 },
   tracingContainer: { flex: 1, flexDirection: "row", gap: 12 },
   tracingBtn: { flex: 1, height: 56, borderRadius: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   wrongBtn: { backgroundColor: c.danger },
   correctBtn: { backgroundColor: c.success },
   tracingBtnText: { color: "#fff", fontSize: 14, fontWeight: "900", letterSpacing: 1 },
+
+  speechBtn: { marginTop: 15, width: 48, height: 48, borderRadius: 24, backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center" },
   
   // N5 Custom Hero
   n5Hero: { marginBottom: 25, borderRadius: 24, overflow: "hidden", backgroundColor: c.primary },
@@ -964,5 +1021,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   meanLabel: { fontSize: 10, fontWeight: "900", color: c.primary, marginBottom: 5 },
   meanVal: { fontSize: 18, fontWeight: "800", color: c.text },
   speakBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: c.primary, paddingVertical: 20, borderRadius: 24 },
-  speakBtnText: { color: "#fff", fontWeight: "900", fontSize: 16 }
+  speakBtnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
+
+  tokenRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }
 });

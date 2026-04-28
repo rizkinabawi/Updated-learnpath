@@ -541,10 +541,10 @@ export default function LearnPage() {
                     <Feather name="zap" size={10} color={colors.primary} />
                     <Text style={styles.miniStatPillText}>{userXP} XP</Text>
                  </View>
-                 <View style={styles.miniStatPill}>
-                    <Feather name="flame" size={10} color={colors.danger} />
+                  <View style={styles.miniStatPill}>
+                    <Feather name="activity" size={10} color={colors.danger} />
                     <Text style={styles.miniStatPillText}>{userStreak} Hari</Text>
-                 </View>
+                  </View>
               </View>
            </View>
         </View>

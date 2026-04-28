@@ -20,10 +20,12 @@ import {
   toggleCourseFavorite,
   type User, type LearningPath, type Module, type Lesson, type Stats,
 } from "@/utils/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type ColorScheme } from "@/constants/colors";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AdBanner } from "@/components/AdBanner";
+import { Trophy } from "lucide-react-native";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { getLicenseDetails } from "@/utils/security/app-license";
 
@@ -102,6 +104,28 @@ export default function Dashboard() {
     if (!u) { router.replace("/onboarding"); return; }
     setUser(u); setPaths(p); setAllModules(mods); setAllLessons(lessons); setStats(s); setWrongCount(w.length);
     setCompletions(c); setLicense(lic);
+    loadJlptProgress();
+  };
+
+  const [jlptMastery, setJlptMastery] = useState<Record<string, number>>({});
+  const loadJlptProgress = async () => {
+    const levels = ["N1", "N2", "N3", "N4", "N5"];
+    const results: Record<string, number> = {};
+    for (const lvl of levels) {
+      try {
+        const data = await AsyncStorage.getItem(`jlpt_mastery_${lvl}`);
+        if (data) {
+          const parsed = JSON.parse(data);
+          const mastered = Object.values(parsed).filter((v: any) => v.status === "mastered").length;
+          results[lvl] = mastered;
+        } else {
+          results[lvl] = 0;
+        }
+      } catch {
+        results[lvl] = 0;
+      }
+    }
+    setJlptMastery(results);
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));
@@ -207,6 +231,59 @@ export default function Dashboard() {
             </View>
           </View>
         </LinearGradient>
+
+        {/* ═══ JLPT MASTERY ═══ */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>JLPT Mastery</Text>
+            <TouchableOpacity onPress={() => router.push("/course/jlpt/N5")}>
+              <Text style={styles.seeAllText}>Hub JLPT</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.jlptScroll}>
+            {["N5", "N4", "N3", "N2", "N1"].reverse().map((lvl) => {
+              const mastered = jlptMastery[lvl] || 0;
+              const total = lvl === "N5" ? 800 : lvl === "N4" ? 1200 : 1500; // Estimates
+              const progress = Math.min(100, Math.round((mastered / total) * 100));
+
+              return (
+                <TouchableOpacity 
+                  key={lvl} 
+                  style={styles.jlptCard}
+                  onPress={() => router.push(`/course/jlpt/${lvl}` as any)}
+                >
+                  <LinearGradient 
+                    colors={lvl === "N5" ? ["#4F46E5", "#7C3AED"] : lvl === "N4" ? ["#10B981", "#059669"] : lvl === "N3" ? ["#F59E0B", "#D97706"] : ["#EF4444", "#B91C1C"]} 
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={styles.jlptCardGrad}
+                  >
+                    <View style={styles.jlptCardHeader}>
+                      <Text style={styles.jlptLvl}>{lvl}</Text>
+                      <View style={styles.jlptBadge}>
+                        <Text style={styles.jlptBadgeText}>{progress === 100 ? "LULUS" : "AKTIF"}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.jlptInfo}>
+                      <View style={styles.jlptMetaRow}>
+                        <Text style={styles.jlptProg}>{mastered} Mastered</Text>
+                        <Text style={styles.jlptPct}>{progress}%</Text>
+                      </View>
+                      <View style={styles.jlptBarTrack}>
+                        <View style={[styles.jlptBarFill, { width: `${Math.max(8, progress)}%` }]} />
+                      </View>
+                    </View>
+                    
+                    {/* Decorative Background Icon */}
+                    <View style={styles.jlptBgIcon}>
+                      <Trophy size={60} color="rgba(255,255,255,0.15)" />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         {/* ═══ TRIAL EXPIRY BANNER ═══ */}
         {license?.nearExpiry && (
@@ -636,6 +713,26 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) =>
       paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
     },
     alertPillText: { fontSize: 12, fontWeight: "800", color: "#fff" },
+
+    section: { marginTop: 25, paddingHorizontal: 20 },
+    sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
+    sectionTitle: { fontSize: 18, fontWeight: "900", color: c.text },
+    seeAllText: { fontSize: 13, fontWeight: "700", color: c.primary },
+
+    jlptScroll: { paddingRight: 20, gap: 14 },
+    jlptCard: { width: 165, height: 115, borderRadius: 24, overflow: "hidden", elevation: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+    jlptCardGrad: { flex: 1, padding: 18, justifyContent: "space-between" },
+    jlptCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    jlptLvl: { fontSize: 28, fontWeight: "900", color: "#fff", letterSpacing: -1 },
+    jlptBadge: { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    jlptBadgeText: { fontSize: 8, fontWeight: "900", color: "#fff", letterSpacing: 1 },
+    jlptInfo: { gap: 8, zIndex: 1 },
+    jlptMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    jlptProg: { fontSize: 10, fontWeight: "800", color: "rgba(255,255,255,0.9)", textTransform: "uppercase" },
+    jlptPct: { fontSize: 11, fontWeight: "900", color: "#fff" },
+    jlptBarTrack: { height: 6, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 3, overflow: "hidden" },
+    jlptBarFill: { height: "100%", backgroundColor: "#fff", borderRadius: 3 },
+    jlptBgIcon: { position: "absolute", bottom: -10, right: -10, transform: [{ rotate: "-15deg" }] },
 
     courseList: { gap: 10 },
     courseCard: {

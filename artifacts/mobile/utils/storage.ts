@@ -23,6 +23,9 @@ export interface StandaloneCollection {
   createdAt: string;
 }
 
+import { type DictEntry } from "./dictionary";
+export { type DictEntry };
+
 // Types
 export interface User {
   id: string;
@@ -1800,4 +1803,71 @@ export const saveIssuedToken = async (record: IssuedTokenRecord) => {
 export const deleteIssuedToken = async (id: string) => {
   const all = await getIssuedTokens();
   await saveToStorage(STORAGE_KEYS.ISSUED_TOKENS, all.filter(t => t.id !== id));
+};
+
+/**
+ * Aggregates all user-created content (Flashcards, Notes) into a dictionary format
+ * for the "click-to-see-meaning" system.
+ */
+export const getCourseDictionary = async (): Promise<DictEntry[]> => {
+  try {
+    const dict: DictEntry[] = [];
+    
+    // 1. Get all Learning Paths, Modules, Lessons
+    const paths = await getLearningPaths();
+    for (const path of paths) {
+      const mods = await getModules(path.id);
+      for (const mod of mods) {
+        const lessons = await getLessons(mod.id);
+        for (const lesson of lessons) {
+          // 2. Fetch Flashcards for each lesson
+          const cards = await getFlashcards(lesson.id);
+          for (const card of cards) {
+            dict.push({
+              word: card.question,
+              reading: card.tag || "",
+              meaning: card.answer,
+              source: `Kursus: ${path.name} > ${lesson.name}`,
+              level: "USER"
+            });
+          }
+          // 3. Fetch Notes for each lesson
+          const notes = await getNotes(lesson.id);
+          for (const note of notes) {
+            dict.push({
+              word: note.title,
+              reading: "",
+              meaning: note.content,
+              source: `Catatan: ${path.name} > ${lesson.name}`,
+              level: "USER"
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Standalone Flashcards
+    const keys = await AsyncStorage.getAllKeys();
+    const standaloneFcKeys = keys.filter(k => k.startsWith("fc_") && !k.includes("-"));
+    for (const key of standaloneFcKeys) {
+        const data = await AsyncStorage.getItem(key);
+        if (data) {
+            const cards = JSON.parse(data) as Flashcard[];
+            for (const card of cards) {
+                dict.push({
+                    word: card.question,
+                    reading: card.tag || "",
+                    meaning: card.answer,
+                    source: "Koleksi Mandiri",
+                    level: "USER"
+                });
+            }
+        }
+    }
+
+    return dict;
+  } catch (e) {
+    console.error("Failed to generate course dictionary", e);
+    return [];
+  }
 };

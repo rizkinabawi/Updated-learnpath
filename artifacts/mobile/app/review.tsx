@@ -27,9 +27,11 @@ import {
   updateSpacedRep, 
   addXP, 
   getNotes,
+  getCourseDictionary,
   type Flashcard, 
   type SpacedRepData,
-  type Note
+  type Note,
+  type DictEntry
 } from "@/utils/storage";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { resolveAssetUri } from "@/utils/path-resolver";
@@ -56,12 +58,14 @@ export default function SRSReviewScreen() {
   const flipAnim = useRef(new Animated.Value(0)).current;
   const audioPlayerRef = useRef<AudioPlayer | null>(null);
   const [userNotes, setUserNotes] = useState<Note[]>([]);
+  const [courseDict, setCourseDict] = useState<DictEntry[]>([]);
   const [activeWord, setActiveWord] = useState<DictEntry | null>(null);
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     loadCards();
     getNotes().then(notes => setUserNotes(notes));
+    getCourseDictionary().then(dict => setCourseDict(dict));
     return () => {
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
@@ -215,19 +219,15 @@ export default function SRSReviewScreen() {
               <View style={styles.cardContent}>
                 <View style={styles.tokenRow}>
                   {tokenizeJapanese(currentCard.question).map((token, i) => {
-                    let entry = lookupWord(token);
-                    if (!entry) {
-                      const note = userNotes.find(n => n.title.toLowerCase() === token.trim().toLowerCase());
-                      if (note) entry = { word: note.title, reading: "Catatan Pribadi", meaning: note.content, level: "NOTE" };
-                    }
+                    let entry = lookupWord(token, courseDict);
                     return (
                       <Text 
                         key={i} 
                         style={[
                           styles.cardText, 
-                          entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
+                          entry && { color: entry.level === "USER" ? colors.accent : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "USER" ? colors.accent + '40' : colors.primary + '40' }
                         ]}
-                        onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
+                        onPress={entry ? () => { setActiveWord(entry); setShowPopup(true); } : undefined}
                       >
                         {token}
                       </Text>
@@ -248,19 +248,15 @@ export default function SRSReviewScreen() {
               <View style={styles.cardContent}>
                 <View style={styles.tokenRow}>
                   {tokenizeJapanese(currentCard.answer).map((token, i) => {
-                    let entry = lookupWord(token);
-                    if (!entry) {
-                      const note = userNotes.find(n => n.title.toLowerCase() === token.trim().toLowerCase());
-                      if (note) entry = { word: note.title, reading: "Catatan Pribadi", meaning: note.content, level: "NOTE" };
-                    }
+                    let entry = lookupWord(token, courseDict);
                     return (
                       <Text 
                         key={i} 
                         style={[
                           styles.cardText, 
-                          entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
+                          entry && { color: entry.level === "USER" ? colors.accent : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "USER" ? colors.accent + '40' : colors.primary + '40' }
                         ]}
-                        onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
+                        onPress={entry ? () => { setActiveWord(entry); setShowPopup(true); } : undefined}
                       >
                         {token}
                       </Text>

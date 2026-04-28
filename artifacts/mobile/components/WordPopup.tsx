@@ -47,8 +47,14 @@ export const WordPopup: React.FC<WordPopupProps> = ({ visible, entry, onClose })
 
             {entry.level && (
               <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.badgeText, { color: colors.primary }]}>JLPT {entry.level}</Text>
+                <Text style={[styles.badgeText, { color: colors.primary }]}>
+                  {entry.level === "USER" ? "KURKULUM SAYA" : `JLPT ${entry.level}`}
+                </Text>
               </View>
+            )}
+
+            {entry.source && (
+              <Text style={[styles.sourceText, { color: colors.textMuted }]}>Sumber: {entry.source}</Text>
             )}
           </View>
 
@@ -138,6 +144,11 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '800',
+  },
+  sourceText: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   footerBtn: {
     marginTop: 8,

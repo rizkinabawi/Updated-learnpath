@@ -82,7 +82,20 @@ export default function ActivateScreen({ onActivated }: ActivateProps) {
       setErr(describeLicenseError(verifyErr));
       return;
     }
+    
+    // 1. Simpan Lokal (untuk offline)
     await storeLicense(parsed);
+    
+    // 2. Simpan di Cloud (untuk sinkronisasi antar device)
+    const { auth } = await import("@/utils/firebase");
+    const { activatePremium } = await import("@/utils/user-subscription");
+    if (auth.currentUser) {
+       const success = await activatePremium(auth.currentUser.uid, input);
+       if (!success) {
+         console.warn("Gagal sinkronisasi aktivasi ke cloud, tapi lokal tersimpan.");
+       }
+    }
+
     setBusy(false);
     setActivated(true);
   };

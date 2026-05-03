@@ -230,8 +230,12 @@ const splashStyles = StyleSheet.create({
   },
 });
 
+import { auth } from "@/utils/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
+import AuthScreen from "./auth";
+
 // ─── Main Content ─────────────────────────────────────────────────────────────
-function AppContent({ licensed, setLicensed }: { licensed: boolean; setLicensed: (v: boolean) => void }) {
+function AppContent() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [fontError, setFontError] = useState<Error | null>(null);
 
@@ -256,14 +260,10 @@ function AppContent({ licensed, setLicensed }: { licensed: boolean; setLicensed:
 
   return (
     <ErrorBoundary>
-      {licensed ? (
-        <Fragment>
-          <RootLayoutNav />
-          <FloatingOverlay />
-        </Fragment>
-      ) : (
-        <ActivateScreen onActivated={() => setLicensed(true)} />
-      )}
+      <Fragment>
+        <RootLayoutNav />
+        <FloatingOverlay />
+      </Fragment>
       <ToastContainer />
     </ErrorBoundary>
   );
@@ -274,6 +274,7 @@ function RootLayoutNav() {
   return (
     <Stack key={themeKey} screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="auth" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="activate" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="creator/index" options={{ headerShown: false, animation: "slide_from_right" }} />
@@ -357,20 +358,27 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [licensed, setLicensed] = useState(true);
   const [licenseChecked, setLicenseChecked] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
+    // 1. Auth Listener
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoadingAuth(false);
+    });
+
+    // 2. License Check
     let cancelled = false;
     (async () => {
       try {
         const { isAppActivated } = await import("@/utils/security/app-license");
         const ok = await isAppActivated();
         if (!cancelled) {
-          // Temporarily allowing JLPT development
           setLicensed(true); 
           setLicenseChecked(true);
         }
       } catch (e) {
-        console.warn("[RootLayout] License check failed:", e);
         if (!cancelled) {
           setLicensed(true);
           setLicenseChecked(true);
@@ -383,7 +391,10 @@ export default function RootLayout() {
       } catch {}
     })();
 
-    return () => { cancelled = true; };
+    return () => { 
+      cancelled = true; 
+      unsubscribe();
+    };
   }, []);
 
   return (
@@ -393,7 +404,7 @@ export default function RootLayout() {
           <LanguageProvider>
             <OverlayProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
-                <AppContent licensed={licensed} setLicensed={setLicensed} />
+                <AppContent />
               </GestureHandlerRootView>
             </OverlayProvider>
           </LanguageProvider>

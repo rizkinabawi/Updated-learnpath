@@ -15,6 +15,7 @@ import { embedAssetsInPack, countEmbeddedAssets } from "@/utils/bundle-assets";
 import { exportCoursePackAsZip } from "@/utils/zip-handler";
 import { shadowSm, type ColorScheme } from "@/constants/colors";
 import { isCancellationError } from "@/utils/safe-share";
+import { toast } from "@/components/Toast";
 
 type ShareFormat = "json" | "zip";
 
@@ -78,11 +79,11 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
     { modules: 0, lessons: 0, flashcards: 0, quizzes: 0 }
   );
 
-  const doShare = async (pathId?: string) => {
+  const doShare = async (pathId?: string, isDownload: boolean = false) => {
     const id = pathId ?? "all";
     setSharing(id);
     try {
-      setSharingStep("Memuat data kursus...");
+      setSharingStep(isDownload ? "Menyiapkan file download..." : "Memuat data kursus...");
       const rawPack = pathId ? await exportCourse(pathId) : await exportCourse("*");
 
       setSharingStep("Menyiapkan gambar & file...");
@@ -92,24 +93,28 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
         ? (pathStats.find((s) => s.path.id === pathId)?.path.name ?? "kursus")
         : "semua-kursus";
 
+      const ext = format === "zip" ? "lzip" : "lpack";
+      const filename = `${pathName.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.${ext}`;
+
       if (format === "zip") {
-        setSharingStep("Membuat file ZIP...");
-        await exportCoursePackAsZip(pack, pathName);
+        setSharingStep(isDownload ? "Menyimpan ke memori..." : "Membuat file ZIP...");
+        // Use the ZIP handler to get the URI
+        const zipUri = await exportCoursePackAsZip(pack, pathName, true); // Added 'silent' or 'returnUri' flag logic later
+        
+        if (isDownload) {
+          const success = await FileSystem.downloadToFile(zipUri, filename, "application/zip");
+          if (success) toast.success("File berhasil disimpan ke perangkat!");
+        } else {
+          // Share logic is handled inside exportCoursePackAsZip normally, 
+          // but we might need to adjust it to support download
+          await exportCoursePackAsZip(pack, pathName);
+        }
         return;
       }
 
-      setSharingStep("Membuat file bundle...");
+      setSharingStep("Memproses bundle...");
       const json = JSON.stringify(pack);
-      const filename = `bundle-${pathName.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.json`;
 
-      const assets = countEmbeddedAssets(pack);
-      const assetSummary = [
-        assets.images > 0 ? `${assets.images} gambar` : "",
-        assets.files > 0 ? `${assets.files} file` : "",
-        assets.links > 0 ? `${assets.links} link` : "",
-      ].filter(Boolean).join(", ");
-
-      setSharingStep("Membagikan...");
       if (Platform.OS === "web") {
         const blob = new Blob([json], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -119,21 +124,35 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
       } else {
         const fileUri = (FileSystem.cacheDirectory ?? "") + filename;
         await FileSystem.writeAsStringAsync(fileUri, json, { encoding: FileSystem.EncodingType.UTF8 });
-        const assetMsg = assetSummary ? ` Sudah termasuk ${assetSummary}.` : "";
-        const shareMsg =
-          `Bundle Kursus: ${pathName}\n` +
-          `${pack.lessons?.length ?? 0} pelajaran · ${pack.flashcards?.length ?? 0} flashcard · ${pack.quizzes?.length ?? 0} soal quiz.${assetMsg}\n` +
-          `Import file ini ke Mobile Learning App untuk langsung belajar!`;
-        // On iOS, passing both url and message suppresses the file attachment.
-        // Use url-only on iOS; use message+url on Android.
-        if (Platform.OS === "ios") {
-          await Share.share({ url: fileUri, title: `Bundle Kursus: ${pathName}` });
+        
+        if (isDownload) {
+           const success = await FileSystem.downloadToFile(fileUri, filename, "application/json");
+           if (success) toast.success("File berhasil disimpan ke perangkat!");
         } else {
-          await Share.share({ url: fileUri, title: `Bundle Kursus: ${pathName}`, message: shareMsg });
+          const assets = countEmbeddedAssets(pack);
+          const assetSummary = [
+            assets.images > 0 ? `${assets.images} gambar` : "",
+            assets.files > 0 ? `${assets.files} file` : "",
+            assets.links > 0 ? `${assets.links} link` : "",
+          ].filter(Boolean).join(", ");
+
+          setSharingStep("Membagikan...");
+          const assetMsg = assetSummary ? ` Sudah termasuk ${assetSummary}.` : "";
+          const shareMsg =
+            `Bundle Kursus: ${pathName}\n` +
+            `${pack.lessons?.length ?? 0} pelajaran · ${pack.flashcards?.length ?? 0} flashcard · ${pack.quizzes?.length ?? 0} soal quiz.${assetMsg}\n` +
+            `Import file ini ke Mobile Learning App untuk langsung belajar!`;
+
+          if (Platform.OS === "ios") {
+            await Share.share({ url: fileUri, title: `Bundle Kursus: ${pathName}` });
+          } else {
+            await Share.share({ url: fileUri, title: `Bundle Kursus: ${pathName}`, message: shareMsg });
+          }
         }
       }
     } catch (e) {
-      if (!isCancellationError(e)) console.warn("[CourseBundleModal] share error", e);
+      if (!isCancellationError(e)) console.warn("[CourseBundleModal] action error", e);
+      toast.error("Terjadi kesalahan saat memproses file.");
     } finally {
       setSharing(null);
       setSharingStep("");
@@ -202,40 +221,42 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
             {/* Share All */}
-            <TouchableOpacity
-              style={[styles.allCard, shadowSm]}
-              onPress={() => doShare(undefined)}
-              disabled={sharing !== null}
-              activeOpacity={0.8}
-            >
+            <View style={[styles.allCard, shadowSm]}>
               <View style={styles.allCardLeft}>
                 <View style={styles.allIcon}>
                   <Feather name="package" size={22} color={colors.white} />
                 </View>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.allCardTitle}>Semua Kursus</Text>
                   <Text style={styles.allCardSub}>
                     {pathStats.length} kursus · {totalStats.modules} modul · {totalStats.lessons} pelajaran
                   </Text>
                 </View>
               </View>
-              {sharing === "all" ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Feather name="share-2" size={18} color={colors.white} />
-              )}
-            </TouchableOpacity>
+              
+              <View style={styles.allActions}>
+                <TouchableOpacity 
+                  style={styles.actionIconButton} 
+                  onPress={() => doShare(undefined, true)}
+                  disabled={sharing !== null}
+                >
+                   {sharing === "all" ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="download" size={18} color="#fff" />}
+                </TouchableOpacity>
+                <View style={styles.actionDivider} />
+                <TouchableOpacity 
+                  style={styles.actionIconButton} 
+                  onPress={() => doShare(undefined, false)}
+                  disabled={sharing !== null}
+                >
+                   {sharing === "all" ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="share-2" size={18} color="#fff" />}
+                </TouchableOpacity>
+              </View>
+            </View>
 
             <Text style={styles.sectionLabel}>Atau pilih satu kursus:</Text>
 
             {pathStats.map((s) => (
-              <TouchableOpacity
-                key={s.path.id}
-                style={[styles.pathCard, shadowSm]}
-                onPress={() => doShare(s.path.id)}
-                disabled={sharing !== null}
-                activeOpacity={0.8}
-              >
+              <View key={s.path.id} style={[styles.pathCard, shadowSm]}>
                 <View style={styles.pathCardLeft}>
                   <View style={styles.pathIconWrap}>
                     <Text style={styles.pathIconText}>{s.path.name.charAt(0).toUpperCase()}</Text>
@@ -253,14 +274,24 @@ export function CourseBundleShareModal({ visible, onClose }: Props) {
                     </View>
                   </View>
                 </View>
-                <View style={styles.shareBtn}>
-                  {sharing === s.path.id ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <Feather name="share-2" size={16} color={colors.primary} />
-                  )}
+                
+                <View style={styles.rowActions}>
+                   <TouchableOpacity 
+                    style={styles.shareBtn} 
+                    onPress={() => doShare(s.path.id, true)}
+                    disabled={sharing !== null}
+                   >
+                     {sharing === s.path.id ? <ActivityIndicator size="small" color={colors.primary} /> : <Feather name="download" size={16} color={colors.primary} />}
+                   </TouchableOpacity>
+                   <TouchableOpacity 
+                    style={styles.shareBtn} 
+                    onPress={() => doShare(s.path.id, false)}
+                    disabled={sharing !== null}
+                   >
+                     {sharing === s.path.id ? <ActivityIndicator size="small" color={colors.primary} /> : <Feather name="share-2" size={16} color={colors.primary} />}
+                   </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))}
 
             <View style={styles.tipBox}>
@@ -467,6 +498,23 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
   },
   allCardTitle: { fontSize: 15, fontWeight: "900", color: c.white },
   allCardSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: "600", marginTop: 2 },
+  allActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 14,
+    paddingHorizontal: 4,
+  },
+  actionIconButton: {
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
   sectionLabel: {
     fontSize: 11, fontWeight: "800", color: c.textMuted,
     textTransform: "uppercase", letterSpacing: 1, marginTop: 4,
@@ -492,6 +540,10 @@ const makeStyles = (c: ColorScheme) => StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 3,
   },
   chipText: { fontSize: 10, fontWeight: "700", color: c.textMuted },
+  rowActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
   shareBtn: {
     width: 38, height: 38, borderRadius: 12, backgroundColor: c.primaryLight,
     alignItems: "center", justifyContent: "center", flexShrink: 0,

@@ -34,6 +34,7 @@ import {
 } from "@/utils/storage";
 import { toast } from "@/components/Toast";
 import { type ColorScheme } from "@/constants/colors";
+import { ingestBundleFile } from "@/utils/bundle-ingest";
 
 export default function ImportManagerPage() {
   const colors = useColors();
@@ -83,13 +84,22 @@ export default function ImportManagerPage() {
       const uri = result.assets[0].uri;
       const fileName = result.assets[0].name.toLowerCase();
 
-      if (fileName.endsWith(".lpack") || fileName.endsWith(".lcoll") || fileName.endsWith(".json")) {
-        const text = await FileSystem.readAsStringAsync(uri);
-        setJsonText(text);
-        analyzeContent(text);
-      } else if (fileName.endsWith(".lzip")) {
-        // ZIP bundle support placeholder - will require unzipping logic
-        Alert.alert("ZIP Bundle", "Fitur unzip bundle sedang disiapkan.");
+      // Check if it's a known bundle or raw JSON
+      if (fileName.endsWith(".lpack") || fileName.endsWith(".lcoll") || fileName.endsWith(".lzip") || fileName.endsWith(".json")) {
+        setBusy(true);
+        try {
+          const bundle = await ingestBundleFile(uri);
+          setImportType("beam");
+          setPreview(bundle);
+          setJsonText(`// Bundle: ${fileName}\n// Tipe: ${bundle.type}\n// Siap diimpor.`);
+        } catch (e) {
+          // Fallback for raw JSON that isn't a "BeamPack" (e.g. raw flashcard array)
+          const text = await FileSystem.readAsStringAsync(uri);
+          setJsonText(text);
+          analyzeContent(text);
+        } finally {
+          setBusy(false);
+        }
       } else if (fileName.endsWith(".apkg") || fileName.endsWith(".colpkg") || fileName.endsWith(".txt") || fileName.endsWith(".csv") || fileName.endsWith(".tsv")) {
         toast.info("Mengalihkan ke alat Import Anki...");
         router.push("/anki-import");

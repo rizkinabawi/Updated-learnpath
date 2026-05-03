@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1",
+    "title": "SSW Mekki Mastery",
+    "sub": "Kursus Pengolahan Logam",
+    "description": "Kuasai materi SSW Mekki dengan simulasi ujian real-time.",
+    "price": "Promo Rp 49k",
+    "icon": "target",
+    "colors": ["#4F46E5", "#7C3AED"],
+    "image": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=200&h=200&auto=format&fit=crop"
+  },
+  {
+    "id": "2",
+    "title": "JLPT N3 Grammar Pro",
+    "sub": "Special Bundle",
+    "description": "500+ Pola kalimat N3 lengkap dengan audio native speaker.",
+    "price": "Promo Rp 79k",
+    "icon": "book-open",
+    "colors": ["#059669", "#10B981"],
+    "image": "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=200&h=200&auto=format&fit=crop"
+  }
+]

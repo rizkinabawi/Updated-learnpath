@@ -21,6 +21,8 @@ import {
   type User, type LearningPath, type Module, type Lesson, type Stats,
 } from "@/utils/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db } from "@/utils/firebase";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { CARD_GRADIENTS, CARD_GRADIENTS_MINIMAL, CARD_GRADIENTS_PREMIUM, type ColorScheme } from "@/constants/colors";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -28,6 +30,7 @@ import { AdBanner } from "@/components/AdBanner";
 import { Trophy } from "lucide-react-native";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { getLicenseDetails } from "@/utils/security/app-license";
+import { PremiumCourseAd } from "@/components/PremiumCourseAd";
 
 const { width } = Dimensions.get("window");
 
@@ -95,6 +98,7 @@ export default function Dashboard() {
   const [completions, setCompletions] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [license, setLicense] = useState<any>(null);
+  const [isClassLive, setIsClassLive] = useState(false);
 
   const load = async () => {
     const [u, p, mods, lessons, s, w, c, lic] = await Promise.all([
@@ -102,6 +106,12 @@ export default function Dashboard() {
       getCompletedLessons(), getLicenseDetails(),
     ]);
     if (!u) { router.replace("/onboarding"); return; }
+    
+    // Check for live classes
+    const liveQuery = query(collection(db, "live_sessions"), where("status", "==", "live"), limit(1));
+    const liveSnap = await getDocs(liveQuery);
+    setIsClassLive(!liveSnap.empty);
+
     setUser(u); setPaths(p); setAllModules(mods); setAllLessons(lessons); setStats(s); setWrongCount(w.length);
     setCompletions(c); setLicense(lic);
     loadJlptProgress();
@@ -385,6 +395,9 @@ export default function Dashboard() {
           </View>
         )}
 
+        {/* ═══ PREMIUM COURSE ADS ═══ */}
+        <PremiumCourseAd />
+
         {/* ═══ KOLEKSI KURSUS ═══ */}
         <View style={styles.section}>
           <View style={styles.sectionHead}>
@@ -477,11 +490,44 @@ export default function Dashboard() {
           )}
         </View>
 
+        {/* ═══ LIVE HUB BANNER ═══ */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            activeOpacity={0.9} 
+            onPress={() => router.push("/live-hub" as any)}
+            style={[styles.liveBanner, shadowLg]}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.purple]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.liveBannerGrad}
+            >
+              <View style={styles.liveBannerLeft}>
+                <View style={[styles.liveBannerBadge, !isClassLive && { backgroundColor: "rgba(255,255,255,0.2)" }]}>
+                  {isClassLive && <View style={styles.livePulseDot} />}
+                  <Text style={styles.liveBannerBadgeText}>{isClassLive ? "LIVE NOW" : "UPCOMING"}</Text>
+                </View>
+                <Text style={styles.liveBannerTitle}>
+                  {isClassLive ? "Kelas Zoom Sedang Berlangsung!" : "Cek Jadwal Kelas Mendatang"}
+                </Text>
+                <Text style={styles.liveBannerSub}>
+                  {isClassLive ? "Ikuti sesi interaktif bersama Sensei sekarang." : "Jangan lewatkan kesempatan belajar langsung."}
+                </Text>
+              </View>
+              <View style={styles.liveBannerIcon}>
+                <Feather name="video" size={32} color="rgba(255,255,255,0.3)" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
         {/* ═══ MENU CEPAT ═══ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.home.section_quick}</Text>
           <View style={styles.quickGrid}>
             {[
+              { icon: "video" as const, label: "Live Course Hub", sub: "Zoom, Meet & Live Stream", color: colors.primary, bg: colors.primaryLight, route: "/live-hub" },
               { icon: "book-open" as const, label: "JLPT Learning", sub: "N1 - N5 Materi & Soal", color: colors.primary, bg: colors.primaryLight, route: "/course/jlpt" },
               { icon: "credit-card" as const, label: t.home.quick_flash, sub: t.home.quick_flash_sub, color: colors.primary, bg: colors.primaryLight, route: "/(tabs)/practice" },
               { icon: "help-circle" as const, label: t.home.quick_quiz, sub: t.home.quick_quiz_sub, color: colors.amber, bg: colors.amberLight, route: "/(tabs)/practice" },
@@ -489,7 +535,6 @@ export default function Dashboard() {
               { icon: "star" as const, label: "Tantangan Harian", sub: "Soal baru tiap hari", color: colors.warning, bg: colors.warningLight, route: "/daily-challenge" },
               { icon: "clock" as const, label: "Timer Pomodoro", sub: "Fokus 25 menit", color: colors.danger, bg: colors.dangerLight, route: "/pomodoro" },
               { icon: "bookmark" as const, label: "Bookmark Soal", sub: "Review soal tersimpan", color: colors.purple, bg: colors.purpleLight, route: "/bookmarks" },
-              { icon: "download" as const, label: "Import Pintar", sub: "Impor .lpack / .apkg", color: colors.teal, bg: colors.tealLight, route: "/import-manager" },
             ].map((q, i) => (
               <TouchableOpacity key={i} onPress={() => router.push(q.route as any)} style={[styles.quickItem, shadowSm]} activeOpacity={0.8}>
                 <View style={[styles.quickIcon, { backgroundColor: q.bg }]}>
@@ -784,6 +829,54 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) =>
     emptyGrad: { padding: 28, alignItems: "center", gap: 10, minHeight: 150, overflow: "hidden" },
     emptyTitle: { fontSize: 17, fontWeight: "900", color: "#fff" },
     emptySub: { fontSize: 13, color: "rgba(255,255,255,0.8)", fontWeight: "500" },
+
+    liveBanner: {
+      borderRadius: 22,
+      overflow: "hidden",
+    },
+    liveBannerGrad: {
+      padding: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    liveBannerLeft: { flex: 1, gap: 4 },
+    liveBannerBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "rgba(255,255,255,0.2)",
+      alignSelf: "flex-start",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      gap: 5,
+      marginBottom: 4,
+    },
+    livePulseDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: "#FF4B4B",
+    },
+    liveBannerBadgeText: {
+      color: "#fff",
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 0.5,
+    },
+    liveBannerTitle: {
+      fontSize: 16,
+      fontWeight: "900",
+      color: "#fff",
+    },
+    liveBannerSub: {
+      fontSize: 11,
+      color: "rgba(255,255,255,0.8)",
+      fontWeight: "600",
+    },
+    liveBannerIcon: {
+      marginLeft: 10,
+    },
 
     quickGrid: { gap: 10, marginTop: 12 },
     quickItem: {

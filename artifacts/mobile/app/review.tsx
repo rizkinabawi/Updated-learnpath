@@ -36,7 +36,7 @@ import {
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { resolveAssetUri } from "@/utils/path-resolver";
 import { toast } from "@/components/Toast";
-import { tokenizeJapanese, lookupWord, type DictEntry } from "@/utils/dictionary";
+import { tokenizeJapanese, lookupWord } from "@/utils/dictionary";
 import { WordPopup } from "@/components/WordPopup";
 import { ScrollView } from "react-native-gesture-handler";
 

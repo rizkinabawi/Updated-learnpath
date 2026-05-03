@@ -50,6 +50,8 @@ export type ColorScheme = {
   card2: string;
   card3: string;
   card4: string;
+  /** Generic card background color. */
+  card: string;
   /** Backdrop color used for shadow/elevation (kept as alias for shadow util). */
   shadow: string;
 };
@@ -92,6 +94,7 @@ const LightDefault: ColorScheme = {
   card2: "#FF9500",
   card3: "#38BDF8",
   card4: "#7C3AED",
+  card: "#FFFFFF",
   shadow: "#1E3A5F",
 };
 
@@ -133,6 +136,7 @@ const LightMinimal: ColorScheme = {
   card2: "#333333",
   card3: "#555555",
   card4: "#222222",
+  card: "#FFFFFF",
   shadow: "#000000",
 };
 
@@ -174,6 +178,7 @@ const LightPremium: ColorScheme = {
   card2: "#B8945F",
   card3: "#5C7A7A",
   card4: "#3F3A4D",
+  card: "#FFFFFF",
   shadow: "#1A1A1A",
 };
 
@@ -215,6 +220,7 @@ const DarkDefault: ColorScheme = {
   card2: "#CC7700",
   card3: "#2AADDD",
   card4: "#6A3ACD",
+  card: "#1A2035",
   shadow: "#000000",
 };
 
@@ -256,6 +262,7 @@ const DarkMinimal: ColorScheme = {
   card2: "#0F111A",
   card3: "#1C1F2E",
   card4: "#141724",
+  card: "#0F111A",
   shadow: "#000000",
 };
 
@@ -297,6 +304,7 @@ const DarkPremium: ColorScheme = {
   card2: "#2A2210",
   card3: "#1C2424",
   card4: "#1E1A24",
+  card: "#161616",
   shadow: "#000000",
 };
 

@@ -205,38 +205,29 @@ export async function readStoredLicense(): Promise<AppLicense | null> {
  * verification (signature + expiry + device binding).
  */
 export async function isAppActivated(): Promise<boolean> {
-  const stored = await readStoredLicense();
-  if (!stored) return false;
-  const err = await verifyLicense(stored);
-  return err === null;
+  // Temporarily disabled per user request: Open Access Mode
+  return true;
 }
 
 /** Get current license info plus trial status. */
 export async function getLicenseDetails() {
-  const stored = await readStoredLicense();
-  if (!stored) return null;
-  const isExpired = Date.now() > stored.expiry;
-  const mode = stored.mode || "full";
-  const daysLeft = Math.ceil((stored.expiry - Date.now()) / (1000 * 60 * 60 * 24));
-  
+  // Return a dummy 'Permanent Premium' license for Open Access Mode
   return {
-    ...stored,
-    isExpired,
-    mode,
-    daysLeft,
-    isTrial: mode === "trial",
-    nearExpiry: daysLeft <= 7 && daysLeft > 0
+    appId: APP_ID,
+    mode: "full",
+    issuedAt: Date.now(),
+    expiry: Date.now() + 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+    isExpired: false,
+    daysLeft: 3650,
+    isTrial: false,
+    nearExpiry: false,
+    signature: "OPEN_ACCESS"
   };
 }
 
 /** Utility to check if a feature is allowed. */
 export async function isFeatureAllowed(feature: "anki" | "bundle" | "pip"): Promise<boolean> {
-  const details = await getLicenseDetails();
-  if (!details || details.isExpired) return false;
-  if (details.mode === "trial") {
-    // Specifically block these in trial
-    return false;
-  }
+  // All features allowed in Open Access Mode
   return true;
 }
 

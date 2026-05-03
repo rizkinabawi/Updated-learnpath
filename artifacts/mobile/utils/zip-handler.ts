@@ -127,11 +127,14 @@ const sanitizeAssetName = (uri: string, index: number): string => {
  *
  * Shares the resulting file on native platforms; triggers a browser download
  * on web. Throws on real errors (cancellation is swallowed).
+ * 
+ * If returnUri is true, it skips sharing and returns the local file path.
  */
 export async function exportCoursePackAsZip(
   pack: CoursePack,
-  baseName: string
-): Promise<void> {
+  baseName: string,
+  returnUri: boolean = false
+): Promise<string | void> {
   const JSZip = await loadJsZip();
   const zip = new JSZip();
 
@@ -173,6 +176,8 @@ export async function exportCoursePackAsZip(
   await FileSystem.writeAsStringAsync(path, b64, {
     encoding: FileSystem.EncodingType.Base64,
   });
+
+  if (returnUri) return path;
 
   const canShare = await Sharing.isAvailableAsync();
   if (canShare) {

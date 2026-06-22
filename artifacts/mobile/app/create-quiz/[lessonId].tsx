@@ -31,6 +31,7 @@ import {
   PencilLine,
   Music,
   Volume2,
+  ScanLine,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
@@ -695,9 +696,18 @@ export default function CreateQuizScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t.create_qz.add_quiz_btn}</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={20} color={colors.dark} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: "/smart-scanner", params: { mode: "quiz", lessonId } })}
+            style={[styles.closeBtn, { backgroundColor: colors.primaryLight ?? "#e8f4ff" }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ScanLine size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+            <X size={20} color={colors.dark} />
+          </TouchableOpacity>
+        </View>
       </View>
       <Text style={styles.count}>{existing.length} soal di pelajaran ini</Text>
 

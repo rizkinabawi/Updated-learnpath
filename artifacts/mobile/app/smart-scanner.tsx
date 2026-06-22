@@ -19,7 +19,8 @@ import { cleanText } from "@/utils/text-processing";
 import {
   saveLearningPath, saveModule, saveLesson,
   saveFlashcardsBulkChunked, saveNote, generateId,
-  type LearningPath, type Module, type Lesson,
+  saveQuizzesBulk,
+  type LearningPath, type Module, type Lesson, type Quiz,
 } from "@/utils/storage";
 
 const { width } = Dimensions.get("window");
@@ -58,14 +59,38 @@ async function runOfflineOCR(base64: string): Promise<string> {
 
 // ─── Gemini Vision OCR ───────────────────────────────────────────────────────
 async function runAIOCR(base64: string, geminiKey: string, mode: string): Promise<{ title: string; content: string }> {
-  const isStructured = mode === "course";
-  const prompt = isStructured
-    ? `Analisa gambar ini. Ekstrak judul dan isi teks. Kembalikan JSON: {"title":"judul materi dari teks","content":"seluruh isi teks bersih tanpa noise"}`
-    : `Ekstrak semua teks dari gambar dokumen/buku ini. Kembalikan JSON: {"title":"judul jika ada atau kosong","content":"seluruh teks yang terbaca, bersih dan rapi"}`;
+  let prompt: string;
+
+  if (mode === "quiz") {
+    prompt = `Kamu adalah asisten pembuat soal. Lihat gambar dokumen/buku ini dan ekstrak semua soal pilihan ganda atau benar/salah yang ada. Kembalikan HANYA JSON berikut tanpa teks lain:
+{"title":"judul halaman/topik jika ada","questions":[{"question":"teks soal","options":["A. ...","B. ...","C. ...","D. ..."],"answer":"jawaban yang benar persis sama dengan salah satu opsi","explanation":"penjelasan singkat jika ada"}]}
+Jika tidak ada pilihan ganda, buat 4 opsi plausibel dari konteks. Minimal 1 soal.`;
+  } else if (mode === "flashcard") {
+    prompt = `Lihat gambar ini. Ekstrak pasangan pertanyaan dan jawaban untuk flashcard belajar. Kembalikan HANYA JSON berikut:
+{"title":"topik flashcard","cards":[{"question":"pertanyaan atau kata/kalimat di depan kartu","answer":"jawaban atau terjemahan di belakang kartu"}]}
+Minimal 1 kartu.`;
+  } else if (mode === "course") {
+    prompt = `Analisa gambar ini. Ekstrak judul dan isi teks. Kembalikan JSON: {"title":"judul materi dari teks","content":"seluruh isi teks bersih tanpa noise"}`;
+  } else {
+    prompt = `Ekstrak semua teks dari gambar dokumen/buku ini. Kembalikan JSON: {"title":"judul jika ada atau kosong","content":"seluruh teks yang terbaca, bersih dan rapi"}`;
+  }
 
   const result = await callGeminiVision(prompt, base64, geminiKey);
-  const raw = result.content.trim().replace(/^```json|```$/g, "").trim();
+  const raw = result.content.trim().replace(/^```json[\s\S]*?```$/g, m => m.slice(7, -3)).replace(/^```|```$/g, "").trim();
   const data = JSON.parse(raw);
+
+  if (mode === "quiz") {
+    return {
+      title: data.title ?? "",
+      content: JSON.stringify(data.questions ?? []),
+    };
+  }
+  if (mode === "flashcard") {
+    return {
+      title: data.title ?? "",
+      content: JSON.stringify(data.cards ?? []),
+    };
+  }
   return {
     title: data.title ?? "",
     content: data.content ?? "",
@@ -198,6 +223,42 @@ export default function SmartScannerScreen() {
         const { saveStudyMaterial } = await import("@/utils/storage");
         await saveStudyMaterial({ id: generateId(), lessonId: lessonId ?? "", title: title || "Materi Hasil Scan", type: "text", content, createdAt: now });
         toast.success("Materi disimpan!");
+      } else if (currentMode === "quiz") {
+        let questions: any[] = [];
+        try { questions = JSON.parse(content); } catch {}
+        if (!Array.isArray(questions) || questions.length === 0) {
+          Alert.alert("Gagal", "Tidak ada soal yang berhasil dibaca. Coba foto ulang dengan resolusi lebih tinggi.");
+          return;
+        }
+        const quizzes: Quiz[] = questions.map((q: any) => ({
+          id: generateId(),
+          lessonId: lessonId ?? "",
+          question: String(q.question ?? ""),
+          options: Array.isArray(q.options) ? q.options.map(String) : ["Benar", "Salah"],
+          answer: String(q.answer ?? q.options?.[0] ?? ""),
+          explanation: q.explanation ? String(q.explanation) : undefined,
+          type: Array.isArray(q.options) && q.options.length === 2 ? "true-false" : "multiple-choice",
+          createdAt: now,
+        }));
+        await saveQuizzesBulk(quizzes);
+        toast.success(`${quizzes.length} soal berhasil disimpan!`);
+      } else if (currentMode === "flashcard") {
+        let cards: any[] = [];
+        try { cards = JSON.parse(content); } catch {}
+        if (!Array.isArray(cards) || cards.length === 0) {
+          Alert.alert("Gagal", "Tidak ada kartu yang berhasil dibaca. Coba foto ulang.");
+          return;
+        }
+        const flashcards = cards.map((c: any) => ({
+          id: generateId(),
+          lessonId: lessonId ?? "",
+          question: String(c.question ?? ""),
+          answer: String(c.answer ?? ""),
+          tag: "Scan",
+          createdAt: now,
+        }));
+        await saveFlashcardsBulkChunked(flashcards);
+        toast.success(`${flashcards.length} kartu berhasil disimpan!`);
       } else {
         await buildCourse(title, content, now);
         toast.success("Kursus berhasil dibuat!");

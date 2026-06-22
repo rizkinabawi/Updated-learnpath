@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import {
   X, Trash2, ChevronDown, ChevronUp, ImagePlus, Bot,
-  Copy, Check, Download, PencilLine, Music, Volume2,
+  Copy, Check, Download, PencilLine, Music, Volume2, ScanLine,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "@/utils/fs-compat";
@@ -624,9 +624,18 @@ export default function CreateFlashcardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t.create_fc.add_card_btn}</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={20} color={colors.dark} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: "/smart-scanner", params: { mode: "flashcard", lessonId } })}
+            style={[styles.closeBtn, { backgroundColor: colors.primaryLight ?? "#e8f4ff" }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ScanLine size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+            <X size={20} color={colors.dark} />
+          </TouchableOpacity>
+        </View>
       </View>
       <Text style={styles.count}>{existing.length} kartu di pelajaran ini</Text>
 

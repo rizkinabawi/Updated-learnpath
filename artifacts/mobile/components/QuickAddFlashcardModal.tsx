@@ -366,7 +366,7 @@ export function QuickAddFlashcardModal({ visible, onClose, onSaved }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%" }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%", flex: 1, justifyContent: "flex-end" }}>
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <View style={styles.header}>

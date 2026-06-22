@@ -11,6 +11,8 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -747,43 +749,45 @@ export default function CreateQuizScreen() {
       )}
 
       {/* ── PACK SELECTION MODAL ── */}
-      {showPackModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Simpan ke Pack</Text>
-            <Text style={styles.modalSub}>{pendingImportItems.length} soal akan diimport</Text>
-            {packs.length > 0 && (
-              <>
-                <Text style={styles.modalLabel}>Tambah ke pack yang ada:</Text>
-                <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                  {packs.map((p) => (
-                    <TouchableOpacity key={p.id} style={[styles.modalPackRow, { marginBottom: 6 }]} onPress={() => doImportToPack(p.id)}>
-                      <Text style={styles.modalPackName}>{p.name}</Text>
-                      <Text style={styles.modalPackCount}>{existing.filter((q) => q.packId === p.id).length} soal</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <View style={styles.modalDivider} />
-              </>
-            )}
-            <Text style={styles.modalLabel}>Buat pack baru:</Text>
-            <TextInput
-              value={newPackName}
-              onChangeText={setNewPackName}
-              placeholder="Nama pack (contoh: Bab 1, Latihan UTS)"
-              style={styles.modalInput}
-              placeholderTextColor={colors.textMuted}
-              autoFocus
-            />
-            <TouchableOpacity style={styles.modalCreateBtn} onPress={handleCreatePackAndImport}>
-              <Text style={styles.modalCreateBtnText}>Buat Pack & Import</Text>
+      <Modal visible={showPackModal} transparent animationType="slide" onRequestClose={() => { setShowPackModal(false); setPendingImportItems([]); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setShowPackModal(false); setPendingImportItems([]); }}>
+            <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Simpan ke Pack</Text>
+              <Text style={styles.modalSub}>{pendingImportItems.length} soal akan diimport</Text>
+              {packs.length > 0 && (
+                <>
+                  <Text style={styles.modalLabel}>Tambah ke pack yang ada:</Text>
+                  <ScrollView style={{ maxHeight: 220 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                    {packs.map((p) => (
+                      <TouchableOpacity key={p.id} style={[styles.modalPackRow, { marginBottom: 6 }]} onPress={() => doImportToPack(p.id)}>
+                        <Text style={styles.modalPackName}>{p.name}</Text>
+                        <Text style={styles.modalPackCount}>{existing.filter((q) => q.packId === p.id).length} soal</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <View style={styles.modalDivider} />
+                </>
+              )}
+              <Text style={styles.modalLabel}>Buat pack baru:</Text>
+              <TextInput
+                value={newPackName}
+                onChangeText={setNewPackName}
+                placeholder="Nama pack (contoh: Bab 1, Latihan UTS)"
+                style={styles.modalInput}
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+              />
+              <TouchableOpacity style={styles.modalCreateBtn} onPress={handleCreatePackAndImport}>
+                <Text style={styles.modalCreateBtnText}>Buat Pack & Import</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setShowPackModal(false); setPendingImportItems([]); }}>
+                <Text style={styles.modalCancelText}>Batal</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setShowPackModal(false); setPendingImportItems([]); }}>
-              <Text style={styles.modalCancelText}>Batal</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── AI PROMPT GENERATOR ── */}
       <View style={styles.aiCard}>
@@ -1318,8 +1322,9 @@ export default function CreateQuizScreen() {
       )}
 
       {/* ── EDIT QUIZ MODAL ── */}
-      {editingQuiz && (
-        <View style={styles.modalOverlay}>
+      <Modal visible={!!editingQuiz} transparent animationType="slide" onRequestClose={() => setEditingQuiz(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
           <ScrollView
             style={{ width: "100%" }}
             contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 40 }}
@@ -1478,8 +1483,9 @@ export default function CreateQuizScreen() {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
-      )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       <AIProviderSheet
         visible={showAISheet}
         loading={aiLoading}

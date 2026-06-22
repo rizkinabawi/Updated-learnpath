@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import type { ColorScheme } from "@/constants/colors";
 import { useColors, useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function TabIcon({
   name,
@@ -32,6 +33,8 @@ export default function TabLayout() {
   const colors = useColors();
   const { isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom ?? 0;
 
   return (
     <Tabs
@@ -43,9 +46,9 @@ export default function TabLayout() {
           backgroundColor: colors.surface,
           borderTopWidth: 0,
           elevation: 0,
-          height: isWeb ? 60 : 82,
-          paddingBottom: isWeb ? 8 : 20,
-          paddingTop: 6,
+          height: isWeb ? (60 + bottomInset) : (82 + Math.max(0, bottomInset - 20)),
+          paddingBottom: isWeb ? Math.max(12, bottomInset + 8) : Math.max(24, bottomInset + 16),
+          paddingTop: 8,
           shadowColor: colors.shadow,
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: isDark ? 0.4 : 0.07,

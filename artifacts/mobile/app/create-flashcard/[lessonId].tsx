@@ -11,6 +11,8 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -682,50 +684,54 @@ export default function CreateFlashcardScreen() {
       )}
 
       {/* ── PACK SELECTION MODAL ── */}
-      {showPackModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Simpan ke Pack</Text>
-            <Text style={styles.modalSub}>{pendingImportItems.length} flashcard akan diimport</Text>
+      <Modal visible={showPackModal} transparent animationType="slide" onRequestClose={() => { setShowPackModal(false); setPendingImportItems([]); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setShowPackModal(false); setPendingImportItems([]); }}>
+            <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Simpan ke Pack</Text>
+              <Text style={styles.modalSub}>{pendingImportItems.length} flashcard akan diimport</Text>
 
-            {packs.length > 0 && (
-              <>
-                <Text style={styles.modalLabel}>Tambah ke pack yang ada:</Text>
-                {packs.map((p) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={styles.modalPackRow}
-                    onPress={() => doImportToPack(p.id)}
-                  >
-                    <Text style={styles.modalPackName}>{p.name}</Text>
-                    <Text style={styles.modalPackCount}>
-                      {existing.filter((c) => c.packId === p.id).length} kartu
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                <View style={styles.modalDivider} />
-              </>
-            )}
+              {packs.length > 0 && (
+                <>
+                  <Text style={styles.modalLabel}>Tambah ke pack yang ada:</Text>
+                  <ScrollView style={{ maxHeight: 220 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                    {packs.map((p) => (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[styles.modalPackRow, { marginBottom: 6 }]}
+                        onPress={() => doImportToPack(p.id)}
+                      >
+                        <Text style={styles.modalPackName}>{p.name}</Text>
+                        <Text style={styles.modalPackCount}>
+                          {existing.filter((c) => c.packId === p.id).length} kartu
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <View style={styles.modalDivider} />
+                </>
+              )}
 
-            <Text style={styles.modalLabel}>Buat pack baru:</Text>
-            <TextInput
-              value={newPackName}
-              onChangeText={setNewPackName}
-              placeholder="Nama pack (contoh: Bab 1, Set Latihan)"
-              style={styles.modalInput}
-              placeholderTextColor={colors.textMuted}
-              autoFocus
-            />
-            <TouchableOpacity style={styles.modalCreateBtn} onPress={handleCreatePackAndImport}>
-              <Text style={styles.modalCreateBtnText}>Buat Pack & Import</Text>
+              <Text style={styles.modalLabel}>Buat pack baru:</Text>
+              <TextInput
+                value={newPackName}
+                onChangeText={setNewPackName}
+                placeholder="Nama pack (contoh: Bab 1, Set Latihan)"
+                style={styles.modalInput}
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+              />
+              <TouchableOpacity style={styles.modalCreateBtn} onPress={handleCreatePackAndImport}>
+                <Text style={styles.modalCreateBtnText}>Buat Pack & Import</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setShowPackModal(false); setPendingImportItems([]); }}>
+                <Text style={styles.modalCancelText}>Batal</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setShowPackModal(false); setPendingImportItems([]); }}>
-              <Text style={styles.modalCancelText}>Batal</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── AI PROMPT BUILDER ── */}
       <View style={styles.aiCard}>
@@ -1154,8 +1160,9 @@ export default function CreateFlashcardScreen() {
       )}
 
       {/* ── EDIT CARD MODAL ── */}
-      {editingCard && (
-        <View style={styles.modalOverlay}>
+      <Modal visible={!!editingCard} transparent animationType="slide" onRequestClose={() => setEditingCard(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
           <ScrollView
             style={{ width: "100%" }}
             contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 40 }}
@@ -1293,8 +1300,9 @@ export default function CreateFlashcardScreen() {
               </View>
             </View>
           </ScrollView>
-        </View>
-      )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       <AIProviderSheet
         visible={showAISheet}
         loading={aiLoading}

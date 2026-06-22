@@ -58,6 +58,18 @@ import { AIProviderSheet } from "@/components/AIProviderSheet";
 import { callAI } from "@/utils/ai-providers";
 import type { AIKey, AIProvider } from "@/utils/ai-keys";
 
+const confirmAsync = (title: string, message: string, confirmText = "Lanjut", cancelText = "Batal"): Promise<boolean> => {
+  if (Platform.OS === "web") {
+    return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  }
+  return new Promise<boolean>((res) =>
+    Alert.alert(title, message, [
+      { text: cancelText, style: "cancel", onPress: () => res(false) },
+      { text: confirmText, style: "default", onPress: () => res(true) },
+    ])
+  );
+};
+
 const IMAGE_DIR = ((FileSystem as any).documentDirectory ?? "") + "quiz-images/";
 const AUDIO_DIR = ((FileSystem as any).documentDirectory ?? "") + "quiz-audio/";
 
@@ -311,15 +323,10 @@ export default function CreateQuizScreen() {
       Alert.alert(t.create_qz.answer_label, t.create_qz.pick_answer);
       return;
     }
-    const confirmed = await new Promise<boolean>((res) =>
-      Alert.alert(
-        "Konfirmasi Tambah Soal",
-        `Tambahkan soal ini?\n\n"${question.trim()}"`,
-        [
-          { text: "Batal", style: "cancel", onPress: () => res(false) },
-          { text: "Tambah", style: "default", onPress: () => res(true) },
-        ]
-      )
+    const confirmed = await confirmAsync(
+      "Konfirmasi Tambah Soal",
+      `Tambahkan soal ini?\n\n"${question.trim()}"`,
+      "Tambah"
     );
     if (!confirmed) return;
     setLoading(true);
@@ -399,15 +406,10 @@ export default function CreateQuizScreen() {
         );
         return;
       }
-      const confirmed = await new Promise<boolean>((res) =>
-        Alert.alert(
-          "Konfirmasi Import",
-          `Import ${validItems.length} soal ke pelajaran ini?`,
-          [
-            { text: "Batal", style: "cancel", onPress: () => res(false) },
-            { text: "Import", style: "default", onPress: () => res(true) },
-          ]
-        )
+      const confirmed = await confirmAsync(
+        "Konfirmasi Import",
+        `Import ${validItems.length} soal ke pelajaran ini?`,
+        "Import"
       );
       if (!confirmed) return;
       if (packs.length > 0) {
@@ -753,12 +755,14 @@ export default function CreateQuizScreen() {
             {packs.length > 0 && (
               <>
                 <Text style={styles.modalLabel}>Tambah ke pack yang ada:</Text>
-                {packs.map((p) => (
-                  <TouchableOpacity key={p.id} style={styles.modalPackRow} onPress={() => doImportToPack(p.id)}>
-                    <Text style={styles.modalPackName}>{p.name}</Text>
-                    <Text style={styles.modalPackCount}>{existing.filter((q) => q.packId === p.id).length} soal</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  {packs.map((p) => (
+                    <TouchableOpacity key={p.id} style={[styles.modalPackRow, { marginBottom: 6 }]} onPress={() => doImportToPack(p.id)}>
+                      <Text style={styles.modalPackName}>{p.name}</Text>
+                      <Text style={styles.modalPackCount}>{existing.filter((q) => q.packId === p.id).length} soal</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
                 <View style={styles.modalDivider} />
               </>
             )}
@@ -1609,7 +1613,7 @@ const makeStyles = (c: ColorScheme) => {
     editBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center" },
     deleteBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center" },
     modalOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100, paddingHorizontal: 24 },
-    modalCard: { backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10 },
+    modalCard: { backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10, maxHeight: "80%" },
     modalTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
     modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500" },
     modalLabel: { fontSize: 11, fontWeight: "800", color: c.textSecondary, textTransform: "uppercase", letterSpacing: 1 },

@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { Camera } from "lucide-react-native";
+import { Camera, Sparkles } from "lucide-react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "@/utils/fs-compat";
@@ -365,6 +365,19 @@ export default function LearnPage() {
                   <Feather name="zap" size={18} color="#0EA5E9" />
                 </View>
                 <Text style={styles.menuText}>Kirim Materi (WiFi/Bluetooth)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { setShowTools(false); router.push("/import-roadmap"); }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#F5F3FF" }]}>
+                  <Sparkles size={18} color="#7C3AED" />
+                </View>
+                <Text style={styles.menuText}>Build Roadmap dengan AI</Text>
+                <View style={styles.aiBadge}>
+                  <Text style={styles.aiBadgeText}>AI</Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity 

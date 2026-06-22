@@ -314,7 +314,7 @@ export default function LearnPage() {
             <View style={styles.mHandle} />
             <Text style={styles.mTitle}>Fitur & Alat Bantu</Text>
             
-            <View style={{ gap: 8, marginTop: 10 }}>
+            <ScrollView style={{ maxHeight: 400, marginTop: 10 }} contentContainerStyle={{ gap: 8 }} showsVerticalScrollIndicator={false}>
               {paths.length >= 2 && (
                 <TouchableOpacity 
                   style={styles.menuItem} 
@@ -345,27 +345,29 @@ export default function LearnPage() {
                 <Text style={styles.menuText}>Bagikan Bundle Kursus</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setShowTools(false);
-                  if (paths.length > 0) {
-                    Alert.alert(
-                      "Pilih Kursus",
-                      "Pilih kursus yang ingin dikirim lewat WiFi/Bluetooth:",
-                      (paths.map(p => ({
-                        text: p.name,
-                        onPress: async () => { shareCourseBeam(p.id, p.name); }
-                      })) as any[]).concat([{ text: "Batal", style: "cancel" }])
-                    );
-                  }
-                }}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#F0F9FF" }]}>
-                  <Feather name="zap" size={18} color="#0EA5E9" />
-                </View>
-                <Text style={styles.menuText}>Kirim Materi (WiFi/Bluetooth)</Text>
-              </TouchableOpacity>
+              {Platform.OS !== "web" && (
+                <TouchableOpacity 
+                  style={styles.menuItem} 
+                  onPress={() => {
+                    setShowTools(false);
+                    if (paths.length > 0) {
+                      Alert.alert(
+                        "Pilih Kursus",
+                        "Pilih kursus yang ingin dikirim lewat WiFi/Bluetooth:",
+                        (paths.map(p => ({
+                          text: p.name,
+                          onPress: async () => { shareCourseBeam(p.id, p.name); }
+                        })) as any[]).concat([{ text: "Batal", style: "cancel" }])
+                      );
+                    }
+                  }}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: "#F0F9FF" }]}>
+                    <Feather name="zap" size={18} color="#0EA5E9" />
+                  </View>
+                  <Text style={styles.menuText}>Kirim Materi (WiFi/Bluetooth)</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.menuItem}
@@ -393,31 +395,35 @@ export default function LearnPage() {
                 <Text style={styles.menuText}>Smart Import Hub</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setShowTools(false);
-                  router.push("/qr-scanner");
-                }}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#F0FDF4" }]}>
-                  <Feather name="maximize" size={18} color="#16A34A" />
-                </View>
-                <Text style={styles.menuText}>Scan QR Code Sync</Text>
-              </TouchableOpacity>
+              {Platform.OS !== "web" && (
+                <TouchableOpacity 
+                  style={styles.menuItem} 
+                  onPress={() => {
+                    setShowTools(false);
+                    router.push("/qr-scanner");
+                  }}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: "#F0FDF4" }]}>
+                    <Feather name="maximize" size={18} color="#16A34A" />
+                  </View>
+                  <Text style={styles.menuText}>Scan QR Code Sync</Text>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity 
-                style={styles.menuItem} 
-                onPress={() => { setShowTools(false); router.push("/smart-scanner"); }}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#EEF2FF" }]}>
-                  <Camera size={18} color={colors.primary} />
-                </View>
-                <Text style={styles.menuText}>Smart Scan (Foto Buku)</Text>
-                <View style={styles.aiBadge}>
-                   <Text style={styles.aiBadgeText}>AI</Text>
-                </View>
-              </TouchableOpacity>
+              {Platform.OS !== "web" && (
+                <TouchableOpacity 
+                  style={styles.menuItem} 
+                  onPress={() => { setShowTools(false); router.push("/smart-scanner"); }}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: "#EEF2FF" }]}>
+                    <Camera size={18} color={colors.primary} />
+                  </View>
+                  <Text style={styles.menuText}>Smart Scan (Foto Buku)</Text>
+                  <View style={styles.aiBadge}>
+                     <Text style={styles.aiBadgeText}>AI</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity 
                 style={styles.menuItem} 
@@ -428,7 +434,7 @@ export default function LearnPage() {
                 </View>
                 <Text style={styles.menuText}>Manajemen Penyimpanan</Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
 
             <TouchableOpacity 
               style={styles.mBtnCancel} 
@@ -464,16 +470,18 @@ export default function LearnPage() {
               </LinearGradient>
             </TouchableOpacity>
             
-            <TouchableOpacity
-              onPress={() => router.push("/qr-scanner")}
-              style={styles.addBtn}
-              activeOpacity={0.8}
-              accessibilityLabel="Scan QR"
-            >
-              <LinearGradient colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]} style={styles.addGrad}>
-                <Feather name="maximize" size={19} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
+            {Platform.OS !== "web" && (
+              <TouchableOpacity
+                onPress={() => router.push("/qr-scanner")}
+                style={styles.addBtn}
+                activeOpacity={0.8}
+                accessibilityLabel="Scan QR"
+              >
+                <LinearGradient colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]} style={styles.addGrad}>
+                  <Feather name="maximize" size={19} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={() => setShowTools(true)}
@@ -1141,7 +1149,7 @@ const makeStyles = (c: ColorScheme, isDark: boolean, palette: string) => StyleSh
   shareBtnText: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.92)" },
 
   mOverlay: { flex: 1, backgroundColor: "rgba(10,22,40,0.6)", justifyContent: "flex-end" },
-  mBox: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12 },
+  mBox: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 12, maxHeight: "90%" },
   iconPickRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: c.background, borderRadius: 14, padding: 12,

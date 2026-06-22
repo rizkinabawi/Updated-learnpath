@@ -1326,7 +1326,7 @@ export default function CreateQuizScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={styles.modalOverlay}>
           <ScrollView
-            style={{ width: "100%" }}
+            style={{ flex: 1, width: "100%" }}
             contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 40 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -1618,7 +1618,7 @@ const makeStyles = (c: ColorScheme) => {
     cardActions: { flexDirection: "row", gap: 8 },
     editBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.primaryLight, alignItems: "center", justifyContent: "center" },
     deleteBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.dangerLight, alignItems: "center", justifyContent: "center" },
-    modalOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100, paddingHorizontal: 24 },
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100, paddingHorizontal: 24 },
     modalCard: { backgroundColor: c.white, borderRadius: 20, padding: 20, width: "100%", gap: 10, maxHeight: "80%" },
     modalTitle: { fontSize: 17, fontWeight: "900", color: c.dark },
     modalSub: { fontSize: 13, color: c.textMuted, fontWeight: "500" },

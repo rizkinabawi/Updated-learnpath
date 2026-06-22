@@ -456,7 +456,7 @@ export default function QuizScreen() {
                         styles.questionText, 
                         entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
                       ]}
-                      onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
+                      onPress={entry ? () => { setActiveWord(entry); setShowPopup(true); } : undefined}
                     >
                       {token}
                     </Text>

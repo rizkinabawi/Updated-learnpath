@@ -665,6 +665,9 @@ export default function FlashcardScreen() {
             scriptRevealed={scriptRevealed}
             onRevealScript={() => setScriptRevealed(true)}
             onWordTap={handleWordTap}
+            userNotes={userNotes}
+            setActiveWord={setActiveWord}
+            setShowPopup={setShowPopup}
           />
         </CardErrorBoundary>
       )}
@@ -941,6 +944,9 @@ interface FlashcardCardViewProps {
   scriptRevealed?: boolean;
   onRevealScript?: () => void;
   onWordTap: (word: string) => void;
+  userNotes: Note[];
+  setActiveWord: (entry: any) => void;
+  setShowPopup: (show: boolean) => void;
 }
 
 function FlashcardCardView({
@@ -962,6 +968,9 @@ function FlashcardCardView({
   scriptRevealed,
   onRevealScript,
   onWordTap,
+  userNotes,
+  setActiveWord,
+  setShowPopup,
 }: FlashcardCardViewProps) {
   const colors = useColors();
   const { isDark, palette } = useTheme();
@@ -1091,7 +1100,7 @@ function FlashcardCardView({
                           { fontSize: qFontSize, lineHeight: Math.round(qFontSize * 1.35) }, 
                           entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
                         ]}
-                        onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
+                        onPress={entry ? () => { setActiveWord(entry); setShowPopup(true); } : undefined}
                       >
                         {token}
                       </Text>
@@ -1144,7 +1153,7 @@ function FlashcardCardView({
                         { fontSize: aFontSize, lineHeight: Math.round(aFontSize * 1.35) }, 
                         entry && { color: entry.level === "NOTE" ? colors.amber : colors.primary, textDecorationLine: 'underline', textDecorationColor: entry.level === "NOTE" ? colors.amber + '40' : colors.primary + '40' }
                       ]}
-                      onPress={entry ? () => setActiveWord(entry) || setShowPopup(true) : undefined}
+                      onPress={entry ? () => { setActiveWord(entry); setShowPopup(true); } : undefined}
                     >
                       {token}
                     </Text>

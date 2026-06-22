@@ -1164,7 +1164,7 @@ export default function CreateFlashcardScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={styles.modalOverlay}>
           <ScrollView
-            style={{ width: "100%" }}
+            style={{ flex: 1, width: "100%" }}
             contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 40 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -1540,7 +1540,7 @@ const makeStyles = (c: ColorScheme) => {
 
   // Modal
   modalOverlay: {
-    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center",
     zIndex: 100, paddingHorizontal: 24,
   },

@@ -3,15 +3,13 @@
  *
  * Cross-platform PDF / printing helper.
  *
- * Why this exists:
- *   `expo-print` on web does NOT print the supplied `html` parameter — calling
- *   `Print.printAsync({ html })` triggers the OS print dialog of the *current*
- *   page, which results in a screenshot of the running app. We work around
- *   this by injecting the HTML into a hidden `<iframe>` and printing only that
- *   iframe's content window.
+ * On native (iOS/Android): renders to a PDF file via expo-print and opens
+ * the share sheet so the user can save / print it.
  *
- * On native (iOS/Android) we keep the original behaviour: render to a PDF
- * file and pass it to the share sheet so the user can save / print it.
+ * On web / PWA: uses a Blob URL opened in a new tab so the browser's
+ * built-in print/share dialog works correctly — including on mobile Safari
+ * ("Save to Files", "Print"). The hidden-iframe approach is avoided because
+ * mobile browsers block cross-origin or sandboxed iframe printing.
  */
 
 import { Platform } from "react-native";
@@ -28,7 +26,7 @@ interface PrintOpts {
 
 /**
  * Print arbitrary HTML to PDF / printer in a way that works on web AND native.
- * On web: opens the browser print dialog with the supplied HTML only.
+ * On web: opens the HTML in a new tab and triggers the browser print dialog.
  * On native: writes a PDF and opens the share sheet so the user can save it.
  */
 export async function printHtml(
@@ -36,7 +34,7 @@ export async function printHtml(
   opts: PrintOpts = {},
 ): Promise<void> {
   if (Platform.OS === "web") {
-    return printHtmlWeb(html);
+    return printHtmlWeb(html, opts.filename);
   }
 
   // Native: write to a real PDF file and share it (Default to A4: 595 x 842 points)
@@ -67,86 +65,81 @@ export async function printHtml(
 }
 
 /**
- * Web-only implementation. Renders HTML inside a hidden iframe and triggers
- * print on that iframe's contentWindow so the resulting PDF / printout
- * contains ONLY the HTML — not the surrounding app UI.
+ * Web / PWA implementation.
+ *
+ * Strategy:
+ * 1. Create a Blob URL from the HTML string (avoids cross-origin restrictions).
+ * 2. Open it in a new tab/window.
+ * 3. Once loaded, call window.print() on it.
+ *
+ * On desktop browsers this opens the print dialog.
+ * On mobile Safari/Chrome PWA this shows the system share sheet which
+ * includes "Print" and "Save to Files" options.
+ *
+ * If window.open() is blocked by a popup blocker, fall back to downloading
+ * the HTML as a file so the user can open it manually.
  */
-function printHtmlWeb(html: string): Promise<void> {
+function printHtmlWeb(html: string, filename?: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (typeof document === "undefined") {
-      reject(new Error("printHtml: document is not available"));
+    if (typeof document === "undefined" || typeof window === "undefined") {
+      reject(new Error("printHtml: browser APIs not available"));
       return;
     }
 
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    iframe.style.opacity = "0";
-    iframe.style.pointerEvents = "none";
+    try {
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
 
-    const cleanup = () => {
-      try {
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      } catch {}
-    };
+      // Try to open in a new tab
+      const newWin = window.open(blobUrl, "_blank");
 
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) {
-      cleanup();
-      reject(new Error("printHtml: cannot access iframe document"));
-      return;
-    }
-
-    doc.open();
-    // Force print-friendly defaults (no margin, fits A4) so consumers don't
-    // have to repeat them in every template.
-    doc.write(html);
-    doc.close();
-
-    const win = iframe.contentWindow;
-    if (!win) {
-      cleanup();
-      reject(new Error("printHtml: cannot access iframe window"));
-      return;
-    }
-
-    let printed = false;
-
-    const triggerPrint = () => {
-      if (printed) return;
-      printed = true;
-      try {
-        win.focus();
-        win.print();
-      } catch (e) {
-        cleanup();
-        reject(e);
+      if (!newWin) {
+        // Popup was blocked — fall back to direct download
+        _downloadHtmlFallback(blobUrl, filename ?? "learnpath-export");
+        resolve();
         return;
       }
-      // Some browsers dispatch afterprint, others don't — clean up either way
-      const cleanupSoon = () => setTimeout(cleanup, 600);
-      win.addEventListener?.("afterprint", cleanupSoon, { once: true });
-      setTimeout(cleanupSoon, 60_000); // hard cap so we never leak the iframe
-      resolve();
-    };
 
-    // Wait for images / fonts in the document before invoking print so charts
-    // and embedded SVGs don't appear blank.
-    const ready = () => setTimeout(triggerPrint, 250);
+      // Wait for the new window to load, then trigger print
+      const triggerPrint = () => {
+        try {
+          newWin.focus();
+          newWin.print();
+        } catch (e) {
+          // Some browsers block print() on cross-origin windows — ignore,
+          // the user can use the browser menu instead.
+        }
+        // Revoke blob URL after a delay to let the window fully load
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        resolve();
+      };
 
-    if (doc.readyState === "complete") {
-      ready();
-    } else {
-      win.addEventListener("load", ready, { once: true });
-      // Safety net — if `load` never fires, still try after 1.5 s
-      setTimeout(ready, 1500);
+      // newWin.onload fires after the blob document is ready
+      newWin.onload = () => setTimeout(triggerPrint, 300);
+
+      // Safety net in case onload never fires (some browsers skip it for blobs)
+      setTimeout(triggerPrint, 1800);
+    } catch (e) {
+      reject(e);
     }
   });
+}
+
+/**
+ * Fallback: trigger a direct HTML file download when window.open() is blocked.
+ * The user can open the downloaded file in their browser and print from there.
+ */
+function _downloadHtmlFallback(blobUrl: string, filename: string): void {
+  try {
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename.endsWith(".html") ? filename : `${filename}.html`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  } catch {}
 }

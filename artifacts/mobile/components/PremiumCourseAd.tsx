@@ -37,6 +37,16 @@ const AD_DATA = [
     icon: 'book-open',
     colors: ['#059669', '#10B981'],
     image: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=200&h=200&auto=format&fit=crop'
+  },
+  {
+    id: '3',
+    title: 'N5-N4 + Panduan Lamar TG1',
+    sub: 'Akses Selamanya',
+    description: 'Kursus lengkap N5–N4 plus panduan lengkap melamar kerja Tokutei Ginou 1.',
+    price: 'Rp 1,2jt (lifetime)',
+    icon: 'award',
+    colors: ['#D97706', '#F59E0B'],
+    image: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?q=80&w=200&h=200&auto=format&fit=crop'
   }
 ];
 

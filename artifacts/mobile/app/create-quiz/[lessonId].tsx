@@ -572,16 +572,7 @@ export default function CreateQuizScreen() {
       Alert.alert("Jawaban belum dipilih", "Pilih jawaban yang benar.");
       return;
     }
-    const confirmed = await new Promise<boolean>((res) =>
-      Alert.alert(
-        "Simpan Perubahan?",
-        "Perubahan pada soal ini akan disimpan permanen.",
-        [
-          { text: "Batal", style: "cancel", onPress: () => res(false) },
-          { text: "Simpan", style: "default", onPress: () => res(true) },
-        ]
-      )
-    );
+    const confirmed = await confirmAsync("Simpan Perubahan?", "Perubahan pada soal ini akan disimpan permanen.", "Simpan");
     if (!confirmed) return;
     setEditLoading(true);
     let savedImage: string | undefined = editImageUri ?? undefined;
@@ -640,17 +631,12 @@ export default function CreateQuizScreen() {
   };
 
   const handleDeletePack = async (packId: string) => {
-    Alert.alert(t.create_qz.delete_pack_title, t.create_qz.delete_pack_msg, [
-      { text: t.common.cancel, style: "cancel" },
-      {
-        text: t.common.delete, style: "destructive", onPress: async () => {
-          await deleteQuizPack(packId);
-          setPacks((prev) => prev.filter((p) => p.id !== packId));
-          if (activePack?.id === packId) setActivePack(null);
-          toast.info(t.create_qz.pack_deleted);
-        },
-      },
-    ]);
+    const ok = await confirmAsync(t.create_qz.delete_pack_title, t.create_qz.delete_pack_msg, t.common.delete, t.common.cancel);
+    if (!ok) return;
+    await deleteQuizPack(packId);
+    setPacks((prev) => prev.filter((p) => p.id !== packId));
+    if (activePack?.id === packId) setActivePack(null);
+    toast.info(t.create_qz.pack_deleted);
   };
 
   const handleGenerateAndCopyPrompt = async () => {
@@ -1301,15 +1287,9 @@ export default function CreateQuizScreen() {
                   <PencilLine size={14} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert(t.create_qz.delete_quiz_title, t.create_qz.delete_quiz_msg, [
-                      { text: t.common.cancel, style: "cancel" },
-                      {
-                        text: t.common.delete,
-                        style: "destructive",
-                        onPress: () => handleDelete(q.id),
-                      },
-                    ]);
+                  onPress={async () => {
+                    const ok = await confirmAsync(t.create_qz.delete_quiz_title, t.create_qz.delete_quiz_msg, t.common.delete, t.common.cancel);
+                    if (ok) handleDelete(q.id);
                   }}
                   style={styles.deleteBtn}
                 >

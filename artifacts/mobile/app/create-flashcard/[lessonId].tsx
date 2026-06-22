@@ -41,6 +41,18 @@ import { AIProviderSheet } from "@/components/AIProviderSheet";
 import { callAI } from "@/utils/ai-providers";
 import type { AIKey, AIProvider } from "@/utils/ai-keys";
 
+const confirmAsync = (title: string, message: string, confirmText = "Lanjut", cancelText = "Batal"): Promise<boolean> => {
+  if (Platform.OS === "web") {
+    return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  }
+  return new Promise<boolean>((res) =>
+    Alert.alert(title, message, [
+      { text: cancelText, style: "cancel", onPress: () => res(false) },
+      { text: confirmText, style: "default", onPress: () => res(true) },
+    ])
+  );
+};
+
 const IMAGE_DIR = (FileSystem.documentDirectory ?? "") + "flashcard-images/";
 const AUDIO_DIR = (FileSystem.documentDirectory ?? "") + "flashcard-audio/";
 
@@ -293,16 +305,7 @@ export default function CreateFlashcardScreen() {
       Alert.alert(t.create_fc.question_ph, t.create_fc.fill_form);
       return;
     }
-    const confirmed = await new Promise<boolean>((res) =>
-      Alert.alert(
-        "Konfirmasi Tambah Kartu",
-        `Tambahkan flashcard ini?\n\nDepan: "${question.trim()}"`,
-        [
-          { text: "Batal", style: "cancel", onPress: () => res(false) },
-          { text: "Tambah", style: "default", onPress: () => res(true) },
-        ]
-      )
-    );
+    const confirmed = await confirmAsync("Konfirmasi Tambah Kartu", `Tambahkan flashcard ini?\n\nDepan: "${question.trim()}"`, "Tambah");
     if (!confirmed) return;
     setLoading(true);
     const id = generateId();
@@ -388,16 +391,7 @@ export default function CreateFlashcardScreen() {
       Alert.alert("Form Tidak Lengkap", "Pertanyaan dan jawaban wajib diisi.");
       return;
     }
-    const confirmed = await new Promise<boolean>((res) =>
-      Alert.alert(
-        "Simpan Perubahan?",
-        "Perubahan pada kartu ini akan disimpan permanen.",
-        [
-          { text: "Batal", style: "cancel", onPress: () => res(false) },
-          { text: "Simpan", style: "default", onPress: () => res(true) },
-        ]
-      )
-    );
+    const confirmed = await confirmAsync("Simpan Perubahan?", "Perubahan pada kartu ini akan disimpan permanen.", "Simpan");
     if (!confirmed) return;
     setEditLoading(true);
     let savedImage: string | undefined = editImageUri ?? undefined;
@@ -462,16 +456,7 @@ export default function CreateFlashcardScreen() {
         return;
       }
 
-      const confirmed = await new Promise<boolean>((res) =>
-        Alert.alert(
-          "Konfirmasi Import",
-          `Import ${validItems.length} flashcard ke pelajaran ini?`,
-          [
-            { text: "Batal", style: "cancel", onPress: () => res(false) },
-            { text: "Import", style: "default", onPress: () => res(true) },
-          ]
-        )
-      );
+      const confirmed = await confirmAsync("Konfirmasi Import", `Import ${validItems.length} flashcard ke pelajaran ini?`, "Import");
       if (!confirmed) return;
       if (packs.length > 0) {
         setPendingImportItems(validItems);
@@ -575,17 +560,12 @@ export default function CreateFlashcardScreen() {
   };
 
   const handleDeletePack = async (packId: string) => {
-    Alert.alert(t.create_fc.delete_pack_title, t.create_fc.delete_pack_msg, [
-      { text: t.common.cancel, style: "cancel" },
-      {
-        text: t.common.delete, style: "destructive", onPress: async () => {
-          await deleteFlashcardPack(packId);
-          setPacks((prev) => prev.filter((p) => p.id !== packId));
-          if (activePack?.id === packId) setActivePack(null);
-          toast.info(t.create_fc.pack_deleted);
-        },
-      },
-    ]);
+    const ok = await confirmAsync(t.create_fc.delete_pack_title, t.create_fc.delete_pack_msg, t.common.delete, t.common.cancel);
+    if (!ok) return;
+    await deleteFlashcardPack(packId);
+    setPacks((prev) => prev.filter((p) => p.id !== packId));
+    if (activePack?.id === packId) setActivePack(null);
+    toast.info(t.create_fc.pack_deleted);
   };
 
   const handleGenerateAndCopyPrompt = async () => {
@@ -1143,11 +1123,9 @@ export default function CreateFlashcardScreen() {
                   <PencilLine size={14} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert(t.create_fc.delete_card_title, t.create_fc.delete_card_msg, [
-                      { text: t.common.cancel, style: "cancel" },
-                      { text: t.common.delete, style: "destructive", onPress: () => handleDelete(card.id) },
-                    ]);
+                  onPress={async () => {
+                    const ok = await confirmAsync(t.create_fc.delete_card_title, t.create_fc.delete_card_msg, t.common.delete, t.common.cancel);
+                    if (ok) handleDelete(card.id);
                   }}
                   style={styles.deleteBtn}
                 >

@@ -239,6 +239,19 @@ function AppContent() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [fontError, setFontError] = useState<Error | null>(null);
 
+  // Allow pinch-to-zoom on PWA/web
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta") as HTMLMetaElement;
+        meta.name = "viewport";
+        document.head.appendChild(meta);
+      }
+      meta.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+    }
+  }, []);
+
   useEffect(() => {
     Font.loadAsync({
       Inter_400Regular,

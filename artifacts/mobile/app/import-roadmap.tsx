@@ -505,16 +505,25 @@ export default function ImportRoadmapScreen() {
     }
   };
 
-  const handleSave = () => {
+  const confirmAsync = (title: string, message: string): Promise<boolean> => {
+    if (Platform.OS === "web") {
+      return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+    }
+    return new Promise((resolve) => {
+      Alert.alert(title, message, [
+        { text: "Batal", style: "cancel", onPress: () => resolve(false) },
+        { text: "Buat Sekarang", style: "default", onPress: () => resolve(true) },
+      ]);
+    });
+  };
+
+  const handleSave = async () => {
     if (!preview || saving) return;
-    Alert.alert(
+    const ok = await confirmAsync(
       "Buat Struktur Kursus?",
-      `Akan dibuat:\n• 1 kursus: "${preview.courseName}"\n• ${preview.totalModules} modul\n• ${preview.totalLessons} pelajaran\n• ${preview.totalMaterials} materi\n\nLanjutkan?`,
-      [
-        { text: "Batal", style: "cancel" },
-        { text: "Buat Sekarang", style: "default", onPress: doSave },
-      ]
+      `Akan dibuat:\n• 1 kursus: "${preview.courseName}"\n• ${preview.totalModules} modul\n• ${preview.totalLessons} pelajaran\n• ${preview.totalMaterials} materi\n\nLanjutkan?`
     );
+    if (ok) doSave();
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────

@@ -851,13 +851,23 @@ export default function StudyMaterialScreen() {
 
                   {mat.type === "html" && (
                     <View style={{ height: 120, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
-                      <WebView
-                        originWhitelist={["*"]}
-                        source={{ html: `<style>body{font-family:sans-serif;font-size:12px;color:${colors.text};background:transparent;margin:0;padding:8px;}</style>${mat.content}` }}
-                        style={{ flex: 1, backgroundColor: "transparent" }}
-                        scrollEnabled={false}
-                        pointerEvents="none"
-                      />
+                      {Platform.OS === "web" ? (
+                        // @ts-ignore
+                        <iframe
+                          srcDoc={`<style>body{font-family:sans-serif;font-size:12px;color:${colors.text};background:transparent;margin:0;padding:8px;overflow:hidden;pointer-events:none}</style>${mat.content}`}
+                          style={{ width: "100%", height: "100%", border: "none", backgroundColor: "transparent", pointerEvents: "none" }}
+                          scrolling="no"
+                          sandbox="allow-same-origin"
+                        />
+                      ) : (
+                        <WebView
+                          originWhitelist={["*"]}
+                          source={{ html: `<style>body{font-family:sans-serif;font-size:12px;color:${colors.text};background:transparent;margin:0;padding:8px;}</style>${mat.content}` }}
+                          style={{ flex: 1, backgroundColor: "transparent" }}
+                          scrollEnabled={false}
+                          pointerEvents="none"
+                        />
+                      )}
                     </View>
                   )}
 

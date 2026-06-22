@@ -466,12 +466,12 @@ export default function MaterialFullView() {
             )}
 
             {current.type === "html" && (
-              <View>
+              <View style={{ flex: 1, minHeight: SCREEN_HEIGHT - insets.top - insets.bottom - 160 }}>
                 {Platform.OS === "web" ? (
                   // @ts-ignore
                   <iframe
                     srcDoc={current.content}
-                    style={{ width: "100%", minHeight: 400, border: "1px solid " + colors.border, borderRadius: 12 }}
+                    style={{ width: "100%", height: SCREEN_HEIGHT - insets.top - insets.bottom - 160, minHeight: 500, border: "1px solid " + colors.border, borderRadius: 12, display: "block" }}
                   />
                 ) : (
                   <WebView

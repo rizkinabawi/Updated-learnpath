@@ -193,9 +193,8 @@ export default function FlashcardScreen() {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    // Defer the heavy AsyncStorage read until after the screen-open animation
-    // finishes so the tap into the lesson feels snappy.
-    const handle = InteractionManager.runAfterInteractions(async () => {
+
+    const runLoad = async () => {
       try {
         if (cancelled) return;
         // Per-lesson sharding: only deserializes ONE lesson's cards (~1 MB max).
@@ -245,7 +244,16 @@ export default function FlashcardScreen() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    });
+    };
+
+    // On web, InteractionManager.runAfterInteractions may never fire because
+    // there are no native animation interactions to wait for. Run directly.
+    let handle: { cancel?: () => void } | null = null;
+    if (Platform.OS === "web") {
+      runLoad();
+    } else {
+      handle = InteractionManager.runAfterInteractions(runLoad);
+    }
 
     // Fetch notes globally for auto-linking
     getNotes().then(notes => {

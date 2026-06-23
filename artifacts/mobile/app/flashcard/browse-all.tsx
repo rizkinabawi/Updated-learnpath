@@ -263,6 +263,8 @@ export default function FlashcardBrowseAll() {
   const [playlistItems, setPlaylistItems] = useState<FlashcardItem[]>([]);
   const [playlistTitle, setPlaylistTitle] = useState("");
   const [actionMenuInfo, setActionMenuInfo] = useState<{ id: string, name: string, isCol: boolean, colData?: StandaloneCollection } | null>(null);
+  const [themePickerCb, setThemePickerCb] = useState<((theme: string) => void) | null>(null);
+  const [tableOptCb, setTableOptCb] = useState<((mode: "all" | "concise" | "limit12") => void) | null>(null);
 
 
   useEffect(() => { loadAll(); }, []);
@@ -351,6 +353,10 @@ export default function FlashcardBrowseAll() {
   };
 
   const promptTheme = (onSelect: (theme: any) => void) => {
+    if (Platform.OS === "web") {
+      setThemePickerCb(() => onSelect);
+      return;
+    }
     Alert.alert(
       "Pilih Tema PDF",
       "Pilih gaya tampilan untuk dokumen Anda:",
@@ -367,7 +373,13 @@ export default function FlashcardBrowseAll() {
     if (exporting) return;
     const allowed = await isFeatureAllowed("bundle");
     if (!allowed) { Alert.alert("Fitur Premium", "Ekspor Tabel PDF hanya tersedia di versi Premium."); return; }
-    
+
+    if (Platform.OS === "web") {
+      setTableOptCb(() => (mode: "all" | "concise" | "limit12") => {
+        promptTheme((theme) => performTableExport(id, name, mode, theme));
+      });
+      return;
+    }
     Alert.alert(
       "Opsi Ekspor Tabel PDF",
       `Pilih mode untuk "${name}":\n\n• Semua: Full Kartu & Full Teks\n• Ringkas: Cek Duplikat & Max 12 Kata\n• 12 Kartu: Batasi 12 kartu teratas`,
@@ -667,6 +679,81 @@ export default function FlashcardBrowseAll() {
         </View>
       </Modal>
 
+
+      {/* THEME PICKER MODAL (web) */}
+      <Modal visible={themePickerCb !== null} transparent animationType="fade" onRequestClose={() => setThemePickerCb(null)}>
+        <TouchableWithoutFeedback onPress={() => setThemePickerCb(null)}>
+          <View style={styles.pmOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.pmSheet, { padding: 0, paddingBottom: insets.bottom + 16 }]}>
+                <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: colors.text }}>Pilih Tema PDF</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 4 }}>Pilih gaya tampilan untuk dokumen Anda</Text>
+                </View>
+                <View style={{ padding: 10 }}>
+                  {[
+                    { key: "classic", label: "Classic", icon: "file-text", desc: "Gaya standar formal" },
+                    { key: "zen", label: "Zen", icon: "feather", desc: "Bersih dan minimalis" },
+                    { key: "minimalist", label: "Minimalist", icon: "minus-circle", desc: "Tanpa dekorasi" },
+                    { key: "elegant", label: "Elegant", icon: "star", desc: "Premium dan mewah" },
+                  ].map((t) => (
+                    <TouchableOpacity
+                      key={t.key}
+                      style={styles.menuOptBtn}
+                      onPress={() => { const cb = themePickerCb; setThemePickerCb(null); cb?.(t.key); }}
+                    >
+                      <View style={[styles.menuOptIcon, { backgroundColor: colors.primary + "15" }]}>
+                        <Feather name={t.icon as any} size={18} color={colors.primary} />
+                      </View>
+                      <View>
+                        <Text style={styles.menuOptText}>{t.label}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textMuted }}>{t.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* TABLE OPTIONS MODAL (web) */}
+      <Modal visible={tableOptCb !== null} transparent animationType="fade" onRequestClose={() => setTableOptCb(null)}>
+        <TouchableWithoutFeedback onPress={() => setTableOptCb(null)}>
+          <View style={styles.pmOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.pmSheet, { padding: 0, paddingBottom: insets.bottom + 16 }]}>
+                <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: colors.text }}>Opsi Ekspor Tabel PDF</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 4 }}>Pilih mode ekspor tabel</Text>
+                </View>
+                <View style={{ padding: 10 }}>
+                  {[
+                    { key: "all" as const, label: "Semua", icon: "list", desc: "Full Kartu & Full Teks" },
+                    { key: "concise" as const, label: "Ringkas", icon: "filter", desc: "Cek Duplikat & Max 12 Kata" },
+                    { key: "limit12" as const, label: "12 Kartu", icon: "hash", desc: "Batasi 12 kartu teratas" },
+                  ].map((opt) => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={styles.menuOptBtn}
+                      onPress={() => { const cb = tableOptCb; setTableOptCb(null); cb?.(opt.key); }}
+                    >
+                      <View style={[styles.menuOptIcon, { backgroundColor: colors.teal + "15" }]}>
+                        <Feather name={opt.icon as any} size={18} color={colors.teal} />
+                      </View>
+                      <View>
+                        <Text style={styles.menuOptText}>{opt.label}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textMuted }}>{opt.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* FAB */}
       {selMode ? (

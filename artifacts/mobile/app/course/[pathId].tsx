@@ -43,6 +43,16 @@ import { getUser } from "@/utils/storage";
 import { printHtml } from "@/utils/print-compat";
 import { isFeatureAllowed } from "@/utils/security/app-license";
 
+const confirmAsync = (title: string, message: string, confirmText = "Lanjut", cancelText = "Batal"): Promise<boolean> => {
+  if (Platform.OS === "web") return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  return new Promise<boolean>((res) =>
+    Alert.alert(title, message, [
+      { text: cancelText, style: "cancel", onPress: () => res(false) },
+      { text: confirmText, style: "destructive", onPress: () => res(true) },
+    ])
+  );
+};
+
 const makeGradPalette = (colors: ColorScheme): [string, string][] => [
   [colors.primary, colors.purple],
   [colors.accent, colors.amber],
@@ -259,26 +269,18 @@ export default function CourseDetailPage() {
     loadData();
   };
 
-  const handleDeleteModule = (mod: Module) => {
-    Alert.alert(
-      t.course.delete_mod_title,
-      t.course.delete_mod_msg(mod.name),
-      [
-        { text: t.common.cancel, style: "cancel" },
-        { text: t.common.delete, style: "destructive", onPress: async () => { await deleteModule(mod.id); loadData(); } },
-      ]
-    );
+  const handleDeleteModule = async (mod: Module) => {
+    const ok = await confirmAsync(t.course.delete_mod_title, t.course.delete_mod_msg(mod.name), t.common.delete, t.common.cancel);
+    if (!ok) return;
+    await deleteModule(mod.id);
+    loadData();
   };
 
-  const handleDeleteLesson = (lesson: Lesson) => {
-    Alert.alert(
-      t.course.delete_lesson_title,
-      t.course.delete_lesson_msg(lesson.name),
-      [
-        { text: t.common.cancel, style: "cancel" },
-        { text: t.common.delete, style: "destructive", onPress: async () => { await deleteLesson(lesson.id); loadData(); } },
-      ]
-    );
+  const handleDeleteLesson = async (lesson: Lesson) => {
+    const ok = await confirmAsync(t.course.delete_lesson_title, t.course.delete_lesson_msg(lesson.name), t.common.delete, t.common.cancel);
+    if (!ok) return;
+    await deleteLesson(lesson.id);
+    loadData();
   };
 
   const toggleExpand = (modId: string) =>

@@ -39,6 +39,7 @@ import {
   Globe,
   Camera,
   Sparkles,
+  HelpCircle,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "@/utils/fs-compat";
@@ -676,19 +677,22 @@ export default function StudyMaterialScreen() {
     }
   };
 
-  const handleDelete = (mat: StudyMaterial) => {
-    Alert.alert(t.material.delete_title, t.material.delete_msg(mat.title), [
-      { text: t.common.cancel, style: "cancel" },
-      {
-        text: t.common.delete,
-        style: "destructive",
-        onPress: async () => {
-          await deleteStudyMaterial(mat.id);
-          toast.info(t.material.deleted);
-          loadData();
-        },
-      },
-    ]);
+  const handleDelete = async (mat: StudyMaterial) => {
+    let ok: boolean;
+    if (Platform.OS === "web") {
+      ok = window.confirm(`${t.material.delete_title}\n\n${t.material.delete_msg(mat.title)}`);
+    } else {
+      ok = await new Promise<boolean>((res) =>
+        Alert.alert(t.material.delete_title, t.material.delete_msg(mat.title), [
+          { text: t.common.cancel, style: "cancel", onPress: () => res(false) },
+          { text: t.common.delete, style: "destructive", onPress: () => res(true) },
+        ])
+      );
+    }
+    if (!ok) return;
+    await deleteStudyMaterial(mat.id);
+    toast.info(t.material.deleted);
+    loadData();
   };
 
   const handleOpenFile = async (mat: StudyMaterial) => {
@@ -766,6 +770,13 @@ export default function StudyMaterialScreen() {
           </Text>
           <Text style={styles.headerTitle}>{t.common.material}</Text>
         </View>
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: "/create-quiz/[lessonId]", params: { lessonId: safeLesson } })}
+          style={[styles.addBtn, { marginRight: 4 }]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <HelpCircle size={20} color={colors.white} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
           <Plus size={20} color={colors.white} />
         </TouchableOpacity>

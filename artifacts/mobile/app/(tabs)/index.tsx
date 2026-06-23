@@ -106,7 +106,13 @@ export default function Dashboard() {
       getCompletedLessons(), getLicenseDetails(),
     ]);
     if (!u) { router.replace("/onboarding"); return; }
-    
+
+    // Show PWA install guide once on web
+    if (Platform.OS === "web") {
+      const shown = await AsyncStorage.getItem("pwa_guide_shown_v1");
+      if (!shown) { router.replace("/pwa-guide"); return; }
+    }
+
     // Check for live classes
     const liveQuery = query(collection(db, "live_sessions"), where("status", "==", "live"), limit(1));
     const liveSnap = await getDocs(liveQuery);

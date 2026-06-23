@@ -289,6 +289,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="pwa-guide" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="activate" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="creator/index" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen name="creator/create-bundle" options={{ headerShown: false, animation: "slide_from_right" }} />
